@@ -49,6 +49,7 @@ function db_connect()
                 username VARCHAR(50) NOT NULL,
                 password VARCHAR(255) NOT NULL,
                 user_role ENUM('PARENT', 'TEACHER'),
+                relationship ENUM('Father', 'Mother', 'Guardian'),
                 created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )",
              "CREATE TABLE IF NOT EXISTS users_history (
@@ -99,6 +100,25 @@ function db_connect()
                 FOREIGN KEY (section_id) REFERENCES sections(section_id) ON DELETE CASCADE,
                 FOREIGN KEY (adviser_id) REFERENCES users(user_id) ON DELETE CASCADE,
                 FOREIGN KEY (sy_id) REFERENCES school_year(school_year_id) ON DELETE CASCADE
+            )",
+            "CREATE TABLE IF NOT EXISTS student (
+                student_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                section_id INT(11),
+                guardian_id INT(11),
+                enrolment_status ENUM('active', 'transferred', 'dropped'),
+                lrn INT(12) NOT NULL,
+                fname VARCHAR(150) NOT NULL,
+                mname VARCHAR(150) NOT NULL,
+                lname VARCHAR(150) NOT NULL,
+                sex ENUM('MALE', 'FEMALE'),
+                birthdate date,
+                religion VARCHAR(50),
+                address VARCHAR(255),
+                gradeLevel VARCHAR(10),
+                enrolled_date date,
+                student_profile BLOB,
+                FOREIGN KEY (section_id) REFERENCES sections(section_id) ON DELETE CASCADE,
+                FOREIGN KEY (guardian_id) REFERENCES users(user_id) ON DELETE CASCADE
             )",
             
         ];

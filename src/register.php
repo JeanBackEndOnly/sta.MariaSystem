@@ -20,16 +20,16 @@
                 <h5 class="ms-1 my-1">Personal Information</h5>
                 <!-- Account Type -->
                 <div class="col-md-3">
-                    <label class="form-label">Last Name</label>
-                    <input required placeholder="Last Name" type="text" class="form-control" name="lastName">
-                </div>
-                <div class="col-md-3">
                     <label class="form-label">First Name</label>
                     <input required placeholder="First Name" type="text" class="form-control" name="firstName">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Middle Name</label>
                     <input required placeholder="Middle Name" type="text" class="form-control" name="middleName">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Last Name</label>
+                    <input required placeholder="Last Name" type="text" class="form-control" name="lastName">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Suffix</label>
@@ -44,6 +44,15 @@
                 <div class="col-md-4">
                     <label class="form-label">Email</label>
                     <input required placeholder="Email" type="email" class="form-control" name="email">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Relationship with student</label>
+                    <select name="relationship" id="" class="form-select">
+                        <option value="">Select relationship</option>
+                        <option value="Father">Father</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Guardian">Guardian</option>
+                    </select>
                 </div>
                 <h5 class="ms-1 my-1 mt-3">Account Information</h5>
                 <div class="col-md-4">

@@ -26,13 +26,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     session_regenerate_id(true);
                     $_SESSION['user_id'] = $user['user_id'];
                     $_SESSION['user_role'] = $user['user_role'];
+                    $user_role = $user['user_role'];
 
+                    if($user_role == 'PARENT'){
+                        $stmt = $pdo->prepare("INSERT INTO users_history (user_id, login_time) VALUES (?, NOW())");
+                        $stmt->execute([$user['user_id']]);
+
+                        header("Location: ../src/UI-parents/index.php");
+                        exit();
+                    }else if($user_role == 'TEACHER'){
+                        $stmt = $pdo->prepare("INSERT INTO users_history (user_id, login_time) VALUES (?, NOW())");
+                        $stmt->execute([$user['user_id']]);
+
+                        header("Location: ../src/UI-teacher/index.php");
+                        exit();
+                    }
                     // Log login history
-                    $stmt = $pdo->prepare("INSERT INTO users_history (user_id, login_time) VALUES (?, NOW())");
-                    $stmt->execute([$user['user_id']]);
-
-                    header("Location: ../src/UI-users/index.php");
-                    exit();
+                   
                 }
 
                 // If not a user, check if it's an admin
@@ -102,8 +112,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if (empty($errors)) {
                 $newHashed = password_hash($_POST["password"], PASSWORD_BCRYPT);
                 $user_role = "PARENT";
-                $query = "INSERT INTO users (firstname, middlename, lastname, suffix, user_role, email, username, password) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                $query = "INSERT INTO users (firstname, middlename, lastname, suffix, user_role, email, relationship, username, password) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $pdo->prepare($query);
                 $stmt->execute([
                     $_POST["firstName"],
@@ -112,6 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $_POST["suffix"] ?? null,
                     $user_role,
                     $_POST["email"],
+                    $_POST["relationship"],
                     $_POST["username"],
                     $newHashed
                 ]);
