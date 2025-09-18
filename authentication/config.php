@@ -120,6 +120,24 @@ function db_connect()
                 student_profile BLOB,
                 FOREIGN KEY (guardian_id) REFERENCES users(user_id) ON DELETE CASCADE
             )",
+            "CREATE TABLE IF NOT EXISTS enrolment (
+                enrolment_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                student_id INT(11),
+                adviser_id INT(11),
+                school_year_id INT(11),
+                Grade_level VARCHAR(10),
+                enrolment_Status ENUM('Approved', 'Rejected'),
+                FOREIGN KEY (student_id) REFERENCES student(student_id) ON DELETE CASCADE,
+                FOREIGN KEY (adviser_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (school_year_id) REFERENCES school_year(school_year_id) ON DELETE CASCADE
+            )",
+            "CREATE TABLE IF NOT EXISTS enrolment_subjects (
+                enrolment_subjects_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                enrolment_id INT(11) NOT NULL,
+                subjects_id INT(11) NOT NULL,
+                FOREIGN KEY (enrolment_id) REFERENCES enrolment(enrolment_id) ON DELETE CASCADE
+            )",
+
             
         ];
 

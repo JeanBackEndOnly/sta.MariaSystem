@@ -69,3 +69,10 @@ if($action === 'studentAcc_form'){
     }
     exit();
 }
+if($action === 'enrolment_form'){
+    $registration = $crud->enrolment_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}

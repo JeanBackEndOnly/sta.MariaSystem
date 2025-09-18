@@ -326,7 +326,7 @@ class Action
             ]);
         }
     }
-   function assignTeacher_form(){
+    function assignTeacher_form(){
         $classroom_id = htmlspecialchars(trim($_POST["classroom_id"]));
         $section_id = htmlspecialchars(trim($_POST["section_id"]));
         $grade_level = htmlspecialchars(trim($_POST["grade_level"]));
@@ -374,7 +374,6 @@ class Action
             ]);
         }
     }
-
     function studentAcc_form() {
         $lrn = htmlspecialchars(trim($_POST["lrn"] ?? ''));
         $gradeLevel = htmlspecialchars(trim($_POST["grade_level"] ?? ''));
@@ -463,6 +462,56 @@ class Action
             ]);
         }
     }
+    function enrolment_form() {
+        $adviser_id = $_POST['adviser_id'] ?? null;
+        $schoolyear_id = $_POST['schoolyear_id'] ?? null;
+        $grade_level = $_POST['grade_level'] ?? null;
+        $subjects = $_POST['subjects'] ?? [];
+        $student_id = $_POST['student_id'] ?? null;
+
+        try {
+            // Validate required fields
+            if (!$adviser_id || !$schoolyear_id || !$grade_level || empty($subjects) || !$student_id) {
+                return json_encode(['status'=>0,'message'=>'All fields are required.']);
+            }
+
+            // Check if student already has an enrolment for this school year
+            $stmt = $this->db->prepare("SELECT enrolment_id FROM enrolment WHERE student_id = ? AND school_year_id = ?");
+            $stmt->execute([$student_id, $schoolyear_id]);
+            $existing_enrolment = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($existing_enrolment) {
+                return json_encode(['status'=>0,'message'=>'Student already has an enrolment for this school year.']);
+            }
+
+            // Insert enrolment
+            $stmt = $this->db->prepare("INSERT INTO enrolment 
+                (student_id, adviser_id, school_year_id, Grade_level, enrolment_Status)
+                VALUES (?, ?, ?, ?, 'Approved')");
+            $stmt->execute([$student_id, $adviser_id, $schoolyear_id, $grade_level]);
+
+            $enrolment_id = $this->db->lastInsertId();
+
+            // Insert selected subjects
+            $stmt = $this->db->prepare("INSERT INTO enrolment_subjects (enrolment_id, subjects_id) VALUES (?, ?)");
+            foreach($subjects as $subj_id) {
+                $stmt->execute([$enrolment_id, $subj_id]);
+            }
+
+            $stmt = $this->db->prepare("UPDATE student SET enrolment_status = 'Active' WHERE student_id = '$student_id'");
+            $stmt =   $stmt->execute();
+
+            return json_encode(['status'=>1,'message'=>'Enrolment approved successfully.']);
+        } catch(PDOException $e) {
+            error_log($e->getMessage());
+            // Check for specific constraint violations
+            if (strpos($e->getMessage(), 'foreign key constraint') !== false) {
+                return json_encode(['status'=>0,'message'=>'Invalid data provided. Please check your selections.']);
+            }
+            return json_encode(['status'=>0,'message'=>'Database error.']);
+        }
+    }
+
 
     
 }

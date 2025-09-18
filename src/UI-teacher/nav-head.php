@@ -12,14 +12,14 @@ $user_id = $_SESSION['user_id'];
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
-<div class="justify-content-between d-flex flex-row col-md-12 col-12  m-0" style="padding: .2rem !important; padding-top: .3rem !important; padding-bottom: .3rem !important; border-bottom: solid 1px rgba(0,0,0,.2);">
-  <div class="m-0 p-0 col-md-8 col-10 py-2 d-flex flex-row buttonUpdateProfile">
+<div class="text-white justify-content-between d-flex flex-row col-md-12 col-12  m-0 p-0 bg-danger" style="border-bottom: solid 1px rgba(0,0,0,.2);">
+  <div class="m-0 p-0 col-md-8 col-10 d-flex flex-row buttonUpdateProfile">
       <div class="burderDiv" style="display: none;">
         <button class="buttonHide" id="burgerButton"><i class="burger fa-solid fa-bars fs-4 me-3"></i></button>
       </div>
       <div class="row d-flex flex-row col-md-12 col-12 ps-3 transformMedia">
-        <img src="../../assets/image/system_logo/ZPPSU.png" alt="" style="width: 70px; height: auto; border-radius: 50%;">
-        <h4 class="card-title text-black text-start p-0 m-0 w-75 d-flex align-items-center">TEMPLATE</h4>
+        <img src="../../assets/image/logo2.png" alt="" style="width: 70px; height: auto; border-radius: 50%;" class="p-1">
+        <h4 class="card-title text-white text-start p-0 m-0 w-75 d-flex align-items-center">STA.MARIA WEB SYSTEM</h4>
       </div>
   </div>
   <div class="justify-content-end paddingMedia transformMedia d-flex col-md-4 col-4 pe-4">

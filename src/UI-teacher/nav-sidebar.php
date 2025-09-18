@@ -1,6 +1,6 @@
 <style>
     .sidebar-list a.active {
-        background-color: #344767 !important;
+         background-color: #dc3545 !important;
         font-weight: bold;
         color: snow;
     }
@@ -39,6 +39,15 @@
         <div class="sidebar-list m-2 mt-3">
             <a href="index.php?page=home" class="nav-item p-2 rounded-1 nav-home ">
                 <span class=""><i class=""></i></span> Dashboard
+            </a>
+             <a href="index.php?page=contents/enrolment" class="nav-item p-2 rounded-1 nav-enrolment">
+                <span class=""><i class=""></i></span> Enrolment Process 
+            </a>
+             <a href="index.php?page=contents/attendance" class="nav-item p-2 rounded-1 nav-attendance">
+                <span class=""><i class=""></i></span> Attendance 
+            </a>
+             <a href="index.php?page=contents/medical" class="nav-item p-2 rounded-1 nav-medical">
+                <span class=""><i class=""></i></span> Medical Health 
             </a>
             <a href="index.php?page=contents/settings" class="nav-item p-2 rounded-1 nav-settings">
                 <span class=""><i class=""></i></span> Account Settings 
