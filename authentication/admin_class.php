@@ -448,6 +448,11 @@ class Action
                 $lastName, $suffix, $sex, $birthdate, $birthplace,
                 $religion, $gradeLevel, $student_profile
             ]);
+            $student_id = $this->db->lastInsertId();
+
+            $query = "INSERT INTO stuEnrolmentInfo (student_id) VALUES ('$student_id')";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
 
             return json_encode([
                 'status' => 1,
@@ -563,6 +568,124 @@ class Action
             return json_encode([
                 'status' => 1,
                 'message' => 'School Year Deactivated successfully!'
+            ]);
+
+        } catch (PDOException $e) {
+            error_log("Database error: " . $e->getMessage());
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred. Please try again later.'
+            ]);
+        }
+    }
+    function stduentEnrolment_form() {
+        $student_id = $_POST["student_id"] ?? null;
+        
+        if (!$student_id) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'Student ID is required'
+            ]);
+        }
+
+        try {
+            // Update student table
+            $student_query = "UPDATE student SET 
+                lrn = :lrn,
+                fname = :fname,
+                mname = :mname,
+                lname = :lname,
+                suffix = :suffix,
+                sex = :gender,
+                birthdate = :birthdate,
+                birthplace = :birth_place,
+                religion = :religious,
+                enrolment_status = 'pending'
+                WHERE student_id = :student_id";
+
+            $student_stmt = $this->db->prepare($student_query);
+            $student_stmt->execute([
+                ':lrn' => $_POST['lrn'],
+                ':fname' => $_POST['fname'],
+                ':mname' => $_POST['mname'],
+                ':lname' => $_POST['lname'],
+                ':suffix' => $_POST['suffix'],
+                ':gender' => $_POST['gender'],
+                ':birthdate' => $_POST['birthdate'],
+                ':birth_place' => $_POST['birth_place'],
+                ':religious' => $_POST['religious'],
+                ':student_id' => $student_id
+            ]);
+
+            // Handle arrays (convert to comma-separated strings)
+            $diagnosis = isset($_POST['diagnosis']) ? implode(',', $_POST['diagnosis']) : '';
+            $manifestations = isset($_POST['manifestations']) ? implode(',', $_POST['manifestations']) : '';
+            $learning_mode = isset($_POST['learning_mode']) ? implode(',', $_POST['learning_mode']) : '';
+
+            // Check if enrolment info already exists
+            $check_query = "SELECT COUNT(*) FROM stuEnrolmentInfo WHERE student_id = :student_id";
+            $check_stmt = $this->db->prepare($check_query);
+            $check_stmt->execute([':student_id' => $student_id]);
+            $exists = $check_stmt->fetchColumn();
+
+            if ($exists) {
+                // Update existing record
+                $enrolment_query = "UPDATE stuEnrolmentInfo SET 
+                    mother_tongue = :tongue,
+                    house_no = :current_house_no,
+                    street = :current_street,
+                    barnagay = :current_barangay,
+                    city = :current_city,
+                    province = :current_province,
+                    country = :current_country,
+                    zip_code = :current_zip,
+                    diagnosis = :diagnosis,
+                    manifestations = :manifestations,
+                    pwd_id = :has_pwd_id_specific,
+                    balik_aral = :last_grade_level,
+                    learning_mode = :learning_mode,
+                    indigenous_people = :ip_specify,
+                    fourPs = :household_id
+                    WHERE student_id = :student_id";
+            } else {
+                // Insert new record
+                $enrolment_query = "INSERT INTO stuEnrolmentInfo (
+                    student_id, mother_tongue, house_no, street, barnagay, city, 
+                    province, country, zip_code, diagnosis, manifestations, pwd_id, 
+                    balik_aral, learning_mode, indigenous_people, fourPs
+                ) VALUES (
+                    :student_id, :tongue, :current_house_no, :current_street, :current_barangay, 
+                    :current_city, :current_province, :current_country, :current_zip, 
+                    :diagnosis, :manifestations, :has_pwd_id_specific, :last_grade_level, 
+                    :learning_mode, :ip_specify, :household_id
+                )";
+            }
+
+            $enrolment_stmt = $this->db->prepare($enrolment_query);
+            $enrolment_params = [
+                ':student_id' => $student_id,
+                ':tongue' => $_POST['tongue'],
+                ':current_house_no' => $_POST['current_house_no'],
+                ':current_street' => $_POST['current_street'],
+                ':current_barangay' => $_POST['current_barangay'],
+                ':current_city' => $_POST['current_city'],
+                ':current_province' => $_POST['current_province'],
+                ':current_country' => $_POST['current_country'],
+                ':current_zip' => $_POST['current_zip'],
+                ':diagnosis' => $diagnosis,
+                ':manifestations' => $manifestations,
+                ':has_pwd_id_specific' => $_POST['has_pwd_id_specific'],
+                ':last_grade_level' => $_POST['last_grade_level'],
+                ':learning_mode' => $learning_mode,
+                ':ip_specify' => $_POST['ip_specify'],
+                ':household_id' => $_POST['household_id']
+            ];
+
+            $enrolment_stmt->execute($enrolment_params);
+
+            return json_encode([
+                'status' => 1,
+                'message' => 'Enrollment information updated successfully!'
             ]);
 
         } catch (PDOException $e) {

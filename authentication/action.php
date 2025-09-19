@@ -99,3 +99,10 @@ if($action === 'DeactivationSY_form'){
     }
     exit();
 }
+if($action === 'stduentEnrolment_form'){
+    $registration = $crud->stduentEnrolment_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}

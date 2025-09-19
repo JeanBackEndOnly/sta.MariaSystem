@@ -89,7 +89,6 @@ function db_connect()
                 room_type VARCHAR(50) NOT NULL,
                 created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )",
-             
             "CREATE TABLE IF NOT EXISTS student (
                 student_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 guardian_id INT(11),
@@ -126,6 +125,26 @@ function db_connect()
                 enrolment_id INT(11) NOT NULL,
                 subjects_id INT(11) NOT NULL,
                 FOREIGN KEY (enrolment_id) REFERENCES enrolment(enrolment_id) ON DELETE CASCADE
+            )",
+            "CREATE TABLE IF NOT EXISTS stuEnrolmentInfo (
+                stuEnrolmentInfo_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                student_id INT(11) NOT NULL,
+                mother_tongue VARCHAR(50),
+                house_no VARCHAR(50),
+                street VARCHAR(50),
+                barnagay VARCHAR(50),
+                city VARCHAR(50),
+                province VARCHAR(50),
+                country VARCHAR(50),
+                zip_code VARCHAR(50), 
+                diagnosis VARCHAR(50),
+                manifestations VARCHAR(50),
+                pwd_id VARCHAR(50),
+                balik_aral VARCHAR(50),
+                learning_mode VARCHAR(50),
+                indigenous_people VARCHAR(50),
+                fourPs VARCHAR(50),
+                FOREIGN KEY (student_id) REFERENCES student(student_id) ON DELETE CASCADE
             )",
 
             
