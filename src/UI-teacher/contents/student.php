@@ -19,11 +19,11 @@
 
 <div class="row g-2  justify-content-between">
     <div class="row mb-3  justify-content-between">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <input type="text" id="searchInput" name="search" class="form-control"
                 placeholder="Search by name, role, status, or date...">
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <select name="adviser_id" class="form-select" required>
                 <option value="">Select Section</option>
                 <?php foreach($classes as $class) : ?>
@@ -35,7 +35,7 @@
                 <?php endforeach ?>
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <select id="categoryFilter" name="gradeLevelCategory" class="form-select">
                 <option value="">Grade Level</option>
                 <option value="Grade 1">Grade 1</option>
@@ -44,13 +44,6 @@
                 <option value="Grade 4">Grade 4</option>
                 <option value="Grade 5">Grade 5</option>
                 <option value="Grade 6">Grade 6</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <select id="categoryFilter" name="gradeLevelCategory" class="form-select">
-                <option value="">Attendance Type</option>
-                <option value="Morning">Morning</option>
-                <option value="Afternoon">Afternoon</option>
             </select>
         </div>
     </div>
@@ -106,7 +99,7 @@
                         <td width="15%"><?= htmlspecialchars($user["enrolled_date"]) ?></td>
                         <td width="15%">
                             <div class="d-flex gap-1 justify-content-center">
-                                <button class="btn  btn-success">P</button><button class="btn  btn-danger">A</button><button class="btn  btn-warning">L</button>
+                                <a href="index.php?page=contents/profile&student_id=<?= $user["student_id"] ?>"><button class="btn btn-info m-0">Student Profile</button></a>
                             </div>
                         </td>
                     </tr>

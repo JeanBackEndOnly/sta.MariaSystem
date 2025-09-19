@@ -29,7 +29,7 @@ $user_id = $_SESSION['user_id'];
     </div>
 
     <button type="button" onclick="LogoutButton()" style="border: none; background: none;">
-        <i class="fas fa-sign-out-alt text-black ms-1" style="font-size: 17px !important;"></i> 
+        <i class="fas fa-sign-out-alt text-white ms-1" style="font-size: 17px !important;"></i> 
     </button>
     <div class="logoutDomain transformMedia col-md-3 col-8 h-auto shadow rounded-1 flex-column border" id="logoutDomain" style="display:none; background-color: #fff !important;">
       <div class="header-logout modalBG p-3 d-flex align-items-start justify-content-start w-100 rounded-top">
@@ -40,7 +40,7 @@ $user_id = $_SESSION['user_id'];
       </div>
       <div class="footer-logout w-100 d-flex align-items-end justify-content-end gap-3 pb-3 pe-3 pt-2" style="border-top: solid .5px #0e0e0e4f !important;">
         <form action="../../authentication/auth.php" method="post">
-          <input type="hidden" name="Logout" value="true">
+          <input type="hidden" name="LogoutUser" value="true">
           <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">
           <button class="m-0 btn btn-dark" class="logout" style="cursor: pointer;">
               yes

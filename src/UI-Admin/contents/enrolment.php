@@ -121,16 +121,26 @@
                 ?>
                     <form class="row g-3" id="enrolment-form" method="post">
                         <input type="hidden" name="student_id" id="student_id" value="">
+                       
                         <div class="col-md-6">
-                            <label class="form-label">Class Section <span class="text-danger">*</span></label>
+                            <label class="form-label">Class Adviser <span class="text-danger">*</span></label>
                             <select name="adviser_id" class="form-select" required>
-                                <option value="">Select Section</option>
+                                <option value="">Select Class</option>
                                 <?php foreach($classes as $class) : ?>
                                 <option value="<?= $class["user_id"] ?>">
-                                    <?= htmlspecialchars($class["section_name"]) ?> -
-                                    Adviser:
+                                     Adviser:
                                     <?= htmlspecialchars($class["lastname"]) . " " . htmlspecialchars($class["firstname"]) ?>
                                 </option>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Section <span class="text-danger">*</span></label>
+                            <select name="section_name" class="form-select" required>
+                                <option value="">Select Sections</option>
+                                <?php foreach($classes as $class) : ?>
+                                <option value="<?= $class["section_name"] ?>">
+                                    <?= htmlspecialchars($class["section_name"]) ?> </option>
                                 <?php endforeach ?>
                             </select>
                         </div>

@@ -688,6 +688,7 @@ $(document).ready(function () {
     $form.data("isSubmitted", true);
     
     // Basic validation
+    const section_name = $form.find('[name="section_name"]').val().trim();
     const adviser_id = $form.find('[name="adviser_id"]').val().trim();
     const schoolyear_id = $form.find('[name="schoolyear_id"]').val().trim();
     const grade_level = $form.find('[name="grade_level"]').val().trim();
@@ -697,7 +698,7 @@ $(document).ready(function () {
         return $(this).val();
     }).get();
     
-    if (!adviser_id || !schoolyear_id || !grade_level || !subjectCounts || !student_id || subjects.includes('')) {
+    if (!section_name || !adviser_id || !schoolyear_id || !grade_level || !subjectCounts || !student_id || subjects.includes('')) {
         Swal.fire({
             title: "Error",
             text: "Please fill in all required fields and select all subjects",

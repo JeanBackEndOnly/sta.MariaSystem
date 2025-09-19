@@ -332,6 +332,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             die('Query Failed: ' . $e->getMessage());
         }
     }
+     if (isset($_POST['LogoutUser']) && $_POST['LogoutUser'] === 'true') {
+        $user_id = $_POST["user_id"];
+        try {
+            header('Location: ../index.php');
+            
+        } catch (PDOException $e) {
+            die('Query Failed: ' . $e->getMessage());
+        }
+    }
     // if (isset($_POST['adminAccReg']) && $_POST['adminAccReg'] === 'true') {
     //     $lastName = $_POST["lastName"];
     //     $firstName = $_POST["firstName"];

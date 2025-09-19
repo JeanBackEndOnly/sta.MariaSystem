@@ -463,6 +463,7 @@ class Action
         }
     }
     function enrolment_form() {
+        $section_name = $_POST['section_name'] ?? null;
         $adviser_id = $_POST['adviser_id'] ?? null;
         $schoolyear_id = $_POST['schoolyear_id'] ?? null;
         $grade_level = $_POST['grade_level'] ?? null;
@@ -486,9 +487,9 @@ class Action
 
             // Insert enrolment
             $stmt = $this->db->prepare("INSERT INTO enrolment 
-                (student_id, adviser_id, school_year_id, Grade_level, enrolment_Status)
-                VALUES (?, ?, ?, ?, 'Approved')");
-            $stmt->execute([$student_id, $adviser_id, $schoolyear_id, $grade_level]);
+                (student_id, adviser_id, section_name, school_year_id, Grade_level, enrolment_Status)
+                VALUES (?, ?, ?, ?, ?, 'Approved')");
+            $stmt->execute([$student_id, $adviser_id, $section_name, $schoolyear_id, $grade_level]);
 
             $enrolment_id = $this->db->lastInsertId();
 

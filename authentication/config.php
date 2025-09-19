@@ -54,7 +54,7 @@ function db_connect()
             )",
              "CREATE TABLE IF NOT EXISTS users_history (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
+                user_id INT(11) NOT NULL,
                 login_time DATETIME NOT NULL,
                 logout_time DATETIME DEFAULT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
@@ -123,6 +123,7 @@ function db_connect()
             "CREATE TABLE IF NOT EXISTS enrolment (
                 enrolment_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 student_id INT(11),
+                section_name VARCHAR(20),
                 adviser_id INT(11),
                 school_year_id INT(11),
                 Grade_level VARCHAR(10),

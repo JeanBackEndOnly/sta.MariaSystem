@@ -40,8 +40,9 @@ $user_id = $_SESSION['user_id'];
       </div>
       <div class="footer-logout w-100 d-flex align-items-end justify-content-end gap-3 pb-3 pe-3 pt-2" style="border-top: solid .5px #0e0e0e4f !important;">
         <form action="../../authentication/auth.php" method="post">
-          <input type="hidden" name="Logout" value="true">
+          <input type="hidden" name="LogoutUser" value="true">
           <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">
+          <input type="hidden" name="user_id" value="<?= $user_id ?>">
           <button class="m-0 btn btn-dark" class="logout" style="cursor: pointer;">
               yes
           </button>
