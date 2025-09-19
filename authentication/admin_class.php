@@ -467,12 +467,12 @@ class Action
         $adviser_id = $_POST['adviser_id'] ?? null;
         $schoolyear_id = $_POST['schoolyear_id'] ?? null;
         $grade_level = $_POST['grade_level'] ?? null;
-        $subjects = $_POST['subjects'] ?? [];
+        $subjects = $_POST['subjects'] ?? []; // Changed from subjects[] to subjects
         $student_id = $_POST['student_id'] ?? null;
 
         try {
             // Validate required fields
-            if (!$adviser_id || !$schoolyear_id || !$grade_level || empty($subjects) || !$student_id) {
+            if (!$adviser_id || !$schoolyear_id || !$grade_level || empty($subjects) || !$student_id || !$section_name) {
                 return json_encode(['status'=>0,'message'=>'All fields are required.']);
             }
 
@@ -499,8 +499,8 @@ class Action
                 $stmt->execute([$enrolment_id, $subj_id]);
             }
 
-            $stmt = $this->db->prepare("UPDATE student SET enrolment_status = 'Active' WHERE student_id = '$student_id'");
-            $stmt =   $stmt->execute();
+            $stmt = $this->db->prepare("UPDATE student SET enrolment_status = 'Active' WHERE student_id = ?");
+            $stmt->execute([$student_id]);
 
             return json_encode(['status'=>1,'message'=>'Enrolment approved successfully.']);
         } catch(PDOException $e) {
@@ -509,10 +509,70 @@ class Action
             if (strpos($e->getMessage(), 'foreign key constraint') !== false) {
                 return json_encode(['status'=>0,'message'=>'Invalid data provided. Please check your selections.']);
             }
-            return json_encode(['status'=>0,'message'=>'Database error.']);
+            return json_encode(['status'=>0,'message'=>'Database error: ' . $e->getMessage()]);
         }
     }
+    function activationSY_form() {
+        $school_year_id = $_POST["school_year_id"] ?? null;
 
+        try {
+            $query = "UPDATE school_year SET school_year_status = 'Active' WHERE school_year_id = '$school_year_id'";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            return json_encode([
+                'status' => 1,
+                'message' => 'School Year Activated successfully!'
+            ]);
+
+        } catch (PDOException $e) {
+            error_log("Database error: " . $e->getMessage());
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred. Please try again later.'
+            ]);
+        }
+    }
+    function DeactivationSY_form() {
+        $school_year_id = $_POST["school_year_id"] ?? null;
+
+        try {
+            $query = "UPDATE school_year SET school_year_status = 'Inactive' WHERE school_year_id = '$school_year_id'";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            return json_encode([
+                'status' => 1,
+                'message' => 'School Year Deactivated successfully!'
+            ]);
+
+        } catch (PDOException $e) {
+            error_log("Database error: " . $e->getMessage());
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred. Please try again later.'
+            ]);
+        }
+    }
+    function rejectEnrolment_form() {
+        $student_id = $_POST["studentID"] ?? null;
+
+        try {
+            $query = "UPDATE student SET enrolment_status = 'rejected' WHERE student_id = '$student_id'";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+
+            return json_encode([
+                'status' => 1,
+                'message' => 'School Year Deactivated successfully!'
+            ]);
+
+        } catch (PDOException $e) {
+            error_log("Database error: " . $e->getMessage());
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred. Please try again later.'
+            ]);
+        }
+    }
 
     
 }

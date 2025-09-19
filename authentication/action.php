@@ -27,6 +27,8 @@ if($action === 'Account_form'){
     }
     exit();
 }
+
+
 if($action === 'classroom_form'){
     $registration = $crud->classroom_form();
     if($registration){
@@ -68,9 +70,30 @@ if($action === 'studentAcc_form'){
         echo $registration;
     }
     exit();
-}
+} 
 if($action === 'enrolment_form'){
     $registration = $crud->enrolment_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'rejectEnrolment_form'){
+    $registration = $crud->rejectEnrolment_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'activationSY_form'){
+    $registration = $crud->activationSY_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'DeactivationSY_form'){
+    $registration = $crud->DeactivationSY_form();
     if($registration){
         echo $registration;
     }

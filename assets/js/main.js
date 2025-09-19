@@ -658,7 +658,7 @@ $(document).ready(function () {
           }
       });
   });
-    $(document).on('click', '#open_enrolment', function () {
+  $(document).on('click', '#open_enrolment', function () {
     const student_id = $(this).data('id');
     const student_name = $(this).data('name') || 'Student';
     
@@ -674,14 +674,13 @@ $(document).ready(function () {
     
     // Show the modal
     $('#AddNewAccount').modal('show');
-    });
-
-    // Handle modal hidden event to reset form
-    $('#AddNewAccount').on('hidden.bs.modal', function () {
+  });
+  // Enrolment Forms =============================================
+  $('#AddNewAccount').on('hidden.bs.modal', function () {
         $('#enrolment-form')[0].reset();
         $('#subjectSelectContainer').empty();
-    });
-   $(document).on("submit", "#enrolment-form", function (e) { 
+  });
+  $(document).on("submit", "#enrolment-form", function (e) { 
     e.preventDefault();
     const $form = $(this);
     if ($form.data("isSubmitted")) return;
@@ -692,16 +691,16 @@ $(document).ready(function () {
     const adviser_id = $form.find('[name="adviser_id"]').val().trim();
     const schoolyear_id = $form.find('[name="schoolyear_id"]').val().trim();
     const grade_level = $form.find('[name="grade_level"]').val().trim();
-    const subjectCounts = $form.find('[name="subjectCounts"]').val().trim();
     const student_id = $form.find('[name="student_id"]').val().trim();
     const subjects = $form.find('[name="subjects[]"]').map(function() {
         return $(this).val();
     }).get();
     
-    if (!section_name || !adviser_id || !schoolyear_id || !grade_level || !subjectCounts || !student_id || subjects.includes('')) {
+    // Check if any subjects were selected
+    if (subjects.length === 0) {
         Swal.fire({
             title: "Error",
-            text: "Please fill in all required fields and select all subjects",
+            text: "No subjects available for this grade level",
             icon: "error",
             toast: true,
             position: "top-end",
@@ -712,12 +711,10 @@ $(document).ready(function () {
         return;
     }
     
-    // Check for duplicate subject selections
-    const subjectSet = new Set(subjects);
-    if (subjectSet.size !== subjects.length) {
+    if (!section_name || !adviser_id || !schoolyear_id || !grade_level || !student_id) {
         Swal.fire({
             title: "Error",
-            text: "You have selected duplicate subjects. Please select unique subjects.",
+            text: "Please fill in all required fields",
             icon: "error",
             toast: true,
             position: "top-end",
@@ -752,7 +749,7 @@ $(document).ready(function () {
                     showConfirmButton: false,
                 }).then(() => {
                     $form[0].reset();
-                    $('#subjectSelectContainer').empty();
+                    $('#subjectListContainer').empty();
                     $('#AddNewAccount').modal('hide');
                     // Refresh the page to show updated enrolment status
                     location.reload();
@@ -786,8 +783,276 @@ $(document).ready(function () {
             $btn.prop("disabled", false).html('Approve Enrolment');
         }
     });
-    });
+  });
+  $(document).ready(function() {
+        $('#adviserSelect').change(function() {
+            const selectedOption = $(this).find('option:selected');
+            const sectionName = selectedOption.data('section');
+            $('#section_name').val(sectionName);
+        });
+  });
+  $(document).on('click', '#rejectionBtn', function () {
+    const studentID = $(this).data('id');
+    $('#studentID').val(studentID);
+    $('#rejectEnrolment').modal('show');
+  });
+  $(document).on("submit", "#rejectEnrolment-form", function (e) { 
+    // alert('Button Submit');
+      e.preventDefault();
+      const $form = $(this);
+      if ($form.data("isSubmitted")) return;
+      $form.data("isSubmitted", true);
+      
+      // Basic validation
+      const studentID = $form.find('[name="studentID"]').val().trim();
 
+      if (!studentID) {
+          Swal.fire({
+              title: "Error",
+              text: "Please fill in all required fields",
+              icon: "error",
+              toast: true,
+              position: "top-end",
+              timer: 3000,
+              showConfirmButton: false,
+          });
+          $form.data("isSubmitted", false);
+          return;
+      }
+      
+      const formData = new FormData(this);
+      const $btn = $form.find("button[type='submit']");
+      $btn.prop("disabled", true);
+      $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+      
+      $.ajax({
+          url: base_url + "authentication/action.php?action=rejectEnrolment_form",
+          type: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: "json",
+          success: function (response) {
+              if (response.status === 1) {
+                  Swal.fire({
+                      title: "Success!",
+                      text: response.message,
+                      icon: "success",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  }).then(() => {
+                      // $form[0].reset(); // Reset form on success
+                      // $('#createClassrooms').modal('hide'); // Close modal
+                      // loadClassrooms(); // Refresh classroom list
+                      $form[0].reset(); 
+                  });
+              } else {
+                  Swal.fire({
+                      title: "Error",
+                      text: response.message,
+                      icon: "error",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  });
+              }
+          },
+          error: function (jqXHR, textStatus, err) {
+              console.error("AJAX error:", textStatus, err);
+              Swal.fire({
+                  title: "Connection Error",
+                  text: "Please check your connection and try again.",
+                  icon: "error",
+                  toast: true,
+                  position: "top-end",
+                  timer: 3000,
+                  showConfirmButton: false,
+              });
+          },
+          complete: function () {
+              $form.data("isSubmitted", false);
+              $btn.prop("disabled", false).html('Rejected'); // Fixed button text
+          }
+      });
+  });
+  // School YEar Activation and Deactivation
+  $(document).on('click', '#activationBtn', function () {
+    const school_year_id = $(this).data('id');
+    $('#school_year_id').val(school_year_id);
+    $('#activateSY').modal('show');
+  });
+  $(document).on("submit", "#activateSY-form", function (e) { 
+    // alert('Button Submit');
+      e.preventDefault();
+      const $form = $(this);
+      if ($form.data("isSubmitted")) return;
+      $form.data("isSubmitted", true);
+      
+      // Basic validation
+      const school_year_id = $form.find('[name="school_year_id"]').val().trim();
+
+      if (!school_year_id) {
+          Swal.fire({
+              title: "Error",
+              text: "Please fill in all required fields",
+              icon: "error",
+              toast: true,
+              position: "top-end",
+              timer: 3000,
+              showConfirmButton: false,
+          });
+          $form.data("isSubmitted", false);
+          return;
+      }
+      
+      const formData = new FormData(this);
+      const $btn = $form.find("button[type='submit']");
+      $btn.prop("disabled", true);
+      $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+      
+      $.ajax({
+          url: base_url + "authentication/action.php?action=activationSY_form",
+          type: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: "json",
+          success: function (response) {
+              if (response.status === 1) {
+                  Swal.fire({
+                      title: "Success!",
+                      text: response.message,
+                      icon: "success",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  }).then(() => {
+                      // $form[0].reset(); // Reset form on success
+                      // $('#createClassrooms').modal('hide'); // Close modal
+                      // loadClassrooms(); // Refresh classroom list
+                      $form[0].reset(); 
+                  });
+              } else {
+                  Swal.fire({
+                      title: "Error",
+                      text: response.message,
+                      icon: "error",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  });
+              }
+          },
+          error: function (jqXHR, textStatus, err) {
+              console.error("AJAX error:", textStatus, err);
+              Swal.fire({
+                  title: "Connection Error",
+                  text: "Please check your connection and try again.",
+                  icon: "error",
+                  toast: true,
+                  position: "top-end",
+                  timer: 3000,
+                  showConfirmButton: false,
+              });
+          },
+          complete: function () {
+              $form.data("isSubmitted", false);
+              $btn.prop("disabled", false).html('Activated'); // Fixed button text
+          }
+      });
+  });
+  $(document).on('click', '#deactivationBtn', function () {
+    const schoolyear_id = $(this).data('id');
+    $('#schoolyear_id').val(schoolyear_id);
+    $('#DeactivateSY').modal('show');
+  });
+  $(document).on("submit", "#DeactivateSY-form", function (e) { 
+    // alert('Button Submit');
+      e.preventDefault();
+      const $form = $(this);
+      if ($form.data("isSubmitted")) return;
+      $form.data("isSubmitted", true);
+      
+      // Basic validation
+      const schoolyear_id = $form.find('[name="school_year_id"]').val().trim();
+
+      if (!schoolyear_id) {
+          Swal.fire({
+              title: "Error",
+              text: "Please fill in all required fields",
+              icon: "error",
+              toast: true,
+              position: "top-end",
+              timer: 3000,
+              showConfirmButton: false,
+          });
+          $form.data("isSubmitted", false);
+          return;
+      }
+      
+      const formData = new FormData(this);
+      const $btn = $form.find("button[type='submit']");
+      $btn.prop("disabled", true);
+      $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+      
+      $.ajax({
+          url: base_url + "authentication/action.php?action=DeactivationSY_form",
+          type: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: "json",
+          success: function (response) {
+              if (response.status === 1) {
+                  Swal.fire({
+                      title: "Success!",
+                      text: response.message,
+                      icon: "success",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  }).then(() => {
+                      // $form[0].reset(); // Reset form on success
+                      // $('#createClassrooms').modal('hide'); // Close modal
+                      // loadClassrooms(); // Refresh classroom list
+                      $form[0].reset(); 
+                  });
+              } else {
+                  Swal.fire({
+                      title: "Error",
+                      text: response.message,
+                      icon: "error",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  });
+              }
+          },
+          error: function (jqXHR, textStatus, err) {
+              console.error("AJAX error:", textStatus, err);
+              Swal.fire({
+                  title: "Connection Error",
+                  text: "Please check your connection and try again.",
+                  icon: "error",
+                  toast: true,
+                  position: "top-end",
+                  timer: 3000,
+                  showConfirmButton: false,
+              });
+          },
+          complete: function () {
+              $form.data("isSubmitted", false);
+              $btn.prop("disabled", false).html('Deactivated'); // Fixed button text
+          }
+      });
+  });
 
   function showError (message) {
     Swal.fire({

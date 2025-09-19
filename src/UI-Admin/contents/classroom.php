@@ -21,7 +21,7 @@
         <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSection" id="createSectionBtn">Create Section</button>
         <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSchoolYear" id="createSchoolYearBtn">Create School Year</button>
         <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSubjects" id="createSubjectsBtn">Create Subjects</button>
-</div>
+    </div>
 <!-- add Classroom Modal -->
  <div class="modal fade" id="createClassrooms" tabindex="-1" aria-labelledby="createClassroomsLabel" aria-hidden="true">
     <div class="modal-dialog modal-md">
@@ -341,6 +341,8 @@
                         <td width="20%"><?= htmlspecialchars($user["created_date"]) ?></td>
                         <td width="25%">
                             <div class="d-flex gap-1 justify-content-center">
+                                <button type="button" id="activationBtn" data-id="<?= $user["school_year_id"] ?>" class="btn btn-success btn-sm">Activate</button>
+                                <button type="button" id="deactivationBtn" data-id="<?= $user["school_year_id"] ?>" class="btn btn-danger btn-sm">Deactivate</button>
                                 <button type="button" class="btn btn-info btn-sm">Edit</button>
                                 <button type="button" class="btn btn-danger btn-sm">Delete</button>
                             </div>
@@ -413,6 +415,51 @@
                     <?php endforeach ?>
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+<!-- activate School Year -->
+<div class="modal fade" id="activateSY" tabindex="-1" aria-labelledby="activateSYLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="activateSYLabel">Activation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="activateSY-form" method="post">
+                    <input type="hidden" name="school_year_id" id="school_year_id">
+                    <span class="m-2">Are you Sure you want to <strong>Activate</strong> this School year?</span>
+                    <div class="col-12 text-center mt-3">
+                        <button type="submit" class="btn btn-primary px-5">
+                            Activate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="DeactivateSY" tabindex="-1" aria-labelledby="DeactivateSYLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="DeactivateSYLabel">Deactivation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="DeactivateSY-form" method="post">
+                    <input type="hidden" name="school_year_id" id="schoolyear_id">
+                    <span class="m-2">Are you Sure you want to <strong>Dectivate</strong> this School year?</span>
+                    <div class="col-12 text-center mt-3">
+                        <button type="submit" class="btn btn-primary px-5">
+                            Deactivate
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>

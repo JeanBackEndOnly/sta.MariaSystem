@@ -89,22 +89,11 @@ function db_connect()
                 room_type VARCHAR(50) NOT NULL,
                 created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )",
-            "CREATE TABLE IF NOT EXISTS classes (
-                class_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                section_id INT(11) NOT NULL,
-                adviser_id INT(11) NOT NULL,
-                sy_id INT(11) NOT NULL,
-                section_name VARCHAR(20) NOT NULL,
-                grade_level VARCHAR(10) NOT NULL,
-                assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (section_id) REFERENCES sections(section_id) ON DELETE CASCADE,
-                FOREIGN KEY (adviser_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                FOREIGN KEY (sy_id) REFERENCES school_year(school_year_id) ON DELETE CASCADE
-            )",
+             
             "CREATE TABLE IF NOT EXISTS student (
                 student_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 guardian_id INT(11),
-                enrolment_status ENUM('active', 'transferred', 'dropped', 'pending') DEFAULT 'pending',
+                enrolment_status ENUM('active', 'transferred', 'dropped', 'pending', 'rejected') DEFAULT 'pending',
                 lrn VARCHAR(12) NOT NULL,
                 fname VARCHAR(150) NOT NULL,
                 mname VARCHAR(150) NOT NULL,
