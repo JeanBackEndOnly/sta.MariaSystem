@@ -24,38 +24,15 @@
                 placeholder="Search by name, role, status, or date...">
         </div>
         <div class="col-md-3">
-            <select name="adviser_id" class="form-select" required>
-                <option value="">Select Section</option>
-                <?php foreach($classes as $class) : ?>
-                <option value="<?= $class["user_id"] ?>">
-                    <?= htmlspecialchars($class["section_name"]) ?> -
-                    Adviser:
-                    <?= htmlspecialchars($class["lastname"]) . " " . htmlspecialchars($class["firstname"]) ?>
-                </option>
-                <?php endforeach ?>
-            </select>
-        </div>
-        <div class="col-md-3">
             <select id="categoryFilter" name="gradeLevelCategory" class="form-select">
-                <option value="">Grade Level</option>
-                <option value="Grade 1">Grade 1</option>
-                <option value="Grade 2">Grade 2</option>
-                <option value="Grade 3">Grade 3</option>
-                <option value="Grade 4">Grade 4</option>
-                <option value="Grade 5">Grade 5</option>
-                <option value="Grade 6">Grade 6</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <select id="categoryFilter" name="gradeLevelCategory" class="form-select">
-                <option value="">Attendance Type</option>
+                <option value="Morning">Attendance Type</option>
                 <option value="Morning">Morning</option>
                 <option value="Afternoon">Afternoon</option>
             </select>
         </div>
     </div>
     <!-- Accounts Displays -->
-    <div class="table-container-wrapper">
+    <div class="table-container-wrapper morning">
         <?php
             $stmt = $pdo->prepare("SELECT * FROM enrolment
             INNER JOIN student ON enrolment.student_id = student.student_id
@@ -106,7 +83,89 @@
                         <td width="15%"><?= htmlspecialchars($user["enrolled_date"]) ?></td>
                         <td width="15%">
                             <div class="d-flex gap-1 justify-content-center">
-                                <button class="btn  btn-success">P</button><button class="btn  btn-danger">A</button><button class="btn  btn-warning">L</button>
+                                <form id="morning_attendanceP">
+                                    <input type="hidden" name="student_id" value="<?= $user["student_id"] ?>">
+                                    <button type="submit" class="btn  btn-success">P</button>
+                                </form>
+                                <form id="morning_attendanceA">
+                                     <input type="hidden" name="student_id" value="<?= $user["student_id"] ?>">
+                                    <button type="submit" class="btn  btn-danger">A</button>
+                                </form>
+                                <form id="morning_attendanceL">
+                                     <input type="hidden" name="student_id" value="<?= $user["student_id"] ?>">
+                                    <button type="submit" class="btn  btn-warning">L</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+      <div class="table-container-wrapper afternoon">
+        <?php
+            $stmt = $pdo->prepare("SELECT * FROM enrolment
+            INNER JOIN student ON enrolment.student_id = student.student_id
+            WHERE adviser_id = '$user_id'
+            ORDER BY fname ASC");
+            $stmt->execute();
+            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $count = 1;
+        ?>
+
+        <!-- Fixed Header -->
+        <div class="table-header">
+            <table class="table table-bordered table-sm text-center mb-0">
+                <thead>
+                    <tr>
+                        <th width="5%">#</th>
+                        <th width="20%">Name</th>
+                        <th width="15%">Grade Level</th>
+                        <th width="15%">Section</th>
+                        <th width="15%">Enrolment Status</th>
+                        <th width="15%">Enrolled at</th>
+                        <th width="15%">Action</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div class="table-body-scroll">
+            <table class="table table-bordered table-sm text-center mb-0">
+                <tbody>
+                    <?php foreach($users as $user) : ?>
+                    <tr>
+                        <td width="5%"><?= $count++ ?></td>
+                        <td width="20%">
+                            <?= htmlspecialchars($user["lname"]) . " " . 
+                            htmlspecialchars($user["fname"]) . " " .  (!empty($user["mname"]) ? htmlspecialchars(substr($user["mname"], 0, 1)) . ". " : "") ?>
+                        </td>
+                        <td width="15%"><?= htmlspecialchars($user["gradeLevel"]) ?></td>
+                        <td width="15%"><?= htmlspecialchars($user["section_name"]) ?></td>
+                        <td width="15%">
+                            <span
+                                class="badge bg-<?= ($user["enrolment_status"] == 'active') ? 'success' : 'secondary' ?>">
+                                <?= ($user["enrolment_status"] == 'active') ? 'Enrolled' : 'Inactive' ?>
+                            </span>
+                        </td>
+
+                        <td width="15%"><?= htmlspecialchars($user["enrolled_date"]) ?></td>
+                        <td width="15%">
+                            <div class="d-flex gap-1 justify-content-center">
+                                <form id="afternoon_attendanceP">
+                                    <input type="hidden" name="student_id" value="<?= $user["student_id"] ?>">
+                                    <button type="submit" class="btn  btn-success">P</button>
+                                </form>
+                                <form id="afternoon_attendanceA">
+                                     <input type="hidden" name="student_id" value="<?= $user["student_id"] ?>">
+                                    <button type="submit" class="btn  btn-danger">A</button>
+                                </form>
+                                <form id="afternoon_attendanceL">
+                                     <input type="hidden" name="student_id" value="<?= $user["student_id"] ?>">
+                                    <button type="submit" class="btn  btn-warning">L</button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -268,5 +327,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // Regenerate whenever grade level or count changes
     gradeLevelSelect.addEventListener('change', generateSubjectSelects);
     subjectCountsSelect.addEventListener('change', generateSubjectSelects);
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const categoryFilter = document.getElementById("categoryFilter");
+    const morningTable = document.querySelector(".table-container-wrapper.morning");
+    const afternoonTable = document.querySelector(".table-container-wrapper.afternoon");
+
+    function toggleTables() {
+        const selected = categoryFilter.value;
+
+        if (selected === "Morning") {
+            morningTable.style.display = "block";
+            afternoonTable.style.display = "none";
+        } else if (selected === "Afternoon") {
+            morningTable.style.display = "none";
+            afternoonTable.style.display = "block";
+        } else {
+            // Hide both when no filter is selected
+            morningTable.style.display = "none";
+            afternoonTable.style.display = "none";
+        }
+    }
+
+    // Trigger toggle on change
+    categoryFilter.addEventListener("change", toggleTables);
+
+    // Run on load to respect default value
+    toggleTables();
 });
 </script>

@@ -120,8 +120,109 @@ if($action === 'editClassroom_form'){
     }
     exit();
 }
+
+if($action === 'deleteSection_form'){
+    $registration = $crud->deleteSection_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
 if ($action === 'getClassroomById') {
     $id = $_POST['classroom_id'] ?? '';
     echo $crud->getClassroomById($id);
+    exit();
+}
+if ($action === 'getSectionById') {
+    $id = $_POST['section_id'] ?? '';
+    echo $crud->getSectionById($id);
+    exit();
+}
+
+if($action === 'editSection_form'){
+    $registration = $crud->editSection_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'deleteSchoolYear_form'){
+    $registration = $crud->deleteSchoolYear_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if ($action === 'getSchoolYearById') {
+    $id = $_POST['school_year_id'] ?? '';
+    echo $crud->getSchoolYearById($id);
+    exit();
+}
+if($action === 'editSchoolyear_form'){
+    $registration = $crud->editSchoolyear_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'deleteSubject_form'){
+    $registration = $crud->deleteSubject_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if ($action === 'getSubjectsById') {
+    $id = $_POST['subject_id'] ?? '';
+    echo $crud->getSubjectsById($id);
+    exit();
+}
+if($action === 'editSubjects_form'){
+    $registration = $crud->editSubjects_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'morning_attendanceP'){
+    $registration = $crud->morning_attendanceP();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+} 
+if($action === 'morning_attendanceA'){
+    $registration = $crud->morning_attendanceA();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'morning_attendanceL'){
+    $registration = $crud->morning_attendanceL();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'afternoon_attendanceP'){
+    $registration = $crud->afternoon_attendanceP();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+} 
+if($action === 'afternoon_attendanceA'){
+    $registration = $crud->afternoon_attendanceA();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'afternoon_attendanceL'){
+    $registration = $crud->afternoon_attendanceL();
+    if($registration){
+        echo $registration;
+    }
     exit();
 }

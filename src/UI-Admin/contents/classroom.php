@@ -284,8 +284,8 @@
                         <td width="20%"><?= htmlspecialchars($user["created_date"]) ?></td>
                         <td width="25%">
                             <div class="d-flex gap-1 justify-content-center">
-                                <button type="button" class="btn btn-info btn-sm">Edit</button>
-                                <button type="button" class="btn btn-danger btn-sm">Delete</button>
+                                <button type="button" data-id="<?= $user["section_id"]?>" class="btn btn-info btn-sm editSectionBtn">Edit</button>
+                                <button type="button" data-id="<?= $user["section_id"]?>" class="btn btn-danger btn-sm deleteSectionBtn">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -340,10 +340,10 @@
                         <td width="20%"><?= htmlspecialchars($user["created_date"]) ?></td>
                         <td width="25%">
                             <div class="d-flex gap-1 justify-content-center">
-                                <button type="button" id="activationBtn" data-id="<?= $user["classroom_id"] ?>" class="btn btn-success btn-sm">Activate</button>
+                                <button type="button" id="activationBtn" data-id="<?= $user["school_year_id"] ?>" class="btn btn-success btn-sm">Activate</button>
                                 <button type="button" id="deactivationBtn" data-id="<?= $user["school_year_id"] ?>" class="btn btn-danger btn-sm">Deactivate</button>
-                                <button type="button" class="btn btn-info btn-sm">Edit</button>
-                                <button type="button" class="btn btn-danger btn-sm">Delete</button>
+                                <button type="button" data-id="<?= $user["school_year_id"] ?>" class="btn btn-info btn-sm editSchoolyearBtn">Edit</button>
+                                <button type="button" data-id="<?= $user["school_year_id"] ?>" class="btn btn-danger btn-sm deleteSchoolyearBtn">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -406,8 +406,8 @@
                         <td width="15%"><?= htmlspecialchars($subject["created_date"]) ?></td>
                         <td width="15%">
                             <div class="d-flex gap-1 justify-content-center">
-                                <button type="button" class="btn btn-info btn-sm">Edit</button>
-                                <button type="button" class="btn btn-danger btn-sm">Delete</button>
+                                <button type="button" data-id="<?= $subject["subject_id"] ?>" class="btn btn-info btn-sm editSubjectBtn">Edit</button>
+                                <button type="button" data-id="<?= $subject["subject_id"] ?>" class="btn btn-danger btn-sm deleteSubjectBtn">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -512,6 +512,206 @@
                     <div class="my-2">
                         <label class="form-label">Classroom Type</label>
                         <input type="text" id="classroom_type" name="classroom_type" class="form-control" placeholder="ex. Lecture Room">
+                    </div>
+                        <button type="submit" class="btn btn-primary px-5">
+                            edit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- sections -->
+  <div class="modal fade" id="deleteSection" tabindex="-1" aria-labelledby="deleteSectionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="deleteSectionLabel">Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="deleteSection-form" method="post">
+                    <input type="hidden" name="section_id" id="section_id">
+                    <span class="m-2">Are you Sure you want to <strong>Delete</strong> this Section?</span>
+                    <div class="col-12 text-center mt-3">
+                        <button type="submit" class="btn btn-primary px-5">
+                            Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+ <div class="modal fade" id="editSections" tabindex="-1" aria-labelledby="editSectionsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="editSectionsLabel">Deactivation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="editSection-form" method="post">
+                    <input type="hidden" name="section_id" id="section_ids">
+                     <div class="my-2">
+                        <label class="form-label">Section Status</label>
+                       <select name="section_status" id="section_status" class="form-control">
+                            <option value="">Select room status</option>
+                            <option value="Available">Available</option>
+                            <option value="Inavailable">Unavailable</option>
+                       </select>
+                    </div>
+                    <div class="my-2">
+                        <label class="form-label">Section Name</label>
+                        <input type="text" id="section_name" name="section_name" class="form-control" placeholder="ex. Jupiter">
+                    </div>
+                    <div class="my-2">
+                        <label class="form-label">Grade Level</label>
+                        <select name="section_grade_level" id="section_grade_level" class="form-select">
+                            <option value="">Select Grade Level</option>
+                            <option value="Grade 1">Grade 1</option>
+                            <option value="Grade 2">Grade 2</option>
+                            <option value="Grade 3">Grade 3</option>
+                            <option value="Grade 4">Grade 4</option>
+                            <option value="Grade 5">Grade 5</option>
+                            <option value="Grade 6">Grade 6</option>
+                        </select>
+                    </div>
+                        <button type="submit" class="btn btn-primary px-5">
+                            edit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- school year -->
+  <div class="modal fade" id="deleteSchoolYear" tabindex="-1" aria-labelledby="deleteSchoolYearLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="deleteSchoolYearLabel">Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="deleteSchoolyear-form" method="post">
+                    <input type="hidden" name="school_year_id" id="school_year_id_delete">
+                    <span class="m-2">Are you Sure you want to <strong>Delete</strong> this School Year?</span>
+                    <div class="col-12 text-center mt-3">
+                        <button type="submit" class="btn btn-primary px-5">
+                            Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+ <div class="modal fade" id="editSchoolyear" tabindex="-1" aria-labelledby="editSchoolyearLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="editSchoolyearLabel">Deactivation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="editSchoolyear-form" method="post">
+                    <input type="hidden" name="school_year_id" id="school_year_id_edit">
+                     <div class="my-2">
+                        <label class="form-label">Section Status</label>
+                       <select name="school_year_status" id="school_year_status" class="form-control">
+                            <option value="">Select school year status</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                       </select>
+                    </div>
+                    <div class="my-2">
+                        <label class="form-label">School Year Name</label>
+                        <input type="text" id="school_year_name" name="school_year_name" class="form-control" placeholder="ex. Jupiter">
+                    </div>
+                        <button type="submit" class="btn btn-primary px-5">
+                            edit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- subjects -->
+  <div class="modal fade" id="deleteSubject" tabindex="-1" aria-labelledby="deleteSubjectLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="deleteSubjectLabel">Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="deleteSubject-form" method="post">
+                    <input type="hidden" name="subject_id" id="subject_id_delete">
+                    <span class="m-2">Are you Sure you want to <strong>Delete</strong> this Subject?</span>
+                    <div class="col-12 text-center mt-3">
+                        <button type="submit" class="btn btn-primary px-5">
+                            Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+ <div class="modal fade" id="editSubjects" tabindex="-1" aria-labelledby="editSubjectsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="editSubjectsLabel">Deactivation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="editSubjects-form" method="post">
+                    <input type="hidden" name="subject_id" id="subject_id_edit">
+                    <div class="my-2">
+                        <label class="form-label">Subject Name</label>
+                        <input type="text" id="subject_name" name="subject_name" class="form-control" placeholder="ex. Jupiter">
+                    </div>
+                    <div class="my-2">
+                        <label class="form-label">Subject Code</label>
+                        <input type="text" id="subject_code" name="subject_code" class="form-control" placeholder="ex. Jupiter">
+                    </div>
+                     <div class="my-2">
+                        <label class="form-label">Grade Level</label>
+                        <select name="grade_level" id="grade_level" class="form-select">
+                            <option value="">Select Grade Level</option>
+                            <option value="Grade 1">Grade 1</option>
+                            <option value="Grade 2">Grade 2</option>
+                            <option value="Grade 3">Grade 3</option>
+                            <option value="Grade 4">Grade 4</option>
+                            <option value="Grade 5">Grade 5</option>
+                            <option value="Grade 6">Grade 6</option>
+                        </select>
+                    </div>
+                    <div class="my-2">
+                        <label class="form-label">Subject Units</label>
+                        <input type="text" id="subject_units" name="subject_units" class="form-control" placeholder="ex. Jupiter">
+                    </div>
+                     <div class="my-2">
+                        <label class="form-label">Subject status</label>
+                       <select name="subjects_status" id="subjects_status" class="form-control">
+                            <option value="">Select Subject status</option>
+                            <option value="Available">Available</option>
+                            <option value="Unavailable">Unavailable</option>
+                       </select>
                     </div>
                         <button type="submit" class="btn btn-primary px-5">
                             edit

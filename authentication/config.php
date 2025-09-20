@@ -146,6 +146,16 @@ function db_connect()
                 fourPs VARCHAR(50),
                 FOREIGN KEY (student_id) REFERENCES student(student_id) ON DELETE CASCADE
             )",
+            "CREATE TABLE IF NOT EXISTS attendance (
+                attendance_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                student_id INT(11) NOT NULL,
+                adviser_id INT(11) NOT NULL,
+                morning_attendance DATETIME NOT NULL,
+                attendance_type ENUM('Present', 'Absent', 'Late') NOT NULL,
+                afternoon_attendance DATETIME DEFAULT NULL,
+                FOREIGN KEY (student_id) REFERENCES student(student_id) ON DELETE CASCADE,
+                FOREIGN KEY (adviser_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )",
 
             
         ];
