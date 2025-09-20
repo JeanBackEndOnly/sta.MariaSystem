@@ -56,8 +56,8 @@
         <h4>Quick Actions</h4>
         <div class="action-grid">
             <a href="index.php?page=contents/sf5" class="action" id="SF5"><i class="fa fa-folder-open"></i><p>SF5</p><span style="font-size: .8rem;">Report on Promotion and Level of Progress & Achievement</span></a>
-            <div class="action" id="SF9"><i class="fa fa-folder-open"></i><p>SF9</p><span style="font-size: .8rem;">Learner's Progress Report Card</span></div>
-            <div class="action" id="SF10"><i class="fa fa-folder-open"></i><p>SF10</p><span style="font-size: .8rem;">Learner's Permanent Academic Record</span></div>
+            <a  href="index.php?page=contents/sf9" class="action" id="SF9"><i class="fa fa-folder-open"></i><p>SF9</p><span style="font-size: .8rem;">Learner's Progress Report Card</span></a>
+            <a  href="index.php?page=contents/sf10" class="action" id="SF10"><i class="fa fa-folder-open"></i><p>SF10</p><span style="font-size: .8rem;">Learner's Permanent Academic Record</span></a>
         </div>
     </section>
 
