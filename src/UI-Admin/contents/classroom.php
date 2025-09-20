@@ -227,9 +227,8 @@
                         <td width="20%"><?= htmlspecialchars($user["created_date"]) ?></td>
                         <td width="25%">
                             <div class="d-flex gap-1 justify-content-center">
-                                <button type="button" class="btn btn-info btn-sm">Edit</button>
-                                <button type="button" class="btn btn-danger btn-sm">Delete</button>
-                            </div>
+                                <button type="button" data-id="<?= $user['room_id'] ?>" class="btn btn-info btn-sm editClassroomsBtn">Edit</button>
+                                <button type="button" data-id="<?= $user['room_id'] ?>" class="btn btn-danger btn-sm deleteClassroomBtn">Delete</button>
                         </td>
                     </tr>
                     <?php endforeach ?>
@@ -341,7 +340,7 @@
                         <td width="20%"><?= htmlspecialchars($user["created_date"]) ?></td>
                         <td width="25%">
                             <div class="d-flex gap-1 justify-content-center">
-                                <button type="button" id="activationBtn" data-id="<?= $user["school_year_id"] ?>" class="btn btn-success btn-sm">Activate</button>
+                                <button type="button" id="activationBtn" data-id="<?= $user["classroom_id"] ?>" class="btn btn-success btn-sm">Activate</button>
                                 <button type="button" id="deactivationBtn" data-id="<?= $user["school_year_id"] ?>" class="btn btn-danger btn-sm">Deactivate</button>
                                 <button type="button" class="btn btn-info btn-sm">Edit</button>
                                 <button type="button" class="btn btn-danger btn-sm">Delete</button>
@@ -456,6 +455,66 @@
                     <div class="col-12 text-center mt-3">
                         <button type="submit" class="btn btn-primary px-5">
                             Deactivate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- classrooms modal -->
+ <div class="modal fade" id="deleteClassroom" tabindex="-1" aria-labelledby="deleteClassroomLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="deleteClassroomLabel">Deactivation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="deleteClassroom-form" method="post">
+                    <input type="hidden" name="classroom_id" id="classroom_id">
+                    <span class="m-2">Are you Sure you want to <strong>Delete</strong> this Classroom?</span>
+                    <div class="col-12 text-center mt-3">
+                        <button type="submit" class="btn btn-primary px-5">
+                            Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+ <div class="modal fade" id="editClassroom" tabindex="-1" aria-labelledby="editClassroomLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title text-white" id="editClassroomLabel">Deactivation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="location.reload()"></button>
+            </div>
+            <div class="modal-body">
+                <form class="row g-3" id="editClassroom-form" method="post">
+                    <input type="hidden" name="classroom_id" id="classroom_id">
+                     <div class="my-2">
+                        <label class="form-label">Room Status</label>
+                       <select name="room_status" id="room_status" class="form-control">
+                            <option value="">Select room status</option>
+                            <option value="Available">Available</option>
+                            <option value="Unavailable">Unavailable</option>
+                       </select>
+                    </div>
+                    <div class="my-2">
+                        <label class="form-label">Classroom Name</label>
+                        <input type="text" id="classroom_name" name="classroom_name" class="form-control" placeholder="ex. DAS 202">
+                    </div>
+                    <div class="my-2">
+                        <label class="form-label">Classroom Type</label>
+                        <input type="text" id="classroom_type" name="classroom_type" class="form-control" placeholder="ex. Lecture Room">
+                    </div>
+                        <button type="submit" class="btn btn-primary px-5">
+                            edit
                         </button>
                     </div>
                 </form>

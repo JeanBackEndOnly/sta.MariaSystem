@@ -106,3 +106,22 @@ if($action === 'stduentEnrolment_form'){
     }
     exit();
 }
+if($action === 'deleteClassroom_form'){
+    $registration = $crud->deleteClassroom_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'editClassroom_form'){
+    $registration = $crud->editClassroom_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if ($action === 'getClassroomById') {
+    $id = $_POST['classroom_id'] ?? '';
+    echo $crud->getClassroomById($id);
+    exit();
+}

@@ -696,6 +696,97 @@ class Action
             ]);
         }
     }
+    function deleteClassroom_form(){
+        $classroom_id = $_POST["classroom_id"];
+        try {
+            $stmt = $this->db->prepare("DELETE FROM classrooms WHERE room_id = :room_id");
+            $stmt->bindParam(':room_id', $classroom_id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            if ($stmt->rowCount() > 0) {
+                return json_encode([
+                    'status' => 1,
+                    'message' => 'Classroom deleted successfully'
+                ]);
+            } else {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'No classroom found with that ID'
+                ]);
+            }
+
+        } catch (PDOException $e) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occured: ' . $e->getMessage()
+            ]);
+        }
+    }
+    function editClassroom_form(){
+        $classroom_id   = $_POST["classroom_id"] ?? '';
+        $room_status = $_POST["room_status"] ?? '';
+        $classroom_name = $_POST["classroom_name"] ?? '';
+        $classroom_type = $_POST["classroom_type"] ?? '';
+
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE classrooms 
+                SET room_status= :room_status, room_name = :room_name, room_type = :room_type
+                WHERE room_id = :room_id
+            ");
+            $stmt->bindParam(':room_status', $classroom_status, PDO::PARAM_STR);
+            $stmt->bindParam(':room_name', $classroom_name, PDO::PARAM_STR);
+            $stmt->bindParam(':room_type', $classroom_type, PDO::PARAM_STR);
+            $stmt->bindParam(':room_id', $classroom_id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            if ($stmt->rowCount() > 0) {
+                return json_encode([
+                    'status' => 1,
+                    'message' => 'Classroom updated successfully'
+                ]);
+            } else {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'No changes made or classroom not found'
+                ]);
+            }
+
+        } catch (PDOException $e) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ]);
+        }
+    }
+    function getClassroomById($id){
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM classrooms WHERE room_id = :room_id");
+            $stmt->bindParam(':room_id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $classroom = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($classroom) {
+                return json_encode([
+                    'status' => 1,
+                    'data' => $classroom
+                ]);
+            } else {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Classroom not found'
+                ]);
+            }
+
+        } catch (PDOException $e) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+
 
     
 }
