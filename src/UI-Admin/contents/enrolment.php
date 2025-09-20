@@ -290,3 +290,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("searchInput");
+    const statusFilter = document.querySelector("select[name='statusCategory']");
+    const gradeFilter = document.querySelector("select[name='gradeLevelCategory']");
+    const tableRows = document.querySelectorAll(".table-body-scroll tbody tr");
+
+    function filterTable() {
+        const searchValue = searchInput.value.toLowerCase();
+        const statusValue = statusFilter.value.toLowerCase();
+        const gradeValue = gradeFilter.value.toLowerCase();
+
+        tableRows.forEach(row => {
+            const name = row.cells[1].textContent.toLowerCase();
+            const grade = row.cells[2].textContent.toLowerCase();
+            const status = row.cells[3].textContent.toLowerCase();
+            const date = row.cells[4].textContent.toLowerCase();
+
+            let matchesSearch =
+                name.includes(searchValue) ||
+                grade.includes(searchValue) ||
+                status.includes(searchValue) ||
+                date.includes(searchValue);
+
+            let matchesStatus = !statusValue || status.includes(statusValue);
+            let matchesGrade = !gradeValue || grade.includes(gradeValue);
+
+            if (matchesSearch && matchesStatus && matchesGrade) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    // Attach event listeners
+    searchInput.addEventListener("input", filterTable);
+    statusFilter.addEventListener("change", filterTable);
+    gradeFilter.addEventListener("change", filterTable);
+});
+</script>

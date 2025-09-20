@@ -8,7 +8,7 @@
     $query = "SELECT * FROM school_year WHERE school_year_status = 'Active'";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
-    $schoolYear = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $schoolYear = $stmt->fetch(PDO::FETCH_ASSOC);
 
 ?>
 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -29,9 +29,10 @@
             <select id="categoryFilter" name="statusCategory" class="form-select">
                 <option value="">Enrolment Status</option>
                 <option value="pending">Pending</option>
-                <option value="active">Enrolled</option>
+                <option value="enrolled">Enrolled</option>
                 <option value="transferred">Transferred</option>
                 <option value="dropped">Dropped</option>
+                <option value="rejected">Rejected</option>
             </select>
         </div>
         <div class="col-md-4">
@@ -84,8 +85,14 @@
                         </td>
                         <td width="15%"><?= htmlspecialchars($user["gradeLevel"]) ?></td>
                         <td width="15%">
-                            <span class="badge bg-<?= ($user["enrolment_status"] == 'active') ? 'success' : 'secondary' ?>">
-                                <?= ($user["enrolment_status"] == 'active') ? 'Enrolled' : 'Inactive' ?>
+                            <span class="badge bg-<?= 
+                                    ($user["enrolment_status"] == 'active') ? 'success' : 
+                                    (($user["enrolment_status"] == 'rejected') ? 'danger' : 'secondary')
+                                ?>">
+                                                                <?= 
+                                        ($user["enrolment_status"] == 'active') ? 'Enrolled' : 
+                                        (($user["enrolment_status"] == 'rejected') ? 'Rejected' : 'Pending')
+                                    ?>
                             </span>
                         </td>
 
@@ -95,9 +102,11 @@
                                 <a
                                     href="index.php?page=contents/form&student_id=<?= htmlspecialchars($user["student_id"]) ?>"><button
                                         class="btn btn-sm m-0 btn-info">Enrolment Form</button></a>
-                                <button type="button" class="btn btn-success btn-sm " id="open_enrolment"
-                                    data-id="<?= htmlspecialchars($user["student_id"]) ?>">Approve</button>
-                                <button type="button" class="btn btn-danger btn-sm">Reject</button>
+                                <button type="button" class="btn btn-success btn-sm open-enrolment"
+                                    data-id="<?= htmlspecialchars($user["student_id"]) ?>"
+                                    data-gradelevel="<?= htmlspecialchars($user["gradeLevel"]) ?>">Approve</button>
+                                <button type="button" id="rejectionBtn" data-id="<?= $user["student_id"] ?>"
+                                    class="btn btn-danger btn-sm">Reject</button>
                             </div>
                         </td>
                     </tr>
@@ -106,6 +115,7 @@
             </table>
         </div>
     </div>
+    <!-- enrolment modal -->
     <div class="modal fade" id="AddNewAccount" tabindex="-1" aria-labelledby="AddNewAccountLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -121,62 +131,50 @@
                 ?>
                     <form class="row g-3" id="enrolment-form" method="post">
                         <input type="hidden" name="student_id" id="student_id" value="">
+
                         <div class="col-md-6">
-                            <label class="form-label">Class Section <span class="text-danger">*</span></label>
-                            <select name="adviser_id" class="form-select" required>
-                                <option value="">Select Section</option>
-                                <?php foreach($classes as $class) : ?>
-                                <option value="<?= $class["user_id"] ?>">
-                                    <?= htmlspecialchars($class["section_name"]) ?> -
-                                    Adviser:
-                                    <?= htmlspecialchars($class["lastname"]) . " " . htmlspecialchars($class["firstname"]) ?>
+                            <label class="form-label">Class Adviser <span class="text-danger">*</span></label>
+                            <select name="adviser_id" id="adviserSelect" class="form-select" required>
+                                <option value="">Select Adviser</option>
+                                <?php foreach($classes as $class): ?>
+                                <option value="<?= $class["adviser_id"] ?>"
+                                    data-section="<?= htmlspecialchars($class["section_name"]) ?>">
+                                    <?= htmlspecialchars($class["lastname"]) . ", " . htmlspecialchars($class["firstname"]) ?>
                                 </option>
-                                <?php endforeach ?>
+                                <?php endforeach; ?>
                             </select>
                         </div>
 
                         <div class="col-md-6">
+                            <label class="form-label">Section <span class="text-danger">*</span></label>
+                            <input type="text" name="section_name" id="section_name" class="form-control" readonly
+                                required>
+                        </div>
+
+
+                        <div class="col-md-6">
                             <label class="form-label">School Year <span class="text-danger">*</span></label>
-                            <select name="schoolyear_id" class="form-select" required>
-                                <option value="">Select School Year</option>
-                                <?php foreach($schoolYear as $sy) : ?>
-                                <option value="<?= $sy["school_year_id"] ?>">
-                                    <?= htmlspecialchars($sy["school_year_name"]) ?>
-                                </option>
-                                <?php endforeach ?>
-                            </select>
+                            <input type="text" readonly name="school_year_name"
+                                value="<?= $schoolYear["school_year_name"] ?>" class="form-control">
+                            <input type="hidden" name="schoolyear_id" value="<?= $schoolYear["school_year_id"] ?>"
+                                class="form-control">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Grade Level <span class="text-danger">*</span></label>
-                            <select name="grade_level" class="form-select" id="gradeLevelSelect" required>
-                                <option value="">Select Grade Level</option>
-                                <option value="Grade 1">Grade 1</option>
-                                <option value="Grade 2">Grade 2</option>
-                                <option value="Grade 3">Grade 3</option>
-                                <option value="Grade 4">Grade 4</option>
-                                <option value="Grade 5">Grade 5</option>
-                                <option value="Grade 6">Grade 6</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label">Number of Subjects <span class="text-danger">*</span></label>
-                            <select name="subjectCounts" class="form-select" id="subjectCountsSelect" required>
-                                <option value="">Select Number of Subjects</option>
-                                <?php for($i=1; $i<=8; $i++): ?>
-                                <option value="<?= $i ?>"><?= $i ?> Subject<?= $i > 1 ? 's' : '' ?></option>
-                                <?php endfor; ?>
-                            </select>
+                            <input type="text" id="gradeLevelDisplay" readonly class="form-control">
+                            <input type="hidden" id="gradeLevelValue" name="grade_level">
                         </div>
 
                         <div class="col-12">
                             <div class="card mt-3">
                                 <div class="card-header bg-light">
-                                    <h6 class="card-title mb-0">Select Subjects</h6>
+                                    <h6 class="card-title mb-0">Subjects for this Grade Level</h6>
                                 </div>
                                 <div class="card-body">
-                                    <div id="subjectSelectContainer" class="row"></div>
+                                    <div id="subjectListContainer" class="row">
+                                        <p class="text-muted">Select a student to view their subjects</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -189,75 +187,146 @@
             </div>
         </div>
     </div>
+    <!-- rejection modal -->
+    <div class="modal fade" id="rejectEnrolment" tabindex="-1" aria-labelledby="rejectEnrolmentLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title text-white" id="rejectEnrolmentLabel">Deactivation</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                        onclick="location.reload()"></button>
+                </div>
+                <div class="modal-body">
+                    <form class="row g-3" id="rejectEnrolment-form" method="post">
+                        <input type="hidden" name="studentID" id="studentID">
+                        <span class="m-2">Are you Sure you want to <strong>Reject</strong> this student
+                            Enrolment?</span>
+                        <div class="col-12 text-center mt-3">
+                            <button type="submit" class="btn btn-primary px-5">
+                                Reject
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
 // Pass subjects from PHP to JS
 const allSubjects = <?= json_encode($subjects) ?>;
+document.getElementById('adviserSelect').addEventListener('change', function() {
+    const selectedOption = this.selectedOptions[0];
+    const section = selectedOption.dataset.section || '';
+    document.getElementById('section_name').value = section;
+});
 
 document.addEventListener('DOMContentLoaded', () => {
-    const gradeLevelSelect = document.getElementById('gradeLevelSelect');
-    const subjectCountsSelect = document.getElementById('subjectCountsSelect');
-    const container = document.getElementById('subjectSelectContainer');
 
-    function generateSubjectSelects() {
-        const gradeLevel = gradeLevelSelect.value;
-        const count = parseInt(subjectCountsSelect.value);
+    // Open enrolment modal
+    const openEnrolmentButtons = document.querySelectorAll('.open-enrolment');
+    const studentIdInput = document.getElementById('student_id');
+    const gradeLevelDisplay = document.getElementById('gradeLevelDisplay');
+    const gradeLevelValue = document.getElementById('gradeLevelValue');
+    const subjectListContainer = document.getElementById('subjectListContainer');
 
-        // Clear old selects
-        container.innerHTML = '';
+    openEnrolmentButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const studentId = button.getAttribute('data-id');
+            const gradeLevel = button.getAttribute('data-gradelevel');
 
-        // Only continue if both are selected
-        if (!gradeLevel || isNaN(count) || count < 1) return;
+            // Set values in the form
+            studentIdInput.value = studentId;
+            gradeLevelDisplay.value = gradeLevel;
+            gradeLevelValue.value = gradeLevel;
+
+            // Display subjects for this grade level
+            displaySubjectsForGradeLevel(gradeLevel);
+
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('AddNewAccount'));
+            modal.show();
+        });
+    });
+
+    function displaySubjectsForGradeLevel(gradeLevel) {
+        // Clear previous content
+        subjectListContainer.innerHTML = '';
 
         // Filter subjects by grade level
         const filteredSubjects = allSubjects.filter(s => s.grade_level === gradeLevel);
 
         if (filteredSubjects.length === 0) {
-            container.innerHTML =
-                '<div class="col-12"><div class="alert alert-warning">No subjects available for this grade level.</div></div>';
+            subjectListContainer.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-warning">No subjects available for ${gradeLevel}.</div>
+                </div>
+            `;
             return;
         }
 
-        const row = document.createElement('div');
-        row.classList.add('row');
-        container.appendChild(row);
+        // Create a list of subjects
+        const listGroup = document.createElement('div');
+        listGroup.classList.add('list-group');
 
-        for (let i = 0; i < count; i++) {
-            const col = document.createElement('div');
-            col.classList.add('col-md-6', 'mb-3');
+        filteredSubjects.forEach(subject => {
+            const listItem = document.createElement('div');
+            listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between',
+                'align-items-center');
 
-            const label = document.createElement('label');
-            label.classList.add('form-label', 'small');
-            label.textContent = `Subject ${i + 1}`;
+            const subjectInfo = document.createElement('div');
+            subjectInfo.innerHTML = `
+                <strong>${subject.subject_code}</strong> - ${subject.subject_name}
+                <input type="hidden" name="subjects[]" value="${subject.subject_id}">
+            `;
 
-            const select = document.createElement('select');
-            select.name = 'subjects[]';
-            select.classList.add('form-select', 'form-select-sm');
-            select.required = true;
+            listItem.appendChild(subjectInfo);
+            listGroup.appendChild(listItem);
+        });
 
-            // Default option
-            const defaultOpt = document.createElement('option');
-            defaultOpt.value = '';
-            defaultOpt.textContent = 'Select Subject';
-            select.appendChild(defaultOpt);
+        subjectListContainer.appendChild(listGroup);
+    }
+});
+</script><script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("searchInput");
+    const statusFilter = document.querySelector("select[name='statusCategory']");
+    const gradeFilter = document.querySelector("select[name='gradeLevelCategory']");
+    const tableRows = document.querySelectorAll(".table-body-scroll tbody tr");
 
-            // Add filtered subjects as options
-            filteredSubjects.forEach(sub => {
-                const opt = document.createElement('option');
-                opt.value = sub.subject_id;
-                opt.textContent = `${sub.subject_code} - ${sub.subject_name}`;
-                select.appendChild(opt);
-            });
+    function filterTable() {
+        const searchValue = searchInput.value.toLowerCase();
+        const statusValue = statusFilter.value.toLowerCase();
+        const gradeValue = gradeFilter.value.toLowerCase();
 
-            col.appendChild(label);
-            col.appendChild(select);
-            row.appendChild(col);
-        }
+        tableRows.forEach(row => {
+            const name = row.cells[1].textContent.toLowerCase();
+            const grade = row.cells[2].textContent.toLowerCase();
+            const status = row.cells[3].textContent.toLowerCase();
+            const date = row.cells[4].textContent.toLowerCase();
+
+            let matchesSearch =
+                name.includes(searchValue) ||
+                grade.includes(searchValue) ||
+                status.includes(searchValue) ||
+                date.includes(searchValue);
+
+            let matchesStatus = !statusValue || status.includes(statusValue);
+            let matchesGrade = !gradeValue || grade.includes(gradeValue);
+
+            if (matchesSearch && matchesStatus && matchesGrade) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
     }
 
-    // Regenerate whenever grade level or count changes
-    gradeLevelSelect.addEventListener('change', generateSubjectSelects);
-    subjectCountsSelect.addEventListener('change', generateSubjectSelects);
+    // Attach event listeners
+    searchInput.addEventListener("input", filterTable);
+    statusFilter.addEventListener("change", filterTable);
+    gradeFilter.addEventListener("change", filterTable);
 });
 </script>
