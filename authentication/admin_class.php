@@ -1457,5 +1457,35 @@ class Action
         }
     }
 
+    function status_form() {
+        $status = $_POST["status"] ?? '';
+        $id = $_POST["user_id"];
+
+        if (empty($status) || empty($id)) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'Invalid data provided'
+            ]);
+        }
+
+        try {
+            $stmt = $this->db->prepare("UPDATE users SET status = :status WHERE user_id = :user_id");
+            $stmt->execute([
+                ':status' => $status,
+                ':user_id' => $id
+            ]);
+
+            return json_encode([
+                'status' => 1,
+                'message' => 'Status updated successfully: ' . $status . ' ID: ' . $id
+            ]);
+        } catch (PDOException $e) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ]);
+        }
+    }
+
 
 }

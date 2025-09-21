@@ -166,8 +166,19 @@
                         <td width="20%"><?= htmlspecialchars($user["created_date"]) ?></td>
                         <td width="25%">
                             <div class="d-flex gap-1 justify-content-center">
-                                <button type="button" class="btn btn-info btn-sm">View</button>
-                                <button type="button" class="btn btn-danger btn-sm">Manage</button>
+                                <a href="index.php?page=contents/usersProfile&user_id=<?= $user["user_id"] ?>"><button
+                                        type="button" class="btn m-0 btn-info ">View</button></a>
+                                <form class="status-form">
+                                    <select name="status" class="status-select form-select">
+                                        <option value="">Select Status</option>
+                                        <option value="Active" <?= ($user["status"] === "Active") ? "selected" : "" ?>>
+                                            Active</option>
+                                        <option value="Inactive"
+                                            <?= ($user["status"] === "Inactive") ? "selected" : "" ?>>Inactive</option>
+                                    </select>
+                                    <input type="hidden" name="user_id" value="<?= $user['user_id'] ?>">
+                                </form>
+
                             </div>
                         </td>
                     </tr>

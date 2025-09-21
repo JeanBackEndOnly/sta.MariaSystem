@@ -226,3 +226,10 @@ if($action === 'afternoon_attendanceL'){
     }
     exit();
 }
+if($action === 'status_form'){
+    $registration = $crud->status_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
