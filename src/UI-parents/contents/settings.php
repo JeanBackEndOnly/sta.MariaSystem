@@ -14,8 +14,8 @@
         $StudentInfo = $stmt->fetch(PDO::FETCH_ASSOC);
     ?>
     <form action="../../authentication/auth.php" method="post" enctype="multipart/form-data" class="d-flex flex-column justify-content-between align-items-center w-100">
-        <input type="hidden" name="facultyID" value="<?= htmlspecialchars($user_id); ?>">
-        <input type="hidden" name="StudentProfile" value="true">
+        <input type="hidden" name="parentID" value="<?= htmlspecialchars($user_id); ?>">
+        <input type="hidden" name="parentSettings" value="true">
         <div class="profileSettings d-flex col-md-12 col-12 flex-wrap" style="height: auto !important; overflow-y: hidden !important;">
             <div class="profilePicture h-100 col-md-4 col-12 d-flex flex-column justify-content-center align-items-center profileBG rounded-3 flex-wrap">
                 <img src="../../assets/image/users.png" alt="" style="width: 200px; height: 200px; border-radius: 50%;">

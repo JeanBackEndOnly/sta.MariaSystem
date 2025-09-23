@@ -47,10 +47,13 @@ $profile = $result["admin_picture"];
                 <span class=""><i class=""></i></span> Class Management
             </a>
             <a href="index.php?page=contents/enrolment" class="text-black nav-item rounded-1 p-2 nav-enrolment">
-                <span class=""><i class=""></i></span> Enrolment Process
+                <span class=""><i class=""></i></span> Enrollment Process
             </a>
             <a href="index.php?page=contents/classroom" class="text-black nav-item rounded-1 p-2 nav-classroom">
                 <span class=""><i class=""></i></span> Classroom Management
+            </a>
+            <a href="index.php?page=contents/datas" class="text-black nav-item rounded-1 p-2 nav-datas">
+                <span class=""><i class=""></i></span> Generate Data
             </a>
             <a href="index.php?page=contents/settings" class="text-black nav-item rounded-1 p-2 nav-settings">
                 <span class=""><i class=""></i></span> Account Settings 

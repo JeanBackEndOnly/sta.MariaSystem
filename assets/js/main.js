@@ -2231,6 +2231,44 @@ $(document).on("submit", "#editSubjects-form", function (e) {
             }
         });
     });
+    $(document).on('change', '.status-enrolment-select', function () {
+        let $form = $(this).closest('.status-enrolment-form'); // find the form for THIS row
+        let formData = new FormData($form[0]);
+
+        $.ajax({
+            url: base_url + "authentication/action.php?action=status_enrolment_form",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: "json",
+            success: function (response) {
+                if (response.status === 1) {
+                    Swal.fire({
+                        title: "Success!",
+                        text: response.message,
+                        icon: "success",
+                        toast: true,
+                        position: "top-end",
+                        timer: 2000,
+                        showConfirmButton: false,
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: response.message,
+                        icon: "error",
+                        toast: true,
+                        position: "top-end",
+                        timer: 3000,
+                        showConfirmButton: false,
+                    });
+                }
+            }
+        });
+    });
 
 
 

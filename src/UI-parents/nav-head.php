@@ -32,7 +32,7 @@ $user_id = $_SESSION['user_id'];
         <i class="fas fa-sign-out-alt text-white ms-1" style="font-size: 17px !important;"></i> 
     </button>
     <div class="logoutDomain transformMedia col-md-3 col-8 h-auto shadow rounded-1 flex-column border" id="logoutDomain" style="display:none; background-color: #fff !important;">
-      <div class="header-logout modalBG p-3 d-flex align-items-start justify-content-start w-100 rounded-top">
+      <div class="header-logout  bg-danger p-3 d-flex align-items-start justify-content-start w-100 rounded-top">
           <strong class="text-white">Logout Confirmation</strong>
       </div>
       <div class="body-logout py-4 px-4">

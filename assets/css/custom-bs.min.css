@@ -58,7 +58,6 @@
 
     /* --bg_image : url("../image/system_logo/zppsuBG.png"); */
 }
-
 body {
     height: 100vh;
     overflow: hidden !important;
@@ -96,6 +95,7 @@ body {
     background-size: cover;
     background-repeat: no-repeat;
 } */
+
 
 body {
     position: relative;

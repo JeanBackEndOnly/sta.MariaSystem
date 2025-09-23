@@ -167,10 +167,10 @@
             </span>
             <span>Grade Level: <strong><?= htmlspecialchars($student["gradeLevel"]) ?></strong></span>
             <span>Birth Day: <strong><?= htmlspecialchars($student["birthdate"]) ?></strong></span>
-            <span>Enrolment Status: <strong><?php if($student["enrolment_status"] == ''){echo 'Pending';}else{$student["enrolment_status"];}?></strong></span>
+            <span>Enrollment Status: <strong><?php if($student["enrolment_status"] == ''){echo 'Pending';}else{$student["enrolment_status"];}?></strong></span>
             <div class="buttons w-100 d-flex justify-content-end pe-2 mt-1 pt-2 gap-2 border-top">
                 <a href="index.php?page=contents/profile&student_id=<?= htmlspecialchars($student["student_id"]) ?>"><button class="btn btn-sm m-0 btn-info">Profile</button></a>
-                <a href="index.php?page=contents/form&student_id=<?= htmlspecialchars($student["student_id"]) ?>"><button class="btn btn-sm m-0 btn-danger">Enrolment Form</button></a>
+                <a href="index.php?page=contents/form&student_id=<?= htmlspecialchars($student["student_id"]) ?>"><button class="btn btn-sm m-0 btn-danger">Enrollment Form</button></a>
             </div>
         </div>
     </div>

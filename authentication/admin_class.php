@@ -1456,7 +1456,7 @@ class Action
             ]);
         }
     }
-
+    
     function status_form() {
         $status = $_POST["status"] ?? '';
         $id = $_POST["user_id"];
@@ -1473,6 +1473,35 @@ class Action
             $stmt->execute([
                 ':status' => $status,
                 ':user_id' => $id
+            ]);
+
+            return json_encode([
+                'status' => 1,
+                'message' => 'Status updated successfully: ' . $status . ' ID: ' . $id
+            ]);
+        } catch (PDOException $e) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ]);
+        }
+    }
+    function status_enrolment_form() {
+        $status = $_POST["status"] ?? '';
+        $id = $_POST["user_id"];
+
+        if (empty($status) || empty($id)) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'Invalid data provided'
+            ]);
+        }
+
+        try {
+            $stmt = $this->db->prepare("UPDATE student SET enrolment_status = :enrolment_status WHERE student_id = :student_id");
+            $stmt->execute([
+                ':enrolment_status' => $status,
+                ':student_id' => $id
             ]);
 
             return json_encode([

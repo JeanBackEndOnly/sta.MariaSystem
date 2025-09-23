@@ -14,7 +14,7 @@
         </div>
         <div class="col-md-4">
             <select id="categoryFilter" name="statusCategory" class="form-select">
-                <option value="">Enrolment Status</option>
+                <option value="">Enrollment Status</option>
                 <option value="pending">Pending</option>
                 <option value="active">Enrolled</option>
                 <option value="transferred">Transferred</option>
@@ -38,8 +38,8 @@
         <?php
             $stmt = $pdo->prepare("SELECT student.*, users.firstname AS parentFirstname, 
             users.lastname AS parentLastname, users.middlename AS parentMiddle FROM student
-            INNER JOIN users ON student.guardian_id = users.user_id
-            WHERE enrolment_status = 'active' ORDER BY fname ASC");
+            INNER JOIN users ON users.user_id = student.guardian_id
+            WHERE student.enrolment_status != 'pending' ORDER BY fname ASC");
             $stmt->execute();
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $count = 1;
@@ -78,15 +78,49 @@
                             htmlspecialchars($user["parentFirstname"]) . " " .  (!empty($user["parentMiddle"]) ? htmlspecialchars(substr($user["mname"], 0, 1)) . ". " : "") ?>
                         </td>
                         <td width="15%">
-                            <span class="badge bg-<?= ($user["enrolment_status"] == 'active') ? 'success' : 'secondary' ?>">
-                                <?= ($user["enrolment_status"] == 'active') ? 'Enrolled' : 'Inactive' ?>
+                            <?php
+                                $statusMap = [
+                                    'active'      => ['success',   'Enrolled'],
+                                    'pending'     => ['warning',   'Pending'],
+                                    'transferred' => ['secondary',      'Transferred'],
+                                    'dropped'     => ['danger',    'Dropped'],
+                                    'rejected'    => ['danger', 'Rejected']
+                                ];
+
+                                $currentStatus = $user['enrolment_status'] ?? 'pending';
+                                $badgeClass = $statusMap[$currentStatus][0] ?? 'secondary';
+                                $label      = $statusMap[$currentStatus][1] ?? ucfirst($currentStatus);
+                                ?>
+
+                            <span class="badge bg-<?= $badgeClass ?>">
+                                <?= $label ?>
                             </span>
+
                         </td>
                         <td width="15%">
                             <div class="d-flex gap-1 justify-content-center">
                                 <a
                                     href="index.php?page=contents/profile&student_id=<?= htmlspecialchars($user["student_id"]) ?>"><button
-                                        class="btn btn-sm m-0 btn-info">Student Profile</button></a>
+                                        class="btn m-0 btn-info">Profile</button>
+                                </a>
+                                <form class="status-enrolment-form">
+                                    <select name="status" class="status-enrolment-select form-select">
+                                        <option value="">Select Status</option>
+                                        <option value="active"
+                                            <?= ($user["enrolment_status"] === "active") ? "selected" : "" ?>>
+                                            Enrolled</option>
+                                        <option value="transferred"
+                                            <?= ($user["enrolment_status"] === "transferred") ? "selected" : "" ?>>
+                                            transferred</option>
+                                        <option value="dropped"
+                                            <?= ($user["enrolment_status"] === "dropped") ? "selected" : "" ?>>dropped
+                                        </option>
+                                        <option value="rejected"
+                                            <?= ($user["enrolment_status"] === "rejected") ? "selected" : "" ?>>rejected
+                                        </option>
+                                    </select>
+                                    <input type="hidden" name="user_id" value="<?= $user['student_id'] ?>">
+                                </form>
                             </div>
                         </td>
                     </tr>

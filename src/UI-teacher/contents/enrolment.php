@@ -13,7 +13,7 @@
 ?>
 <div class="d-flex justify-content-between align-items-center mb-2">
     <div class="mx-2">
-        <h4><i class="fa-solid fa-folder me-2"></i></i>Enrolment Management</h4>
+        <h4><i class="fa-solid fa-folder me-2"></i></i>Enrollment Management</h4>
     </div>
 </div>
 
@@ -27,7 +27,7 @@
         </div>
         <div class="col-md-4">
             <select id="categoryFilter" name="statusCategory" class="form-select">
-                <option value="">Enrolment Status</option>
+                <option value="">Enrollment Status</option>
                 <option value="pending">Pending</option>
                 <option value="enrolled">Enrolled</option>
                 <option value="transferred">Transferred</option>
@@ -64,7 +64,7 @@
                         <th width="5%">#</th>
                         <th width="20%">Name</th>
                         <th width="15%">Grade Level</th>
-                        <th width="15%">Enrolment Status</th>
+                        <th width="15%">Enrollment Status</th>
                         <th width="20%">Enrolled at</th>
                         <th width="25%">Action</th>
                     </tr>
@@ -101,7 +101,7 @@
                             <div class="d-flex gap-1 justify-content-center">
                                 <a
                                     href="index.php?page=contents/form&student_id=<?= htmlspecialchars($user["student_id"]) ?>"><button
-                                        class="btn btn-sm m-0 btn-info">Enrolment Form</button></a>
+                                        class="btn btn-sm m-0 btn-info">Enrollment Form</button></a>
                                 <button type="button" class="btn btn-success btn-sm open-enrolment"
                                     data-id="<?= htmlspecialchars($user["student_id"]) ?>"
                                     data-gradelevel="<?= htmlspecialchars($user["gradeLevel"]) ?>">Approve</button>

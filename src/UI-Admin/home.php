@@ -13,15 +13,19 @@
       $stmt->execute();
       $activeSY = $stmt->fetch(PDO::FETCH_ASSOC);
    ?>
-
-    <section>
+<style>
+    section::-webkit-scrollbar{
+        display: none !important;
+    }
+</style>
+    <section style="overflow-y: scroll !important; max-height: 85vh !important;" >
         <div class="d-flex justify-content-between align-items-center mt-4">
             <div class="mx-2 marginToMedia sideAnimation">
                 <h4>Active School Year</h4>
             </div>
         </div>
         <div class="row col-md-7 border shadow m-0 p-3 rounded-3 mb-4">
-            <span class="m-0 fs-5">SCHOOL YEAR: <strong><?= $activeSY["school_year_name"] ?></strong></span>
+            <span class="m-0 fs-5">SCHOOL YEAR: <strong><?= $activeSY["school_year_name"] . ' is currently Active' ?? 'No Active School Year' ?></strong></span>
         </div>
         <div class="d-flex justify-content-between align-items-center mb-2">
             <div class="mx-2 marginToMedia sideAnimation">

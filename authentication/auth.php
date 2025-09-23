@@ -140,18 +140,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
     // PROFILE MANAGEMENT
-    if (isset($_POST['StudentProfile']) && $_POST['StudentProfile'] === 'true') {
-        $facultyID  = $_POST["facultyID"] ?? null;
+    if (isset($_POST['parentSettings']) && $_POST['parentSettings'] === 'true') {
+        $parentID  = $_POST["parentID"] ?? null;
         $lname      = $_POST["lname"] ?? '';
         $fname      = $_POST["fname"] ?? '';
         $mname      = $_POST["mname"] ?? '';
         $suffix     = $_POST["suffix"] ?? '';
-        $department = $_POST["department_ID"] ?? '';
-        $course     = $_POST["course_id"] ?? '';
-        $gender     = $_POST["gender"] ?? '';
         $email      = $_POST["email"] ?? '';
-        $contact    = $_POST["contact"] ?? '';
-        $birth_date = $_POST["birth_date"] ?? '';
         $profile    = '';
 
         $errors = [];
@@ -174,17 +169,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
 
             if (empty($errors)) {
-                $query = "UPDATE user_data SET 
+                $query = "UPDATE users SET 
                             lastname = :lastname,
                             firstname = :firstname,
                             middlename = :middlename,
                             suffix = :suffix,
-                            contact = :contact,
-                            department_id = :department_id,
-                            course_id = :course_id,
-                            gender = :gender,
                             email = :email,
-                            birth_date = :birth_date,
                             profile_picture = :profile_picture
                         WHERE user_id = :user_id";
 
@@ -194,12 +184,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $stmt->bindParam(':firstname', $fname);
                 $stmt->bindParam(':middlename', $mname);
                 $stmt->bindParam(':suffix', $suffix);
-                $stmt->bindParam(':contact', $contact);
-                $stmt->bindParam(':department_id', $department);
-                $stmt->bindParam(':course_id', $course);
-                $stmt->bindParam(':gender', $gender);
                 $stmt->bindParam(':email', $email);
-                $stmt->bindParam(':birth_date', $birth_date);
                 $stmt->bindParam(':profile_picture', $profile);
 
                 $stmt->execute();
@@ -208,7 +193,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $stmt = null;
                 $pdo = null;
 
-                header("Location: ../src/UI-Student/index.php?page=contents/settings&update=success");
+                header("Location: ../src/UI-parent/index.php?page=contents/settings&update=success");
                 exit;
             }
 

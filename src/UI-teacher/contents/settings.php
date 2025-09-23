@@ -60,7 +60,7 @@
         <div class="modal fade" id="updateProfile" tabindex="-1" aria-labelledby="borrowConfirmModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-md modal-dialog-top">
                 <div class="modal-content">
-                    <div class="modal-header modalBG">
+                    <div class="modal-header bg-danger">
                         <h5 class="modal-title text-white" id="borrowConfirmModalLabel">Update Confirmation</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>

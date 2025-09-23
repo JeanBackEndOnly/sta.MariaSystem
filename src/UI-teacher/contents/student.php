@@ -14,7 +14,7 @@
 ?>
 <div class="d-flex justify-content-between align-items-center mb-2">
     <div class="mx-2">
-        <h4><i class="fa-solid fa-clock me-2"></i>Student Attendance</h4>
+        <h4><i class="fa-solid fa-clock me-2"></i>Student Management</h4>
     </div>
 </div>
 
@@ -23,29 +23,6 @@
         <div class="col-md-4">
             <input type="text" id="searchInput" name="search" class="form-control"
                 placeholder="Search by name, role, status, or date...">
-        </div>
-        <div class="col-md-4">
-            <select name="adviser_id" class="form-select" required>
-                <option value="">Select Section</option>
-                <?php foreach($classes as $class) : ?>
-                <option value="<?= $class["user_id"] ?>">
-                    <?= htmlspecialchars($class["section_name"]) ?> -
-                    Adviser:
-                    <?= htmlspecialchars($class["lastname"]) . " " . htmlspecialchars($class["firstname"]) ?>
-                </option>
-                <?php endforeach ?>
-            </select>
-        </div>
-        <div class="col-md-4">
-            <select id="categoryFilter" name="gradeLevelCategory" class="form-select">
-                <option value="">Grade Level</option>
-                <option value="Grade 1">Grade 1</option>
-                <option value="Grade 2">Grade 2</option>
-                <option value="Grade 3">Grade 3</option>
-                <option value="Grade 4">Grade 4</option>
-                <option value="Grade 5">Grade 5</option>
-                <option value="Grade 6">Grade 6</option>
-            </select>
         </div>
     </div>
     <!-- Accounts Displays -->
@@ -69,7 +46,7 @@
                         <th width="20%">Name</th>
                         <th width="15%">Grade Level</th>
                         <th width="15%">Section</th>
-                        <th width="15%">Enrolment Status</th>
+                        <th width="15%">Enrollment Status</th>
                         <th width="15%">Enrolled at</th>
                         <th width="15%">Action</th>
                     </tr>

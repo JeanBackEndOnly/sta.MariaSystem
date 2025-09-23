@@ -233,3 +233,10 @@ if($action === 'status_form'){
     }
     exit();
 }
+if($action === 'status_enrolment_form'){
+    $registration = $crud->status_enrolment_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}

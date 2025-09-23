@@ -41,7 +41,7 @@
                 <span class=""><i class=""></i></span> Dashboard
             </a>
              <a href="index.php?page=contents/enrolment" class="nav-item p-2 rounded-1 nav-enrolment">
-                <span class=""><i class=""></i></span> Enrolment Process 
+                <span class=""><i class=""></i></span> Enrollment Process 
             </a>
              <a href="index.php?page=contents/student" class="nav-item p-2 rounded-1 nav-student">
                 <span class=""><i class=""></i></span> Students 

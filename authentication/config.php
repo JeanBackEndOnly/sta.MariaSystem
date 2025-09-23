@@ -50,6 +50,7 @@ function db_connect()
                 password VARCHAR(255) NOT NULL,
                 user_role ENUM('PARENT', 'TEACHER'),
                 relationship ENUM('Father', 'Mother', 'Guardian'),
+                student_profile BLOB,
                 created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )",
              "CREATE TABLE IF NOT EXISTS users_history (
