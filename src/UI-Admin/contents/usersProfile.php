@@ -67,9 +67,9 @@
                 <label class="form-label">Age</label>
                 <input type="text" readonly name="age" class="form-control">
             </div>
-            <div class="col-md-12 d-flex justify-content-end">
+            <!-- <div class="col-md-12 d-flex justify-content-end">
                 <button type="submit" class="btn btn-danger mt-2 text-white px-5 fw-bold">Update</button>
-            </div>
+            </div> -->
             
         </form>
     </div>
