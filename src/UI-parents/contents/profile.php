@@ -96,7 +96,9 @@
             <span>Stduent: <strong><?= htmlSpecialChars($student_info["fname"]) . " " .
                     htmlspecialchars(substr($student_info["mname"], 0,1)) . ". " .
                     htmlspecialchars($student_info["lname"]) ?></strong></span>
-            <span>Guardian: <strong> DEPAMYLO ANGELO</strong></span>
+            <span>Guardian: <strong><?= htmlSpecialChars($student_info["firstname"]) . " " .
+                    htmlspecialchars(substr($student_info["middlename"], 0,1)) . ". " .
+                    htmlspecialchars($student_info["lastname"]) ?></strong></span>
         </div>
     </div>
     <div class="col-md-8">
