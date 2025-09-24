@@ -696,6 +696,86 @@ class Action
             ]);
         }
     }
+    function displayStudentInfo() {
+        $student_id = $_POST["student_id"] ?? null;
+        
+        if (!$student_id) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'Student ID is required'
+            ]);
+        }
+
+        try {
+            // Update student table
+            $student_query = "UPDATE student SET 
+                lrn = :lrn,
+                fname = :fname,
+                mname = :mname,
+                lname = :lname,
+                suffix = :suffix,
+                sex = :sex,
+                birthdate = :birthdate,
+                birthplace = :birthplace,
+                religion = :religion,
+                enrolment_status = 'pending'
+                WHERE student_id = :student_id";
+
+            $student_stmt = $this->db->prepare($student_query);
+            $student_stmt->execute([
+                ':lrn' => $_POST['lrn'] ?? '',
+                ':fname' => $_POST['fname'] ?? '',
+                ':mname' => $_POST['mname'] ?? '',
+                ':lname' => $_POST['lname'] ?? '',
+                ':suffix' => $_POST['suffix'] ?? '',
+                ':sex' => $_POST['gender'] ?? '',   // ✅ match your form
+                ':birthdate' => $_POST['birthdate'] ?? null,
+                ':birthplace' => $_POST['birthplace'] ?? '',
+                ':religion' => $_POST['religion'] ?? '',
+                ':student_id' => $student_id
+            ]);
+
+            // Update enrolment info table
+            $enrolment_query = "UPDATE stuEnrolmentInfo SET 
+                mother_tongue = :mother_tongue,
+                house_no = :house_no,
+                street = :street,
+                barnagay = :barnagay,
+                city = :city,
+                province = :province,
+                country = :country,
+                zip_code = :zip_code
+                WHERE student_id = :student_id";
+
+            $enrolment_stmt = $this->db->prepare($enrolment_query);
+            $enrolment_stmt->execute([
+                ':mother_tongue' => $_POST['mother_tongue'] ?? '',
+                ':house_no' => $_POST['house_no'] ?? '',
+                ':street' => $_POST['street'] ?? '',
+                ':barnagay' => $_POST['barnagay'] ?? '',
+                ':city' => $_POST['city'] ?? '',
+                ':province' => $_POST['province'] ?? '',
+                ':country' => $_POST['country'] ?? '',
+                ':zip_code' => $_POST['zip_code'] ?? '',
+                ':student_id' => $student_id
+            ]);
+
+            return json_encode([
+                'status' => 1,
+                'message' => 'Student information updated successfully!'
+            ]);
+
+        } catch (PDOException $e) {
+            error_log("Database error: " . $e->getMessage());
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred. Please try again later.'
+            ]);
+        }
+    }
+
+
+
     function deleteClassroom_form(){
         $classroom_id = $_POST["classroom_id"];
         try {

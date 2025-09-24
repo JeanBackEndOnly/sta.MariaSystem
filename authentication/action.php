@@ -240,3 +240,10 @@ if($action === 'status_enrolment_form'){
     }
     exit();
 }
+if($action === 'displayStudentInfo'){
+    $registration = $crud->displayStudentInfo();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
