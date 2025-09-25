@@ -179,7 +179,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         WHERE user_id = :user_id";
 
                 $stmt = $pdo->prepare($query);
-                $stmt->bindParam(':user_id', $facultyID);
+                $stmt->bindParam(':user_id', $parentID);
                 $stmt->bindParam(':lastname', $lname);
                 $stmt->bindParam(':firstname', $fname);
                 $stmt->bindParam(':middlename', $mname);
@@ -193,7 +193,129 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $stmt = null;
                 $pdo = null;
 
-                header("Location: ../src/UI-parent/index.php?page=contents/settings&update=success");
+                header("Location: ../src/UI-parents/index.php?page=contents/settings&update=success");
+                exit;
+            }
+
+        } catch (PDOException $e) {
+            die("Query Failed: " . $e->getMessage());
+        }
+    }
+    if (isset($_POST['teacherSettings']) && $_POST['teacherSettings'] === 'true') {
+        $user_id  = $_POST["user_id"] ?? null;
+        $lname      = $_POST["lname"] ?? '';
+        $fname      = $_POST["fname"] ?? '';
+        $mname      = $_POST["mname"] ?? '';
+        $suffix     = $_POST["suffix"] ?? '';
+        $email      = $_POST["email"] ?? '';
+        $profile    = '';
+
+        $errors = [];
+
+        try {
+            // Handle profile picture
+            if (isset($_FILES["user_profile"]) && $_FILES["user_profile"]["error"] === 0) {
+                $upload = $_FILES["user_profile"];
+                $target_dir = "uploads/";
+                $image_file_name = uniqid() . "-" . basename($upload["name"]);
+                $target_file = $target_dir . $image_file_name;
+
+                if (move_uploaded_file($upload["tmp_name"], $target_file)) {
+                    $profile = $image_file_name;
+                } else {
+                    $errors["upload_error"] = "Failed to upload profile image.";
+                }
+            } else {
+                $profile = $_POST["current_profile_image"] ?? '';
+            }
+
+            if (empty($errors)) {
+                $query = "UPDATE users SET 
+                            lastname = :lastname,
+                            firstname = :firstname,
+                            middlename = :middlename,
+                            suffix = :suffix,
+                            email = :email,
+                            profile_picture = :profile_picture
+                        WHERE user_id = :user_id";
+
+                $stmt = $pdo->prepare($query);
+                $stmt->bindParam(':user_id', $user_id);
+                $stmt->bindParam(':lastname', $lname);
+                $stmt->bindParam(':firstname', $fname);
+                $stmt->bindParam(':middlename', $mname);
+                $stmt->bindParam(':suffix', $suffix);
+                $stmt->bindParam(':email', $email);
+                $stmt->bindParam(':profile_picture', $profile);
+
+                $stmt->execute();
+
+                // Optional cleanup
+                $stmt = null;
+                $pdo = null;
+
+                header("Location: ../src/UI-teacher/index.php?page=contents/settings&update=success");
+                exit;
+            }
+
+        } catch (PDOException $e) {
+            die("Query Failed: " . $e->getMessage());
+        }
+    }
+    if (isset($_POST['adminProfile']) && $_POST['adminProfile'] === 'true') {
+        $adminID  = $_POST["adminID"] ?? null;
+        $admin_lastname      = $_POST["admin_lastname"] ?? '';
+        $admin_firstname      = $_POST["admin_firstname"] ?? '';
+        $admin_middlename      = $_POST["admin_middlename"] ?? '';
+        $admin_suffix     = $_POST["admin_suffix"] ?? '';
+        $admin_email      = $_POST["admin_email"] ?? '';
+        $profile    = '';
+
+        $errors = [];
+
+        try {
+            // Handle profile picture
+            if (isset($_FILES["user_profile"]) && $_FILES["user_profile"]["error"] === 0) {
+                $upload = $_FILES["user_profile"];
+                $target_dir = "uploads/";
+                $image_file_name = uniqid() . "-" . basename($upload["name"]);
+                $target_file = $target_dir . $image_file_name;
+
+                if (move_uploaded_file($upload["tmp_name"], $target_file)) {
+                    $profile = $image_file_name;
+                } else {
+                    $errors["upload_error"] = "Failed to upload profile image.";
+                }
+            } else {
+                $profile = $_POST["current_profile_image"] ?? '';
+            }
+
+            if (empty($errors)) {
+                $query = "UPDATE admin SET 
+                            admin_lastname = :admin_lastname,
+                            admin_firstname = :admin_firstname,
+                            admin_middlename = :admin_middlename,
+                            admin_suffix = :admin_suffix,
+                            admin_email = :admin_email,
+                            admin_picture = :admin_picture
+                        WHERE admin_id = :admin_id";
+
+                $stmt = $pdo->prepare($query);
+                $stmt->bindParam(':admin_id', $adminID);
+                $stmt->bindParam(':admin_lastname', $admin_lastname);
+                $stmt->bindParam(':admin_firstname', $admin_firstname);
+                $stmt->bindParam(':admin_middlename', $admin_middlename);
+                $stmt->bindParam(':admin_suffix', $admin_suffix);
+                $stmt->bindParam(':admin_email', $admin_email);
+                $stmt->bindParam(':admin_picture', $profile);
+
+                $stmt->execute();
+
+                // Optional cleanup
+                $stmt = null;
+                $pdo = null;
+
+                header("Location: ../src/UI-Admin/index.php?page=contents/settings&update=success");
                 exit;
             }
 
@@ -202,105 +324,153 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
     // PASSWORD MANAGEMENT
-    if (isset($_POST['usersForgottenPass']) && $_POST['usersForgottenPass'] === 'true'){
+    if (isset($_POST['usersForgottenPass']) && $_POST['usersForgottenPass'] === 'true') {
+        $Users_id = $_POST["Users_id"] ?? '';
+        $currentPassword = $_POST["current_password"] ?? "";
+        $newPassword = $_POST["new_password"] ?? "";
+        $confirmPassword = $_POST["confirm_password"] ?? "";
+
+        try {
+            // ==================== FETCH USER ====================== //
+            $query = "SELECT * FROM users WHERE user_id = :user_id";
+            $stmt = $pdo->prepare($query);
+            $stmt->execute(['user_id' => $Users_id]);
+            $successPassword = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$successPassword) {
+                header("Location: ../src/UI-parents/index.php?page=contents/settings&error=userNotFound");
+                exit;
+            }
+
+            $role = $successPassword["user_role"];
+
+            // ==================== EMPTY INPUTS ====================== //
+            if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+                if ($role == "PARENT") {
+                    header("Location: ../src/UI-parents/index.php?page=contents/settings&error=emptyFields");
+                    exit;
+                } else if ($role == "TEACHER") {
+                    header("Location: ../src/UI-teacher/index.php?page=contents/settings&error=emptyFields");
+                    exit;
+                }
+            }
+
+            // ==================== CONFIRM PASSWORD NOT MATCH ====================== //
+            if ($newPassword !== $confirmPassword) {
+                if ($role == "PARENT") {
+                    header("Location: ../src/UI-parents/index.php?page=contents/settings&NewPassword=notMatch");
+                    exit;
+                } else if ($role == "TEACHER") {
+                    header("Location: ../src/UI-teacher/index.php?page=contents/settings&NewPassword=notMatch");
+                    exit;
+                }
+            }
+
+            // ==================== VERIFY CURRENT PASSWORD ====================== //
+            if (!password_verify($currentPassword, $successPassword['password'])) {
+                if ($role == "PARENT") {
+                    header("Location: ../src/UI-parents/index.php?page=contents/settings&error=wrongCurrent");
+                    exit;
+                } else if ($role == "TEACHER") {
+                    header("Location: ../src/UI-teacher/index.php?page=contents/settings&error=wrongCurrent");
+                    exit;
+                }
+            }
+
+            // ==================== UPDATE PASSWORD ====================== //
+            $newHashed = password_hash($newPassword, PASSWORD_DEFAULT);
+            $updateStmt = $pdo->prepare("UPDATE users SET password = :password WHERE user_id = :user_id");
+            $updateSuccess = $updateStmt->execute([
+                'password' => $newHashed,
+                'user_id' => $Users_id
+            ]);
+
+            if ($updateSuccess) {
+                if ($role == "PARENT") {
+                    header("Location: ../src/UI-parents/index.php?page=contents/settings&passwordChange=success");
+                    exit;
+                } else if ($role == "TEACHER") {
+                    header("Location: ../src/UI-teacher/index.php?page=contents/settings&passwordChange=success");
+                    exit;
+                }
+            } else {
+                if ($role == "PARENT") {
+                    header("Location: ../src/UI-parents/index.php?page=contents/settings&error=updateFailed");
+                    exit;
+                } else if ($role == "TEACHER") {
+                    header("Location: ../src/UI-teacher/index.php?page=contents/settings&error=updateFailed");
+                    exit;
+                }
+            }
+        } catch (PDOException $e) {
+            if (isset($role) && $role == "PARENT") {
+                header("Location: ../src/UI-parents/index.php?page=contents/settings&error=dbError");
+                exit;
+            } else if (isset($role) && $role == "TEACHER") {
+                header("Location: ../src/UI-teacher/index.php?page=contents/settings&error=dbError");
+                exit;
+            } else {
+                // fallback redirect
+                header("Location: ../src/UI-Student/index.php?page=contents/settings&error=dbError");
+                exit;
+            }
+        }
+    }
+    if (isset($_POST['usersForgottenPassAdmin']) && $_POST['usersForgottenPassAdmin'] === 'true'){
         $Users_id = $_POST["Users_id"];
         $currentPassword = $_POST["current_password"] ?? "";
         $newPassword = $_POST["new_password"] ?? "";
         $confirmPassword = $_POST["confirm_password"] ?? "";
 
-        $query = "SELECT * FROM user_data WHERE User_id = :User_id";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute(['User_id' => $Users_id]);
-        $successPassword = $stmt->fetch(PDO::FETCH_ASSOC);
 
 
         // ==================== EMPTY INPUTS ====================== //
         if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
-            if($successPassword["position"] == "STUDENT"){
                  echo json_encode(["status" => "error", "message" => "All fields are required."]);
-                header("Location: ../src/UI-Student/index.php?page=contents/settings");
+                header("Location: ../src/UI-Admin/index.php?page=contents/settings");
                 exit;
-            }else if($successPassword["position"] == "FACULTY"){
-                 echo json_encode(["status" => "error", "message" => "All fields are required."]);
-                header("Location: ../src/UI-Faculty/index.php?page=contents/settings");
-                exit;
-            }
         }
         // ==================== CONFIRM PASSWORD NOT MATCH ====================== //
         if ($newPassword !== $confirmPassword) {
-             if($successPassword["position"] == "STUDENT"){
                 echo json_encode(["status" => "error", "message" => "New passwords do not match."]);
-                header("Location: ../src/UI-Student/index.php?page=contents/settings&NewPassword=notMatch");
+                header("Location: ../src/UI-Admin/index.php?page=contents/settings&NewPassword=notMatch");
                 exit;
-             }else if($successPassword["position"] == "FACULTY"){
-                echo json_encode(["status" => "error", "message" => "New passwords do not match."]);
-                header("Location: ../src/UI-Faculty/index.php?page=contents/settings&NewPassword=notMatch");
-                exit;
-             }
+         
            
         }
 
         try {
             $Users_id = $Users_id ?? '';
-            $stmt = $pdo->prepare("SELECT password FROM user_data WHERE user_id = :user_id");
-            $stmt->execute(['user_id' => $Users_id]);
+            $stmt = $pdo->prepare("SELECT admin_password FROM admin WHERE admin_id  = :admin_id ");
+            $stmt->execute(['admin_id' => $Users_id]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$Users_id) {
+            if (!$user) {
                 echo json_encode(["status" => "error", "message" => "user not found."]);
                 exit;
             }
 
             // ==================== CURRENT PASSWORD NOT MATCH ====================== //
-            if (!password_verify($currentPassword, $user['password'])) {
-                if($successPassword["position"] == "STUDENT"){
+            if (!password_verify($currentPassword, $user['admin_password'])) {
                     echo json_encode(["status" => "error", "message" => "Current password is incorrect."]);
-                    header("Location: ../src/UI-Student/index.php?page=contents/settings&CurrentPasswoed=notMatch");
+                    header("Location: ../src/UI-Admin/index.php?page=contents/settings&CurrentPasswoed=notMatch");
                     exit;
-                }else if($successPassword["position"] == "FACULTY"){
-                    echo json_encode(["status" => "error", "message" => "Current password is incorrect."]);
-                    header("Location: ../src/UI-Faculty/index.php?page=contents/settings&CurrentPasswoed=notMatch");
-                    exit;
-                }
-                
             }
 
             $newHashed = password_hash($newPassword, PASSWORD_DEFAULT);
 
-            $updateStmt = $pdo->prepare("UPDATE user_data SET password = :password WHERE User_id = :User_id");
+            $updateStmt = $pdo->prepare("UPDATE admin SET admin_password = :admin_password WHERE admin_id  = :admin_id ");
             $updateSuccess = $updateStmt->execute([
-                'password' => $newHashed,
-                'User_id' => $Users_id
+                'admin_password' => $newHashed,
+                'admin_id' => $Users_id
             ]);
+             header("Location: ../src/UI-Admin/index.php?page=contents/settings&passwordChange=success");
+                    exit;
 
-            // ==================== PASSWORD CHANGE SUCCESSFULLY ====================== //
-            if ($updateSuccess) {
-                if($successPassword["position"] == "STUDENT"){
-                     echo json_encode(["status" => "success", "message" => "Password updated successfully."]);
-                    header("Location: ../src/UI-Student/index.php?page=contents/settings&passwordChange=success");
-                    exit;
-                }else if($successPassword["position"] == "FACULTY"){
-                    echo json_encode(["status" => "success", "message" => "Password updated successfully."]);
-                    header("Location: ../src/UI-Faculty/index.php?page=contents/settings&passwordChange=success");
-                    exit;
-                }
-               
-            } else {
-                // ================== PASWORD FAILED TO CHANGE ====================== //
-                if($successPassword["position"] == "STUDENT"){
-                     echo json_encode(["status" => "error", "message" => "Failed to update password."]);
-                    header("Location: ../src/UI-Student/index.php?page=contents/settings&password=failedsss");
-                    exit;
-                 }else if($successPassword["position"] == "FACULTY"){
-                     echo json_encode(["status" => "error", "message" => "Failed to update password."]);
-                    header("Location: ../src/UI-Faculty/index.php?page=contents/settings&password=failedsss");
-                    exit;
-                 }
-            }
 
         } catch (PDOException $e) {
             echo json_encode(["status" => "error", "message" => "Database error: " . $e->getMessage()]);
-            header("Location: ../src/UI-Student/index.php?page=contents/settings&CurrentPasswoed=failedasdasdasd");
+            // header("Location: ../src/UI-Admin/index.php?page=contents/settings&CurrentPasswoed=failedasdasdasd");
                 exit;
         }
     }

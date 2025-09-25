@@ -16,6 +16,7 @@
     <form action="../../authentication/auth.php" method="post" enctype="multipart/form-data" class="d-flex flex-column justify-content-between align-items-center w-100">
         <input type="hidden" name="parentID" value="<?= htmlspecialchars($user_id); ?>">
         <input type="hidden" name="parentSettings" value="true">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION["csrf_token"] ?>">
         <div class="profileSettings d-flex col-md-12 col-12 flex-wrap" style="height: auto !important; overflow-y: hidden !important;">
             <div class="profilePicture h-100 col-md-4 col-12 d-flex flex-column justify-content-center align-items-center profileBG rounded-3 flex-wrap">
                 <img src="../../assets/image/users.png" alt="" style="width: 200px; height: 200px; border-radius: 50%;">
@@ -85,10 +86,11 @@
     <!-- CHANGE PASSWORD MODAL -->
     <div class="modal fade" id="changePassword" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <form method="POST" action="../../authentication/profileAuth.php" class="modal-content">
+            <form method="POST" action="../../authentication/auth.php" class="modal-content">
                 <input type="hidden" name="usersForgottenPass" value="true">
                 <input type="hidden" name="Users_id" value="<?= $user_id ?>">
-                <div class="modal-header modalBG">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION["csrf_token"] ?>">
+                <div class="modal-header bg-danger">
                     <h5 class="modal-title text-start w-100" id="passwordModalLabel" style="color: #fff;">Change
                         Password:</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -113,56 +115,56 @@
         </div>
     </div>
 <?php if (
-    isset($_GET['update']) || 
-    isset($_GET['passwordChange']) || 
-    isset($_GET['NewPassword']) || 
-    isset($_GET['CurrentPasswoed'])
-): ?>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const messages = {
-            update: {
-                icon: 'success',
-                title: 'Profile updated successfully!'
-            },
-            passwordChange: {
-                icon: 'success',
-                title: 'Password changed successfully!'
-            },
-            NewPassword: {
-                icon: 'error',
-                title: 'New passwords do not match!'
-            },
-            CurrentPasswoed: {
-                icon: 'error',
-                title: 'Current password is incorrect!'
-            }
-        };
+        isset($_GET['update']) || 
+        isset($_GET['passwordChange']) || 
+        isset($_GET['NewPassword']) || 
+        isset($_GET['error'])
+    ): ?>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const messages = {
+                update: {
+                    icon: 'success',
+                    title: 'Profile updated successfully!'
+                },
+                passwordChange: {
+                    icon: 'success',
+                    title: 'Password changed successfully!'
+                },
+                NewPassword: {
+                    icon: 'error',
+                    title: 'New passwords do not match!'
+                },
+                error: {
+                    icon: 'error',
+                    title: 'Current password is incorrect!'
+                }
+            };
 
-        for (const key in messages) {
-            const value = new URLSearchParams(window.location.search).get(key);
-            if (value) {
-                Swal.fire({
-                    toast: true,
-                    icon: messages[key].icon,
-                    title: messages[key].title,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                    didClose: () => removeUrlParams([key])
-                });
-                break;
+            for (const key in messages) {
+                const value = new URLSearchParams(window.location.search).get(key);
+                if (value) {
+                    Swal.fire({
+                        toast: true,
+                        icon: messages[key].icon,
+                        title: messages[key].title,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        didClose: () => removeUrlParams([key])
+                    });
+                    break;
+                }
             }
-        }
 
-        function removeUrlParams(params) {
-            const url = new URL(window.location);
-            params.forEach(param => url.searchParams.delete(param));
-            window.history.replaceState({}, document.title, url.toString());
-        }
-    });
+            function removeUrlParams(params) {
+                const url = new URL(window.location);
+                params.forEach(param => url.searchParams.delete(param));
+                window.history.replaceState({}, document.title, url.toString());
+            }
+        });
     </script>
-    <?php endif; ?>
+<?php endif; ?>
 
 </section>
