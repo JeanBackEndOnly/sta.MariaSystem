@@ -247,3 +247,17 @@ if($action === 'displayStudentInfo'){
     }
     exit();
 }
+if($action === 'medical_update'){
+    $registration = $crud->medical_update();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'feedback_form'){
+    $registration = $crud->feedback_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}

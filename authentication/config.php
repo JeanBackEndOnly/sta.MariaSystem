@@ -119,6 +119,9 @@ function db_connect()
                 gradeLevel VARCHAR(10),
                 enrolled_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 student_profile BLOB,
+                weight DECIMAL(5,2),
+                height DECIMAL(4,2),
+                height_squared DECIMAL(4,2),
                 FOREIGN KEY (guardian_id) REFERENCES users(user_id) ON DELETE CASCADE
             )",
             "CREATE TABLE IF NOT EXISTS enrolment (
@@ -168,6 +171,13 @@ function db_connect()
                 afternoon_attendance DATETIME DEFAULT NULL,
                 FOREIGN KEY (student_id) REFERENCES student(student_id) ON DELETE CASCADE,
                 FOREIGN KEY (adviser_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )",
+            "CREATE TABLE IF NOT EXISTS feeback (
+                feeback_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                parent_id INT(11) NOT NULL,
+                title VARCHAR(100) NOT NULL,
+                description TEXT NOT NULL,
+                FOREIGN KEY (parent_id) REFERENCES users(user_id) ON DELETE CASCADE
             )",
 
             

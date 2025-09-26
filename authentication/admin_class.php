@@ -467,6 +467,30 @@ class Action
             ]);
         }
     }
+    function feedback_form() {
+        $parent_id = $_POST["parent_id"] ?? '';
+        $title = htmlspecialchars(trim($_POST["title"] ?? ''));
+        $description = htmlspecialchars(trim($_POST["description"] ?? ''));
+
+        try {
+            $query = "INSERT INTO feeback (parent_id, title, description)
+                VALUES ('$parent_id', '$title', '$description')";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+
+            return json_encode([
+                'status' => 1,
+                'message' => 'Feedback submited successfully!'
+            ]);
+
+        } catch (PDOException $e) {
+            error_log("Database error: " . $e->getMessage());
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred. Please try again later.'
+            ]);
+        }
+    }
     function enrolment_form() {
         $section_name = $_POST['section_name'] ?? null;
         $adviser_id = $_POST['adviser_id'] ?? null;
@@ -773,6 +797,46 @@ class Action
             ]);
         }
     }
+    function medical_update() {
+        $student_id = $_POST["student_id"] ?? null;
+        
+        if (!$student_id) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'Student ID is required'
+            ]);
+        }
+
+        try {
+            // Update student table
+            $student_query = "UPDATE student SET 
+                weight = :weight,
+                height = :height,
+                height_squared = :height_squared
+                WHERE student_id = :student_id";
+
+            $student_stmt = $this->db->prepare($student_query);
+            $student_stmt->execute([
+                ':weight' => $_POST['weight'] ?? null,
+                ':height' => $_POST['height'] ?? null,
+                ':height_squared' => $_POST['height_squared'] ?? null,
+                ':student_id' => $student_id
+            ]);
+
+            return json_encode([
+                'status' => 1,
+                'message' => 'Student BMI information updated successfully!'
+            ]);
+
+        } catch (PDOException $e) {
+            error_log("Database error: " . $e->getMessage());
+            return json_encode([
+                'status' => 0,
+                'message' => 'An error occurred. Please try again later.'
+            ]);
+        }
+    }
+
 
 
 

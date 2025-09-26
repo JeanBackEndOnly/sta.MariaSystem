@@ -45,7 +45,6 @@
     /* Content area styling */
     #displayStudentInfo,
     #displayAttendance,
-    #displayMedical,
     #displayGrades {
         height:600px !important;
         padding: 20px;
@@ -362,6 +361,41 @@
                 ?>
         </div>
         <div id="displayMedical" class="medical" style="display:none">
+            <form id="medical-update" class="row h-auto">
+                <input type="hidden" name="student_id" value="<?= $student_info["student_id"] ?>">
+
+                <div class="col-md-4 h-auto">
+                    <label class="form-label">Weight (kg)</label>
+                    <input type="text" value="<?= htmlspecialchars($student_info["weight"]) ?>" class="form-control"
+                        name="weight" placeholder="weight (kg)">
+                </div>
+
+                <div class="col-md-4 h-auto">
+                    <label class="form-label">Height (m)</label>
+                    <input type="text" value="<?= htmlspecialchars($student_info["height"]) ?>" class="form-control"
+                        name="height" placeholder="height (m)">
+                </div>
+
+                <div class="col-md-4 h-auto">
+                    <label class="form-label">Height² (m²)</label>
+                    <input type="text" value="<?= htmlspecialchars($student_info["height_squared"]) ?>"
+                        class="form-control" name="height_squared" placeholder="height² (m²)">
+                </div>
+
+                <div class="col-md-5 h-auto mt-4 d-flex align-items-center">
+                    <strong class="w-50">BMI Result:</strong>
+                    <input type="text" id="bm-result" readonly value="" class="form-control">
+                </div>
+
+                <div class="col-md-7 h-auto mt-4 d-flex align-items-center">
+                    <strong class="w-50">BMI Category:</strong>
+                    <input type="text" id="bm-category" readonly value="" class="form-control">
+                </div>
+
+                <div class="col-md-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-danger px-5 text-white mt-3">Update</button>
+                </div>
+            </form>
 
         </div>
         <div id="displayGrades" class="gading-system" style="display:none">
@@ -399,5 +433,59 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Update age whenever birthdate changes
     birthdateInput.addEventListener("change", calculateAge);
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const weightInput = document.querySelector('input[name="weight"]');
+    const heightInput = document.querySelector('input[name="height"]');
+    const heightSqInput = document.querySelector('input[name="height_squared"]');
+    const bmiInput = document.getElementById("bm-result");
+    const categoryInput = document.getElementById("bm-category");
+
+    function calculateBMI() {
+        const weight = parseFloat(weightInput.value);
+        const height = parseFloat(heightInput.value);
+
+        if (!isNaN(weight) && !isNaN(height) && height > 0) {
+            const heightSq = (height * height).toFixed(2);
+            heightSqInput.value = heightSq;
+
+            const bmi = (weight / (height * height)).toFixed(2);
+            bmiInput.value = bmi;
+
+            // Category logic
+            let category = "";
+            if (bmi < 18.5) category = "Underweight";
+            else if (bmi < 25) category = "Normal";
+            else if (bmi < 30) category = "Overweight";
+            else category = "Obese";
+
+            categoryInput.value = category;
+        } else {
+            heightSqInput.value = "";
+            bmiInput.value = "";
+            categoryInput.value = "";
+        }
+    }
+
+    weightInput.addEventListener("input", calculateBMI);
+    heightInput.addEventListener("input", calculateBMI);
+
+    // Run once on page load
+    calculateBMI();
+});
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    const heightInput = document.querySelector('input[name="height"]');
+
+    heightInput.addEventListener("blur", function () {
+        let value = parseFloat(heightInput.value);
+        if (!isNaN(value) && value > 3) { 
+            // if value looks like cm, convert to m
+            heightInput.value = (value / 100).toFixed(2);
+        }
+    });
 });
 </script>

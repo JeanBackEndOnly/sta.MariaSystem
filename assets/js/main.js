@@ -658,6 +658,72 @@ $(document).ready(function () {
           }
       });
   });
+  $(document).on("submit", "#feedback-form", function (e) { 
+    // alert('Button Submit');
+      e.preventDefault();
+      const $form = $(this);
+      if ($form.data("isSubmitted")) return;
+      $form.data("isSubmitted", true);
+      
+      
+      const formData = new FormData(this);
+      const $btn = $form.find("button[type='submit']");
+      $btn.prop("disabled", true);
+      $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+      
+      $.ajax({
+          url: base_url + "authentication/action.php?action=feedback_form",
+          type: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: "json",
+          success: function (response) {
+              if (response.status === 1) {
+                  Swal.fire({
+                      title: "Success!",
+                      text: response.message,
+                      icon: "success",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  }).then(() => {
+                      // $form[0].reset(); // Reset form on success
+                      // $('#createClassrooms').modal('hide'); // Close modal
+                      // loadClassrooms(); // Refresh classroom list
+                      $form[0].reset(); 
+                  });
+              } else {
+                  Swal.fire({
+                      title: "Error",
+                      text: response.message,
+                      icon: "error",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  });
+              }
+          },
+          error: function (jqXHR, textStatus, err) {
+              console.error("AJAX error:", textStatus, err);
+              Swal.fire({
+                  title: "Connection Error",
+                  text: "Please check your connection and try again.",
+                  icon: "error",
+                  toast: true,
+                  position: "top-end",
+                  timer: 3000,
+                  showConfirmButton: false,
+              });
+          },
+          complete: function () {
+              $form.data("isSubmitted", false);
+              $btn.prop("disabled", false).html('Submited');// Fixed button text
+          }
+      });
+  });
   $(document).on('click', '#open_enrolment', function () {
     const student_id = $(this).data('id');
     const student_name = $(this).data('name') || 'Student';
@@ -1115,7 +1181,7 @@ $(document).ready(function () {
         }
       });
   });
-
+  
    $(document).on("submit", "#displayStudentInfo", function (e) { 
     // alert('Button Submit');
       e.preventDefault();
@@ -1130,6 +1196,68 @@ $(document).ready(function () {
       
       $.ajax({
           url: base_url + "authentication/action.php?action=displayStudentInfo",
+          type: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: "json",
+          success: function (response) {
+              if (response.status === 1) {
+                  Swal.fire({
+                      title: "Success!",
+                      text: response.message,
+                      icon: "success",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  }).then(() => {
+                      
+                  });
+              } else {
+                  Swal.fire({
+                      title: "Error",
+                      text: response.message,
+                      icon: "error",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  });
+              }
+          },
+          error: function (jqXHR, textStatus, err) {
+              console.error("AJAX error:", textStatus, err);
+              Swal.fire({
+                  title: "Connection Error",
+                  text: "Please check your connection and try again.",
+                  icon: "error",
+                  toast: true,
+                  position: "top-end",
+                  timer: 3000,
+                  showConfirmButton: false,
+              });
+          },
+          complete: function () {
+            $form.data("isSubmitted", false);
+            $btn.prop("disabled", false).html('Update'); // Changed from 'Deactivated' to 'Update'
+        }
+      });
+  });
+  $(document).on("submit", "#medical-update", function (e) { 
+    // alert('Button Submit');
+      e.preventDefault();
+      const $form = $(this);
+      if ($form.data("isSubmitted")) return;
+      $form.data("isSubmitted", true);
+
+      const formData = new FormData(this);
+      const $btn = $form.find("button[type='submit']");
+      $btn.prop("disabled", true);
+      $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+      
+      $.ajax({
+          url: base_url + "authentication/action.php?action=medical_update",
           type: "POST",
           data: formData,
           processData: false,
