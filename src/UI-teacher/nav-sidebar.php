@@ -49,9 +49,6 @@
              <a href="index.php?page=contents/attendance" class="nav-item p-2 rounded-1 nav-attendance">
                 <span class=""><i class=""></i></span> Attendance 
             </a>
-             <a href="index.php?page=contents/medical" class="nav-item p-2 rounded-1 nav-medical">
-                <span class=""><i class=""></i></span> Medical Health 
-            </a>
             <a href="index.php?page=contents/datas" class="nav-item p-2 rounded-1 nav-datas">
                 <span class=""><i class=""></i></span> Generate Data 
             </a>

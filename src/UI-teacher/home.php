@@ -16,7 +16,7 @@
 
     <section>
         <div class="d-flex justify-content-between align-items-center mt-4">
-            <div class="mx-2 marginToMedia sideAnimation">
+            <div class="mx-2 marginToMedia">
                 <h4>Active School Year</h4>
             </div>
         </div>
@@ -24,7 +24,7 @@
            <span class="m-0 fs-5">SCHOOL YEAR: <strong><?= $activeSY["school_year_name"] ?? 'No Active School Year' ?></strong></span>
         </div>
         <div class="d-flex justify-content-between align-items-center mt-4">
-            <div class="mx-2 marginToMedia sideAnimation">
+            <div class="mx-2 marginToMedia">
                 <h4>My Class</h4>
             </div>
         </div>

@@ -20,7 +20,7 @@
 </style>
     <section style="overflow-y: scroll !important; max-height: 85vh !important;" >
         <div class="d-flex justify-content-between align-items-center mt-4">
-            <div class="mx-2 marginToMedia sideAnimation">
+            <div class="mx-2 marginToMedia ">
                 <h4>Active School Year</h4>
             </div>
         </div>
@@ -28,7 +28,7 @@
             <span class="m-0 fs-5">SCHOOL YEAR: <strong><?= $activeSY["school_year_name"] ?? 'No Active School Year' ?></strong></span>
         </div>
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="mx-2 marginToMedia sideAnimation">
+            <div class="mx-2 marginToMedia ">
                 <h4>Dashboard Analytics</h4>
             </div>
         </div>
@@ -62,7 +62,7 @@
             </div>
         </div>
         <div class="d-flex justify-content-between align-items-center mt-4">
-            <div class="mx-2 marginToMedia sideAnimation">
+            <div class="mx-2 marginToMedia ">
                 <h4>Facility</h4>
             </div>
         </div>

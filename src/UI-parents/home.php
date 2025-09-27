@@ -1,7 +1,7 @@
 <body>
     <section class="">
         <div class="mb-4">
-            <div class="mx-2 marginToMedia sideAnimation">
+            <div class="mx-2 marginToMedia ">
                 <h4>Student Dashboard</h4>
             </div>
         </div>

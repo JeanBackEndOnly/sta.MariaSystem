@@ -326,15 +326,15 @@ class Action
             ]);
         }
     }
-    function assignTeacher_form(){
-        $classroom_id = htmlspecialchars(trim($_POST["classroom_id"]));
-        $section_id = htmlspecialchars(trim($_POST["section_id"]));
-        $grade_level = htmlspecialchars(trim($_POST["grade_level"]));
-        $teacher_name = htmlspecialchars(trim($_POST["teacher_name"])); // this is adviser_id
-        $schoolYear_id = htmlspecialchars(trim($_POST["schoolYear_id"]));
-        
+    function assignTeacher_form() {
+        $classroom_id = htmlspecialchars(trim($_POST["classroom_id"] ?? ""));
+        $section_id   = htmlspecialchars(trim($_POST["section_id"] ?? ""));
+        $grade_level  = htmlspecialchars(trim($_POST["grade_level"] ?? ""));
+        $teacher_id   = htmlspecialchars(trim($_POST["teacher_name"] ?? "")); // adviser_id
+        $schoolYear_id = htmlspecialchars(trim($_POST["schoolYear_id"] ?? ""));
+
         if (empty($classroom_id) || empty($section_id) || empty($grade_level)
-                || empty($teacher_name) || empty($schoolYear_id)) {
+            || empty($teacher_id) || empty($schoolYear_id)) {
             return json_encode([
                 'status' => 0,
                 'message' => 'Please fill in all required fields'
@@ -342,7 +342,25 @@ class Action
         }
 
         try {
-            // Fetch section_name using section_id
+            // ✅ Check if teacher already assigned for this school year
+            $checkStmt = $this->db->prepare("
+                SELECT u.firstname, u.lastname 
+                FROM classes c
+                INNER JOIN users u ON c.adviser_id = u.user_id
+                WHERE c.adviser_id = ? AND c.sy_id = ?
+            ");
+            $checkStmt->execute([$teacher_id, $schoolYear_id]);
+            $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $teacherFullName = $existing['firstname'] . ' ' . $existing['lastname'];
+                return json_encode([
+                    'status' => 0,
+                    'message' => "Teacher {$teacherFullName} is already assigned as adviser."
+                ]);
+            }
+
+            // ✅ Check if section exists
             $secStmt = $this->db->prepare("SELECT section_name FROM sections WHERE section_id = ?");
             $secStmt->execute([$section_id]);
             $section = $secStmt->fetch(PDO::FETCH_ASSOC);
@@ -356,24 +374,31 @@ class Action
 
             $section_name = $section['section_name'];
 
+            // ✅ Insert new class record
             $query = "INSERT INTO classes (section_id, adviser_id, sy_id, section_name, grade_level) 
                     VALUES (?, ?, ?, ?, ?)";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$section_id, $teacher_name, $schoolYear_id, $section_name, $grade_level]);
+            $stmt->execute([$section_id, $teacher_id, $schoolYear_id, $section_name, $grade_level]);
+
+            // ✅ Update classroom availability
+            $roomStmt = $this->db->prepare("UPDATE classrooms SET room_status = 'Unavailable' WHERE room_id = ?");
+            $roomStmt->execute([$classroom_id]);
 
             return json_encode([
                 'status' => 1,
-                'message' => 'Teacher assigned successfully!'
+                'message' => 'Teacher assigned successfully! Classroom marked as Unavailable.'
             ]);
 
         } catch (PDOException $e) {
-            error_log("Database error: " . $e->getMessage());
+            error_log("Database error in assignTeacher_form: " . $e->getMessage());
+
             return json_encode([
                 'status' => 0,
-                'message' => 'An error occurred. Please try again later.'
+                'message' => 'An error occurred: ' . $e->getMessage() // temporary for debugging
             ]);
         }
     }
+
     function studentAcc_form() {
         $lrn = htmlspecialchars(trim($_POST["lrn"] ?? ''));
         $gradeLevel = htmlspecialchars(trim($_POST["grade_level"] ?? ''));
