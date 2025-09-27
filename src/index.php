@@ -62,4 +62,42 @@
         </div>
     </div>
 </main>
+<?php if (
+        isset($_GET['incorrect'])
+    ): ?>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const messages = {
+                incorrect: {
+                    icon: 'error',
+                    title: 'Incorrect username or password, please try again!'
+                }
+                
+            };
+
+            for (const key in messages) {
+                const value = new URLSearchParams(window.location.search).get(key);
+                if (value) {
+                    Swal.fire({
+                        toast: true,
+                        icon: messages[key].icon,
+                        title: messages[key].title,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        didClose: () => removeUrlParams([key])
+                    });
+                    break;
+                }
+            }
+
+            function removeUrlParams(params) {
+                const url = new URL(window.location);
+                params.forEach(param => url.searchParams.delete(param));
+                window.history.replaceState({}, document.title, url.toString());
+            }
+        });
+    </script>
+<?php endif; ?>
 <?php include '../footer.php' ?>

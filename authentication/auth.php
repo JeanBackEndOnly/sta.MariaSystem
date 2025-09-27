@@ -65,7 +65,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 // If credentials don't match either
                 $_SESSION['errors_login']['login_incorrect'] = 'Incorrect username or password.';
-                header("Location: ../src/index.php");
+                header("Location: ../src/index.php?incorrect=login");
                 exit();
             } else {
                 $_SESSION['errors_login']['login_incorrect'] = 'Please fill in both fields.';

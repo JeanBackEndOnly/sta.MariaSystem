@@ -84,4 +84,56 @@
         </div>
     </div>
 </main>
+<?php if (
+        isset($_GET['email']) || 
+        isset($_GET['password']) || 
+        isset($_GET['username']) || 
+        isset($_GET['create'])
+    ): ?>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const messages = {
+                email: {
+                    icon: 'error',
+                    title: 'Email already exist!'
+                },
+                password: {
+                    icon: 'error',
+                    title: 'Password not match!'
+                },
+                username: {
+                    icon: 'error',
+                    title: 'Username already exist!'
+                },
+                create: {
+                    icon: 'success',
+                    title: 'Account Created successfully!'
+                }
+            };
+
+            for (const key in messages) {
+                const value = new URLSearchParams(window.location.search).get(key);
+                if (value) {
+                    Swal.fire({
+                        toast: true,
+                        icon: messages[key].icon,
+                        title: messages[key].title,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        didClose: () => removeUrlParams([key])
+                    });
+                    break;
+                }
+            }
+
+            function removeUrlParams(params) {
+                const url = new URL(window.location);
+                params.forEach(param => url.searchParams.delete(param));
+                window.history.replaceState({}, document.title, url.toString());
+            }
+        });
+    </script>
+<?php endif; ?>
 <?php include '../footer.php'; ?>
