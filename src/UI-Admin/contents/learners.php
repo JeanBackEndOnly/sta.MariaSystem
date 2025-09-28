@@ -16,7 +16,9 @@
             <select id="categoryFilter" name="statusCategory" class="form-select">
                 <option value="">Enrollment Status</option>
                 <option value="active">Enrolled</option>
-                <option value="transferred">Transferred</option>
+                <option value="transferred_in">Transferred in</option>
+                <option value="transferred_out">Transferred out</option>
+                <option value="not_active">not active</option>
                 <option value="dropped">Dropped</option>
             </select>
         </div>
@@ -109,9 +111,15 @@
                                         <option value="active"
                                             <?= ($user["enrolment_status"] === "active") ? "selected" : "" ?>>
                                             Enrolled</option>
-                                        <option value="transferred"
-                                            <?= ($user["enrolment_status"] === "transferred") ? "selected" : "" ?>>
-                                            transferred</option>
+                                        <option value="transferred_in"
+                                            <?= ($user["enrolment_status"] === "transferred_in") ? "selected" : "" ?>>
+                                            transferred in</option>
+                                        <option value="transferred_out"
+                                            <?= ($user["enrolment_status"] === "transferred_out") ? "selected" : "" ?>>
+                                            transferred out</option>
+                                        <option value="not_active"
+                                            <?= ($user["enrolment_status"] === "not_active") ? "selected" : "" ?>>
+                                            not active</option>
                                         <option value="dropped"
                                             <?= ($user["enrolment_status"] === "dropped") ? "selected" : "" ?>>dropped
                                         </option>

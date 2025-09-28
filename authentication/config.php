@@ -105,7 +105,7 @@ function db_connect()
             "CREATE TABLE IF NOT EXISTS student (
                 student_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 guardian_id INT(11),
-                enrolment_status ENUM('active', 'transferred', 'dropped', 'pending', 'rejected') DEFAULT 'pending',
+                enrolment_status ENUM('active', 'transferred_in', 'not_active', 'transferred_out', 'dropped', 'pending', 'rejected') DEFAULT 'pending',
                 lrn VARCHAR(12) NOT NULL,
                 fname VARCHAR(150) NOT NULL,
                 mname VARCHAR(150) NOT NULL,
@@ -178,6 +178,16 @@ function db_connect()
                 title VARCHAR(100) NOT NULL,
                 description TEXT NOT NULL,
                 FOREIGN KEY (parent_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )",
+            "CREATE TABLE IF NOT EXISTS sf_add_data (
+                sf_add_data_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                school_id VARCHAR(20) NOT NULL,
+                school_name VARCHAR(100) NOT NULL,
+                Division VARCHAR(100) NOT NULL,
+                sy_id INT(11) NOT NULL,
+                district VARCHAR(20) NOT NULL,
+                report_for_the_month_of DATE NOT NULL,
+                FOREIGN KEY (sy_id) REFERENCES school_year(school_year_id) ON DELETE CASCADE
             )",
 
             

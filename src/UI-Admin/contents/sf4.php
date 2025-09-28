@@ -156,22 +156,22 @@ input {
 
          <div class="scroll-container">
              <style>
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    text-align: center;
-                }
+             table {
+                 width: 100%;
+                 border-collapse: collapse;
+                 text-align: center;
+             }
 
-                th,
-                td {
-                    border: 1px solid #000;
-                    padding: 5px;
-                    vertical-align: middle;
-                }
+             th,
+             td {
+                 border: 1px solid #000;
+                 padding: 5px;
+                 vertical-align: middle;
+             }
 
-                th {
-                    background: #f8f8f8;
-                }
+             th {
+                 background: #f8f8f8;
+             }
              </style>
 
              <div class="">
@@ -188,45 +188,21 @@ input {
                              <th colspan="9">TRANSFERRED IN</th>
                          </tr>
                          <tr>
-                             <!-- Registered Learners -->
                              <th colspan="3"></th>
-
-                             <!-- Attendance -->
                              <th colspan="3">Daily Average</th>
                              <th colspan="3">Percentage for the Month</th>
-
-                             <!-- No Longer Participating -->
                              <th colspan="3">(A) Cumulative as of Previous Month</th>
                              <th colspan="3">(B) For the Month</th>
                              <th colspan="3">(A + B) Cumulative as End of Month</th>
-
-                             <!-- Transferred Out -->
                              <th colspan="3">(A) Cumulative as of Previous Month</th>
                              <th colspan="3">(B) For the Month</th>
                              <th colspan="3">(A + B) Cumulative as End of Month</th>
-
-                             <!-- Transferred In -->
                              <th colspan="3">(A) Cumulative as of Previous Month</th>
                              <th colspan="3">(B) For the Month</th>
                              <th colspan="3">(A + B) Cumulative as End of Month</th>
                          </tr>
                          <tr>
-                             <!-- Registered Learners breakdown -->
-                             <th colspan="3"></th> <!-- spacer for GRADE/SECTION/ADVISER -->
-                             <th>M</th>
-                             <th>F</th>
-                             <th>T</th>
-
-                             <!-- Attendance Daily Average -->
-                             <th>M</th>
-                             <th>F</th>
-                             <th>T</th>
-                             <!-- Attendance Percentage -->
-                             <th>M</th>
-                             <th>F</th>
-                             <th>T</th>
-
-                             <!-- NLP in Learning Activities -->
+                             <th colspan="3"></th>
                              <th>M</th>
                              <th>F</th>
                              <th>T</th>
@@ -236,8 +212,7 @@ input {
                              <th>M</th>
                              <th>F</th>
                              <th>T</th>
-
-                             <!-- Transferred Out -->
+                             <th colspan="9"></th>
                              <th>M</th>
                              <th>F</th>
                              <th>T</th>
@@ -247,8 +222,6 @@ input {
                              <th>M</th>
                              <th>F</th>
                              <th>T</th>
-
-                             <!-- Transferred In -->
                              <th>M</th>
                              <th>F</th>
                              <th>T</th>
@@ -261,75 +234,209 @@ input {
                          </tr>
                      </thead>
                      <tbody>
-                    <?php
-                        $stmt = $pdo->prepare("SELECT * FROM classes");
-                        $stmt->execute();
-                        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                     ?>
-                         <?php foreach($rows as $row): ?>
+                         <?php
+                            // Registered learners per adviser
+                            $stmt = $pdo->prepare("
+                                SELECT 
+                                    u.user_id AS adviser_id,
+                                    u.firstname AS adviser_fname,
+                                    u.lastname AS adviser_lname,
+                                    s.section_name AS sec_name,
+                                    s.section_grade_level AS grade_level,
+                                    SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_registered,
+                                    SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_registered,
+                                    COUNT(st.student_id) AS total_registered
+                                FROM enrolment e
+                                INNER JOIN sections s ON s.section_name = e.section_name
+                                INNER JOIN users u ON e.adviser_id = u.user_id
+                                INNER JOIN student st ON e.student_id = st.student_id
+                                WHERE e.enrolment_status = 'Approved'
+                                GROUP BY s.section_name, s.section_grade_level, u.user_id, u.firstname, u.lastname
+                            ");
+                            $stmt->execute();
+                            $advisers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                            foreach($advisers as $row):
+
+                                $adviserId = $row['adviser_id'];
+
+                                // Attendance per month
+                                $stmtAttend = $pdo->prepare("
+                                    SELECT 
+                                        SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_present,
+                                        SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_present,
+                                        COUNT(*) AS total_present
+                                    FROM attendance a
+                                    INNER JOIN student st ON a.student_id = st.student_id
+                                    WHERE a.adviser_id = :adviser_id
+                                    AND MONTH(a.morning_attendance) = MONTH(CURRENT_DATE())
+                                    AND a.attendance_type = 'Present'
+                                ");
+                                $stmtAttend->execute(['adviser_id' => $adviserId]);
+                                $attend = $stmtAttend->fetch(PDO::FETCH_ASSOC);
+
+                                // Dropped students
+                                $stmtDropped = $pdo->prepare("
+                                    SELECT 
+                                        SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_dropped,
+                                        SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_dropped
+                                    FROM enrolment e
+                                    INNER JOIN student st ON e.student_id = st.student_id
+                                    WHERE e.adviser_id = :adviser_id
+                                    AND st.enrolment_status='dropped'
+                                ");
+                                $stmtDropped->execute(['adviser_id' => $adviserId]);
+                                $dropped = $stmtDropped->fetch(PDO::FETCH_ASSOC);
+
+                                // Transferred Out
+                                $stmtTransOut = $pdo->prepare("
+                                    SELECT 
+                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_prev,
+                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_prev,
+                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_this_month,
+                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_this_month
+                                    FROM enrolment e
+                                    INNER JOIN student st ON e.student_id = st.student_id
+                                    WHERE e.adviser_id = :adviser_id
+                                    AND st.enrolment_status='transferred_out'
+                                ");
+                                $stmtTransOut->execute(['adviser_id' => $adviserId]);
+                                $transOut = $stmtTransOut->fetch(PDO::FETCH_ASSOC);
+
+                                // Transferred In
+                                $stmtTransIn = $pdo->prepare("
+                                    SELECT 
+                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_prev,
+                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_prev,
+                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_this_month,
+                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_this_month
+                                    FROM enrolment e
+                                    INNER JOIN student st ON e.student_id = st.student_id
+                                    WHERE e.adviser_id = :adviser_id AND st.enrolment_status = 'transferred_in'
+                                ");
+                                $stmtTransIn->execute(['adviser_id' => $adviserId]);
+                                $transIn = $stmtTransIn->fetch(PDO::FETCH_ASSOC);
+
+                                $stmtTransOut->execute(['adviser_id' => $adviserId]);
+                                $transOut = $stmtTransOut->fetch(PDO::FETCH_ASSOC);
+
+                                // Transferred In
+                                $stmtNotActive = $pdo->prepare("
+                                    SELECT 
+                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_prev,
+                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_prev,
+                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_this_month,
+                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_this_month
+                                    FROM enrolment e
+                                    INNER JOIN student st ON e.student_id = st.student_id
+                                    WHERE e.adviser_id = :adviser_id AND st.enrolment_status = 'not_active'
+                                ");
+                                $stmtNotActive->execute(['adviser_id' => $adviserId]);
+                                $notActive = $stmtNotActive->fetch(PDO::FETCH_ASSOC);
+                            ?>
                          <tr>
-                             <td><?= htmlspecialchars($row['section_name']) ?></td>
-                             <td><?= htmlspecialchars($row['section_name']) ?></td>
-                             <td><?= htmlspecialchars($row['section_name']) ?></td>
+                             <td><?= htmlspecialchars($row['grade_level']) ?></td>
+                             <td><?= htmlspecialchars($row['sec_name']) ?></td>
+                             <td><?= htmlspecialchars($row['adviser_fname'] . " " . $row['adviser_lname']) ?></td>
 
                              <!-- Registered -->
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
+                             <td><?= $row['male_registered'] ?></td>
+                             <td><?= $row['female_registered'] ?></td>
+                             <td><?= $row['total_registered'] ?></td>
 
-                             <!-- Attendance Daily Avg -->
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
+                             <!-- Attendance -->
+                             <td><?= $attend['male_present'] ?? 0 ?></td>
+                             <td><?= $attend['female_present'] ?? 0 ?></td>
+                             <td><?= $attend['total_present'] ?? 0 ?></td>
+                             <td><?= $attend['male_present'] ?? 0 ?></td>
+                             <td><?= $attend['female_present'] ?? 0 ?></td>
+                             <td><?= $attend['total_present'] ?? 0 ?></td>
 
-                             <!-- Attendance Percentage -->
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-
-                             <!-- NLP -->
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
+                             <!-- No Longer Participating (blank) -->
+                             <td><?= $notActive['male_prev'] ?? 0 ?></td>
+                             <td><?= $notActive['female_prev'] ?? 0 ?></td>
+                             <td><?= ($notActive['male_prev'] ?? 0) + ($notActive['female_prev'] ?? 0) ?></td>
+                             <td><?= $notActive['male_this_month'] ?? 0 ?></td>
+                             <td><?= $notActive['female_this_month'] ?? 0 ?></td>
+                             <td><?= ($notActive['male_this_month'] ?? 0) + ($notActive['female_this_month'] ?? 0) ?>
+                             </td>
+                             <td><?= ($notActive['male_prev'] ?? 0) + ($notActive['male_this_month'] ?? 0) ?></td>
+                             <td><?= ($notActive['female_prev'] ?? 0) + ($notActive['female_this_month'] ?? 0) ?></td>
+                             <td><?= ($notActive['male_prev'] ?? 0) + ($notActive['male_this_month'] ?? 0) + ($notActive['female_prev'] ?? 0) + ($notActive['female_this_month'] ?? 0) ?>
+                             </td>
 
                              <!-- Transferred Out -->
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
+                             <td><?= $transOut['male_prev'] ?? 0 ?></td>
+                             <td><?= $transOut['female_prev'] ?? 0 ?></td>
+                             <td><?= ($transOut['male_prev'] ?? 0) + ($transOut['female_prev'] ?? 0) ?></td>
+                             <td><?= $transOut['male_this_month'] ?? 0 ?></td>
+                             <td><?= $transOut['female_this_month'] ?? 0 ?></td>
+                             <td><?= ($transOut['male_this_month'] ?? 0) + ($transOut['female_this_month'] ?? 0) ?></td>
+                             <td><?= ($transOut['male_prev'] ?? 0) + ($transOut['male_this_month'] ?? 0) ?></td>
+                             <td><?= ($transOut['female_prev'] ?? 0) + ($transOut['female_this_month'] ?? 0) ?></td>
+                             <td><?= ($transOut['male_prev'] ?? 0) + ($transOut['male_this_month'] ?? 0) + ($transOut['female_prev'] ?? 0) + ($transOut['female_this_month'] ?? 0) ?>
+                             </td>
 
                              <!-- Transferred In -->
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
-                             <td><?= $row['section_name'] ?></td>
+                             <td><?= $transIn['male_prev'] ?? 0 ?></td>
+                             <td><?= $transIn['female_prev'] ?? 0 ?></td>
+                             <td><?= ($transIn['male_prev'] ?? 0) + ($transIn['female_prev'] ?? 0) ?></td>
+                             <td><?= $transIn['male_this_month'] ?? 0 ?></td>
+                             <td><?= $transIn['female_this_month'] ?? 0 ?></td>
+                             <td><?= ($transIn['male_this_month'] ?? 0) + ($transIn['female_this_month'] ?? 0) ?></td>
+                             <td><?= ($transIn['male_prev'] ?? 0) + ($transIn['male_this_month'] ?? 0) ?></td>
+                             <td><?= ($transIn['female_prev'] ?? 0) + ($transIn['female_this_month'] ?? 0) ?></td>
+                             <td><?= ($transIn['male_prev'] ?? 0) + ($transIn['male_this_month'] ?? 0) + ($transIn['female_prev'] ?? 0) + ($transIn['female_this_month'] ?? 0) ?>
+                             </td>
                          </tr>
                          <?php endforeach; ?>
+
                      </tbody>
+                     <thead>
+                            <tr>
+                                <th colspan="3" class="text-start">Elementary</th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </thead>
                  </table>
              </div>
+
+
 
          </div>
 
