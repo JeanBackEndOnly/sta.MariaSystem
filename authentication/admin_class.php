@@ -297,16 +297,16 @@ class Action
         }
 
         try {
-            $checkStmt = $this->db->prepare(
-                "SELECT subject_name FROM subjects WHERE subject_name = ? OR subject_code = ?"
-            );
-            $checkStmt->execute([$subject_name, $subject_code]);
-            if ($checkStmt->fetch(PDO::FETCH_ASSOC)) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'Subject already exists!'
-                ]);
-            }
+            // $checkStmt = $this->db->prepare(
+            //     "SELECT subject_name FROM subjects WHERE subject_name = ? OR subject_code = ?"
+            // );
+            // $checkStmt->execute([$subject_name, $subject_code]);
+            // if ($checkStmt->fetch(PDO::FETCH_ASSOC)) {
+            //     return json_encode([
+            //         'status' => 0,
+            //         'message' => 'Subject already exists!'
+            //     ]);
+            // }
 
             $query = "INSERT INTO subjects (subject_name, subject_code, grade_level, subject_units, subjects_status)
                     VALUES (?, ?, ?, ?, ?)";
