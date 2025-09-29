@@ -235,104 +235,104 @@ input {
                      </thead>
                      <tbody>
                          <?php
-                            // Registered learners per adviser
-                            $stmt = $pdo->prepare("
-                                SELECT 
-                                    u.user_id AS adviser_id,
-                                    u.firstname AS adviser_fname,
-                                    u.lastname AS adviser_lname,
-                                    s.section_name AS sec_name,
-                                    s.section_grade_level AS grade_level,
-                                    SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_registered,
-                                    SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_registered,
-                                    COUNT(st.student_id) AS total_registered
-                                FROM enrolment e
-                                INNER JOIN sections s ON s.section_name = e.section_name
-                                INNER JOIN users u ON e.adviser_id = u.user_id
-                                INNER JOIN student st ON e.student_id = st.student_id
-                                WHERE e.enrolment_status = 'Approved'
-                                GROUP BY s.section_name, s.section_grade_level, u.user_id, u.firstname, u.lastname
-                            ");
-                            $stmt->execute();
-                            $advisers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                            foreach($advisers as $row):
-
-                                $adviserId = $row['adviser_id'];
-
-                                // Attendance per month
-                                $stmtAttend = $pdo->prepare("
+                                // Registered learners per adviser
+                                $stmt = $pdo->prepare("
                                     SELECT 
-                                        SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_present,
-                                        SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_present,
-                                        COUNT(*) AS total_present
-                                    FROM attendance a
-                                    INNER JOIN student st ON a.student_id = st.student_id
-                                    WHERE a.adviser_id = :adviser_id
-                                    AND MONTH(a.morning_attendance) = MONTH(CURRENT_DATE())
-                                    AND a.attendance_type = 'Present'
-                                ");
-                                $stmtAttend->execute(['adviser_id' => $adviserId]);
-                                $attend = $stmtAttend->fetch(PDO::FETCH_ASSOC);
-
-                                // Dropped students
-                                $stmtDropped = $pdo->prepare("
-                                    SELECT 
-                                        SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_dropped,
-                                        SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_dropped
+                                        u.user_id AS adviser_id,
+                                        u.firstname AS adviser_fname,
+                                        u.lastname AS adviser_lname,
+                                        s.section_name AS sec_name,
+                                        s.section_grade_level AS grade_level,
+                                        SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_registered,
+                                        SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_registered,
+                                        COUNT(st.student_id) AS total_registered
                                     FROM enrolment e
+                                    INNER JOIN sections s ON s.section_name = e.section_name
+                                    INNER JOIN users u ON e.adviser_id = u.user_id
                                     INNER JOIN student st ON e.student_id = st.student_id
-                                    WHERE e.adviser_id = :adviser_id
-                                    AND st.enrolment_status='dropped'
+                                    WHERE e.enrolment_status = 'Approved'
+                                    GROUP BY s.section_name, s.section_grade_level, u.user_id, u.firstname, u.lastname
                                 ");
-                                $stmtDropped->execute(['adviser_id' => $adviserId]);
-                                $dropped = $stmtDropped->fetch(PDO::FETCH_ASSOC);
+                                $stmt->execute();
+                                $advisers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                                // Transferred Out
-                                $stmtTransOut = $pdo->prepare("
-                                    SELECT 
-                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_prev,
-                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_prev,
-                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_this_month,
-                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_this_month
-                                    FROM enrolment e
-                                    INNER JOIN student st ON e.student_id = st.student_id
-                                    WHERE e.adviser_id = :adviser_id
-                                    AND st.enrolment_status='transferred_out'
-                                ");
-                                $stmtTransOut->execute(['adviser_id' => $adviserId]);
-                                $transOut = $stmtTransOut->fetch(PDO::FETCH_ASSOC);
+                                foreach($advisers as $row):
 
-                                // Transferred In
-                                $stmtTransIn = $pdo->prepare("
-                                    SELECT 
-                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_prev,
-                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_prev,
-                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_this_month,
-                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_this_month
-                                    FROM enrolment e
-                                    INNER JOIN student st ON e.student_id = st.student_id
-                                    WHERE e.adviser_id = :adviser_id AND st.enrolment_status = 'transferred_in'
-                                ");
-                                $stmtTransIn->execute(['adviser_id' => $adviserId]);
-                                $transIn = $stmtTransIn->fetch(PDO::FETCH_ASSOC);
+                                    $adviserId = $row['adviser_id'];
 
-                                $stmtTransOut->execute(['adviser_id' => $adviserId]);
-                                $transOut = $stmtTransOut->fetch(PDO::FETCH_ASSOC);
+                                    // Attendance per month
+                                    $stmtAttend = $pdo->prepare("
+                                        SELECT 
+                                            SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_present,
+                                            SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_present,
+                                            COUNT(*) AS total_present
+                                        FROM attendance a
+                                        INNER JOIN student st ON a.student_id = st.student_id
+                                        WHERE a.adviser_id = :adviser_id
+                                        AND MONTH(a.morning_attendance) = MONTH(CURRENT_DATE())
+                                        AND a.attendance_type = 'Present'
+                                    ");
+                                    $stmtAttend->execute(['adviser_id' => $adviserId]);
+                                    $attend = $stmtAttend->fetch(PDO::FETCH_ASSOC);
 
-                                // Transferred In
-                                $stmtNotActive = $pdo->prepare("
-                                    SELECT 
-                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_prev,
-                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_prev,
-                                        SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_this_month,
-                                        SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_this_month
-                                    FROM enrolment e
-                                    INNER JOIN student st ON e.student_id = st.student_id
-                                    WHERE e.adviser_id = :adviser_id AND st.enrolment_status = 'not_active'
-                                ");
-                                $stmtNotActive->execute(['adviser_id' => $adviserId]);
-                                $notActive = $stmtNotActive->fetch(PDO::FETCH_ASSOC);
+                                    // Dropped students
+                                    $stmtDropped = $pdo->prepare("
+                                        SELECT 
+                                            SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_dropped,
+                                            SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_dropped
+                                        FROM enrolment e
+                                        INNER JOIN student st ON e.student_id = st.student_id
+                                        WHERE e.adviser_id = :adviser_id
+                                        AND st.enrolment_status='dropped'
+                                    ");
+                                    $stmtDropped->execute(['adviser_id' => $adviserId]);
+                                    $dropped = $stmtDropped->fetch(PDO::FETCH_ASSOC);
+
+                                    // Transferred Out
+                                    $stmtTransOut = $pdo->prepare("
+                                        SELECT 
+                                            SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_prev,
+                                            SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_prev,
+                                            SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_this_month,
+                                            SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_this_month
+                                        FROM enrolment e
+                                        INNER JOIN student st ON e.student_id = st.student_id
+                                        WHERE e.adviser_id = :adviser_id
+                                        AND st.enrolment_status='transferred_out'
+                                    ");
+                                    $stmtTransOut->execute(['adviser_id' => $adviserId]);
+                                    $transOut = $stmtTransOut->fetch(PDO::FETCH_ASSOC);
+
+                                    // Transferred In
+                                    $stmtTransIn = $pdo->prepare("
+                                        SELECT 
+                                            SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_prev,
+                                            SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_prev,
+                                            SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_this_month,
+                                            SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_this_month
+                                        FROM enrolment e
+                                        INNER JOIN student st ON e.student_id = st.student_id
+                                        WHERE e.adviser_id = :adviser_id AND st.enrolment_status = 'transferred_in'
+                                    ");
+                                    $stmtTransIn->execute(['adviser_id' => $adviserId]);
+                                    $transIn = $stmtTransIn->fetch(PDO::FETCH_ASSOC);
+
+                                    $stmtTransOut->execute(['adviser_id' => $adviserId]);
+                                    $transOut = $stmtTransOut->fetch(PDO::FETCH_ASSOC);
+
+                                    // Transferred In
+                                    $stmtNotActive = $pdo->prepare("
+                                        SELECT 
+                                            SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_prev,
+                                            SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) < MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_prev,
+                                            SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_this_month,
+                                            SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_this_month
+                                        FROM enrolment e
+                                        INNER JOIN student st ON e.student_id = st.student_id
+                                        WHERE e.adviser_id = :adviser_id AND st.enrolment_status = 'not_active'
+                                    ");
+                                    $stmtNotActive->execute(['adviser_id' => $adviserId]);
+                                    $notActive = $stmtNotActive->fetch(PDO::FETCH_ASSOC);
                             ?>
                          <tr>
                              <td><?= htmlspecialchars($row['grade_level']) ?></td>
@@ -393,51 +393,296 @@ input {
 
                      </tbody>
                      <thead>
-                            <tr>
-                                <th colspan="3" class="text-start">Elementary</th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                            </tr>
-                        </thead>
+                         <tr>
+                             <th colspan="3" class="text-start">Elementary</th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                             <th></th>
+                         </tr>
+                     </thead>
+                    <tbody>
+                        <?php
+                        // Registered learners per grade level - Using the correct column from enrolment table
+                        $stmt = $pdo->prepare("
+                            SELECT 
+                                e.Grade_level AS grade_level,
+                                SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_registered,
+                                SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_registered,
+                                COUNT(st.student_id) AS total_registered
+                            FROM enrolment e
+                            INNER JOIN student st ON e.student_id = st.student_id
+                            WHERE e.enrolment_status = 'Approved'
+                            GROUP BY e.Grade_level
+                            ORDER BY 
+                                CASE 
+                                    WHEN e.Grade_level LIKE '%Grade 1%' THEN 1
+                                    WHEN e.Grade_level LIKE '%Grade 2%' THEN 2
+                                    WHEN e.Grade_level LIKE '%Grade 3%' THEN 3
+                                    WHEN e.Grade_level LIKE '%Grade 4%' THEN 4
+                                    WHEN e.Grade_level LIKE '%Grade 5%' THEN 5
+                                    WHEN e.Grade_level LIKE '%Grade 6%' THEN 6
+                                    ELSE 999
+                                END ASC
+                        ");
+                        $stmt->execute();
+                        $gradeLevels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                        // Debug: Check what grade levels are returned
+                        echo "<!-- Debug: Found " . count($gradeLevels) . " grade levels -->";
+                        foreach ($gradeLevels as $debugRow) {
+                            echo "<!-- Debug: Grade Level: " . $debugRow['grade_level'] . " -->";
+                        }
+
+                        if (empty($gradeLevels)) {
+                            echo "<tr><td colspan='42' style='text-align: center;'>No data found</td></tr>";
+                        }
+
+                        foreach ($gradeLevels as $row):
+                            $gradeLevel = $row['grade_level'];
+
+                            // Clean up grade level display
+                            $displayGrade = $gradeLevel;
+                            if (strpos($gradeLevel, 'Grade') === false) {
+                                $displayGrade = "Grade " . $gradeLevel;
+                            }
+
+                            // Attendance per month - Daily Average
+                            $stmtAttend = $pdo->prepare("
+                                SELECT 
+                                    SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_present,
+                                    SUM(CASE WHEN st.sex='FEMALE' THEN 1 ELSE 0 END) AS female_present,
+                                    COUNT(*) AS total_present
+                                FROM attendance a
+                                INNER JOIN student st ON a.student_id = st.student_id
+                                INNER JOIN enrolment e ON e.student_id = st.student_id
+                                WHERE e.Grade_level = :grade_level
+                                AND MONTH(a.morning_attendance) = MONTH(CURRENT_DATE())
+                                AND YEAR(a.morning_attendance) = YEAR(CURRENT_DATE())
+                                AND a.attendance_type = 'Present'
+                            ");
+                            $stmtAttend->execute(['grade_level' => $gradeLevel]);
+                            $attend = $stmtAttend->fetch(PDO::FETCH_ASSOC);
+
+                            // Calculate attendance percentage
+                            $malePercentage = 0;
+                            $femalePercentage = 0;
+                            $totalPercentage = 0;
+                            
+                            if ($row['male_registered'] > 0) {
+                                $malePercentage = round((($attend['male_present'] ?? 0) / $row['male_registered']) * 100, 2);
+                            }
+                            if ($row['female_registered'] > 0) {
+                                $femalePercentage = round((($attend['female_present'] ?? 0) / $row['female_registered']) * 100, 2);
+                            }
+                            if ($row['total_registered'] > 0) {
+                                $totalPercentage = round((($attend['total_present'] ?? 0) / $row['total_registered']) * 100, 2);
+                            }
+
+                            // NO LONGER PARTICIPATING - Dropped students
+                            // (A) Cumulative as of Previous Month
+                            $stmtDroppedPrev = $pdo->prepare("
+                                SELECT 
+                                    SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS male_prev,
+                                    SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS female_prev
+                                FROM enrolment e
+                                INNER JOIN student st ON e.student_id = st.student_id
+                                WHERE e.Grade_level = :grade_level
+                                AND e.enrolment_status = 'dropped'
+                            ");
+                            $stmtDroppedPrev->execute(['grade_level' => $gradeLevel]);
+                            $droppedPrev = $stmtDroppedPrev->fetch(PDO::FETCH_ASSOC);
+
+                            // (B) For the Month
+                            $stmtDroppedMonth = $pdo->prepare("
+                                SELECT 
+                                    SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_month,
+                                    SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_month
+                                FROM enrolment e
+                                INNER JOIN student st ON e.student_id = st.student_id
+                                WHERE e.Grade_level = :grade_level
+                                AND e.enrolment_status = 'dropped'
+                            ");
+                            $stmtDroppedMonth->execute(['grade_level' => $gradeLevel]);
+                            $droppedMonth = $stmtDroppedMonth->fetch(PDO::FETCH_ASSOC);
+
+                            // Calculate (A + B) Cumulative as End of Month
+                            $maleDroppedTotal = ($droppedPrev['male_prev'] ?? 0) + ($droppedMonth['male_month'] ?? 0);
+                            $femaleDroppedTotal = ($droppedPrev['female_prev'] ?? 0) + ($droppedMonth['female_month'] ?? 0);
+                            $totalDroppedTotal = $maleDroppedTotal + $femaleDroppedTotal;
+
+                            // TRANSFERRED OUT
+                            // (A) Cumulative as of Previous Month
+                            $stmtTransOutPrev = $pdo->prepare("
+                                SELECT 
+                                    SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS male_prev,
+                                    SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS female_prev
+                                FROM enrolment e
+                                INNER JOIN student st ON e.student_id = st.student_id
+                                WHERE e.Grade_level = :grade_level
+                                AND e.enrolment_status = 'transferred_out'
+                            ");
+                            $stmtTransOutPrev->execute(['grade_level' => $gradeLevel]);
+                            $transOutPrev = $stmtTransOutPrev->fetch(PDO::FETCH_ASSOC);
+
+                            // (B) For the Month
+                            $stmtTransOutMonth = $pdo->prepare("
+                                SELECT 
+                                    SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_month,
+                                    SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_month
+                                FROM enrolment e
+                                INNER JOIN student st ON e.student_id = st.student_id
+                                WHERE e.Grade_level = :grade_level
+                                AND e.enrolment_status = 'transferred_out'
+                            ");
+                            $stmtTransOutMonth->execute(['grade_level' => $gradeLevel]);
+                            $transOutMonth = $stmtTransOutMonth->fetch(PDO::FETCH_ASSOC);
+
+                            // Calculate (A + B) Cumulative as End of Month
+                            $maleTransOutTotal = ($transOutPrev['male_prev'] ?? 0) + ($transOutMonth['male_month'] ?? 0);
+                            $femaleTransOutTotal = ($transOutPrev['female_prev'] ?? 0) + ($transOutMonth['female_month'] ?? 0);
+                            $totalTransOutTotal = $maleTransOutTotal + $femaleTransOutTotal;
+
+                            // TRANSFERRED IN
+                            // (A) Cumulative as of Previous Month
+                            $stmtTransInPrev = $pdo->prepare("
+                                SELECT 
+                                    SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS male_prev,
+                                    SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS female_prev
+                                FROM enrolment e
+                                INNER JOIN student st ON e.student_id = st.student_id
+                                WHERE e.Grade_level = :grade_level
+                                AND e.enrolment_status = 'transferred_in'
+                            ");
+                            $stmtTransInPrev->execute(['grade_level' => $gradeLevel]);
+                            $transInPrev = $stmtTransInPrev->fetch(PDO::FETCH_ASSOC);
+
+                            // (B) For the Month
+                            $stmtTransInMonth = $pdo->prepare("
+                                SELECT 
+                                    SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_month,
+                                    SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_month
+                                FROM enrolment e
+                                INNER JOIN student st ON e.student_id = st.student_id
+                                WHERE e.Grade_level = :grade_level
+                                AND e.enrolment_status = 'transferred_in'
+                            ");
+                            $stmtTransInMonth->execute(['grade_level' => $gradeLevel]);
+                            $transInMonth = $stmtTransInMonth->fetch(PDO::FETCH_ASSOC);
+
+                            // Calculate (A + B) Cumulative as End of Month
+                            $maleTransInTotal = ($transInPrev['male_prev'] ?? 0) + ($transInMonth['male_month'] ?? 0);
+                            $femaleTransInTotal = ($transInPrev['female_prev'] ?? 0) + ($transInMonth['female_month'] ?? 0);
+                            $totalTransInTotal = $maleTransInTotal + $femaleTransInTotal;
+
+                            // ================== OUTPUT ROW ==================
+                        ?>
+                        <tr>
+                            <!-- GRADE / YEAR LEVEL & EMPTY COLUMNS -->
+                            <td colspan="3"><?= $displayGrade ?></td>
+
+                            
+                            <!-- REGISTERED LEARNERS (As of End of the Month) -->
+                            <td><?= $row['male_registered'] ?></td>
+                            <td><?= $row['female_registered'] ?></td>
+                            <td><?= $row['total_registered'] ?></td>
+                            
+                            <!-- ATTENDANCE - Daily Average -->
+                            <td><?= $attend['male_present'] ?? 0 ?></td>
+                            <td><?= $attend['female_present'] ?? 0 ?></td>
+                            <td><?= $attend['total_present'] ?? 0 ?></td>
+                            
+                            <!-- ATTENDANCE - Percentage for the Month -->
+                            <td><?= $malePercentage ?>%</td>
+                            <td><?= $femalePercentage ?>%</td>
+                            <td><?= $totalPercentage ?>%</td>
+                            
+                            <!-- NO LONGER PARTICIPATING -->
+                            <!-- (A) Cumulative as of Previous Month -->
+                            <td><?= $droppedPrev['male_prev'] ?? 0 ?></td>
+                            <td><?= $droppedPrev['female_prev'] ?? 0 ?></td>
+                            <td><?= ($droppedPrev['male_prev'] ?? 0) + ($droppedPrev['female_prev'] ?? 0) ?></td>
+                            
+                            <!-- (B) For the Month -->
+                            <td><?= $droppedMonth['male_month'] ?? 0 ?></td>
+                            <td><?= $droppedMonth['female_month'] ?? 0 ?></td>
+                            <td><?= ($droppedMonth['male_month'] ?? 0) + ($droppedMonth['female_month'] ?? 0) ?></td>
+                            
+                            <!-- (A + B) Cumulative as End of Month -->
+                            <td><?= $maleDroppedTotal ?></td>
+                            <td><?= $femaleDroppedTotal ?></td>
+                            <td><?= $totalDroppedTotal ?></td>
+                            
+                            <!-- TRANSFERRED OUT -->
+                            <!-- (A) Cumulative as of Previous Month -->
+                            <td><?= $transOutPrev['male_prev'] ?? 0 ?></td>
+                            <td><?= $transOutPrev['female_prev'] ?? 0 ?></td>
+                            <td><?= ($transOutPrev['male_prev'] ?? 0) + ($transOutPrev['female_prev'] ?? 0) ?></td>
+                            
+                            <!-- (B) For the Month -->
+                            <td><?= $transOutMonth['male_month'] ?? 0 ?></td>
+                            <td><?= $transOutMonth['female_month'] ?? 0 ?></td>
+                            <td><?= ($transOutMonth['male_month'] ?? 0) + ($transOutMonth['female_month'] ?? 0) ?></td>
+                            
+                            <!-- (A + B) Cumulative as End of Month -->
+                            <td><?= $maleTransOutTotal ?></td>
+                            <td><?= $femaleTransOutTotal ?></td>
+                            <td><?= $totalTransOutTotal ?></td>
+                            
+                            <!-- TRANSFERRED IN -->
+                            <!-- (A) Cumulative as of Previous Month -->
+                            <td><?= $transInPrev['male_prev'] ?? 0 ?></td>
+                            <td><?= $transInPrev['female_prev'] ?? 0 ?></td>
+                            <td><?= ($transInPrev['male_prev'] ?? 0) + ($transInPrev['female_prev'] ?? 0) ?></td>
+                            
+                            <!-- (B) For the Month -->
+                            <td><?= $transInMonth['male_month'] ?? 0 ?></td>
+                            <td><?= $transInMonth['female_month'] ?? 0 ?></td>
+                            <td><?= ($transInMonth['male_month'] ?? 0) + ($transInMonth['female_month'] ?? 0) ?></td>
+                            
+                            <!-- (A + B) Cumulative as End of Month -->
+                            <td><?= $maleTransInTotal ?></td>
+                            <td><?= $femaleTransInTotal ?></td>
+                            <td><?= $totalTransInTotal ?></td>
+                        </tr>
+                        <?php
+                        endforeach;
+                        ?>
+                    </tbody>
                  </table>
              </div>
-
-
-
          </div>
 
          <div class="mt-3 text-end">
