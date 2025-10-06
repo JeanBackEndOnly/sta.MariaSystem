@@ -1,5 +1,5 @@
 <style>
-   .sidebar-list a.active {
+    .sidebar-list a.active {
         background-color: #dc3545 !important;
         font-weight: bold;
         color: snow;
@@ -15,7 +15,59 @@
     .profile p{
         color: #000 !important;
     }
+
+    .toggle-section {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        transform: translateX(20px);
+    }
+
+    .toggle-section.show {
+        max-height: 500px; /* Adjust based on your content */
+        display: block;
+    }
+
+    .toggle-btn {
+        background: #f8f9fa;
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        width: 95%;
+        text-align: left;
+        padding: 10px;
+        transform: translateX(5px);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .toggle-btn:hover {
+        background: #e9ecef;
+    }
+
+    .toggle-btn i {
+        transition: transform 0.3s ease;
+    }
+
+    .toggle-btn.collapsed i {
+        transform: rotate(0deg);
+    }
+
+    .toggle-btn:not(.collapsed) i {
+        transform: rotate(180deg);
+    }
+
+    .sidebar-list{
+        overflow-y: auto !important;
+        max-height: 65vh !important;
+    }
+
+    .sidebar-list::-webkit-scrollbar{
+        display: none !important;
+    }
 </style>
+
 <?php
 $query = "SELECT * FROM admin";
 $stmt = $pdo->prepare($query);
@@ -41,22 +93,40 @@ $profile = $result["admin_picture"];
                 <span class=""><i class=""></i></span> User Management 
             </a>
             <a href="index.php?page=contents/learners" class="text-black nav-item rounded-1 p-2 nav-learners">
-                <span class=""><i class=""></i></span> Students
+                <span class=""><i class=""></i></span> Students Manage
             </a>
             <a href="index.php?page=contents/assign" class="text-black nav-item rounded-1 p-2 nav-assign">
-                <span class=""><i class=""></i></span> Class Management
-            </a>
-            <a href="index.php?page=contents/enrolment" class="text-black nav-item rounded-1 p-2 nav-enrolment">
-                <span class=""><i class=""></i></span> Enrollment Process
-            </a>
-            <a href="index.php?page=contents/classroom" class="text-black nav-item rounded-1 p-2 nav-classroom">
                 <span class=""><i class=""></i></span> Classroom Management
             </a>
+            <a href="index.php?page=contents/enrolment" class="text-black nav-item rounded-1 p-2 nav-enrolment">
+                <span class=""><i class=""></i></span> Enrollment
+            </a>
+            
+            <!-- Academic Setup with Toggle -->
+            <button class="toggle-btn rounded-2" data-target="hr-section">
+                Academic Setup 
+                <i class="toggle-icon fa-solid fa-caret-down"></i>
+            </button>
+            <div id="hr-section" class="toggle-section w-90">
+                <a href="index.php?page=contents/classroom" class="text-black nav-item rounded-1 p-2 nav-classroom">
+                    <span class=""><i class=""></i> Classrooms</span> 
+                </a>
+                <a href="index.php?page=contents/sections" class="text-black nav-item rounded-1 p-2 nav-sections">
+                    <span class=""><i class=""></i> Sections</span> 
+                </a>
+                <a href="index.php?page=contents/school_year" class="text-black nav-item rounded-1 p-2 nav-school_year">
+                    <span class=""><i class=""></i> School Year</span> 
+                </a>
+                <a href="index.php?page=contents/subjects" class="text-black nav-item rounded-1 p-2 nav-subjects">
+                    <span class=""><i class=""></i> Subjects</span> 
+                </a>
+            </div>
+            
             <a href="index.php?page=contents/feedback" class="text-black nav-item rounded-1 p-2 nav-feedback">
                 <span class=""><i class=""></i></span> Feedbacks
             </a>
             <a href="index.php?page=contents/datas" class="text-black nav-item rounded-1 p-2 nav-datas">
-                <span class=""><i class=""></i></span> Generate Data
+                <span class=""><i class=""></i></span> Generate Reports
             </a>
             <a href="index.php?page=contents/settings" class="text-black nav-item rounded-1 p-2 nav-settings">
                 <span class=""><i class=""></i></span> Account Settings 
@@ -66,10 +136,51 @@ $profile = $result["admin_picture"];
 </nav>
 
 <script>
+    // Set active navigation item
     const page = '<?php echo isset($_GET["page"]) ? $_GET["page"] : "home"; ?>';
     const slug = page.split('/').pop(); 
     const navItem = document.querySelector('.nav-' + slug);
     if (navItem) {
         navItem.classList.add('active');
+        
+        // Auto-expand Academic Setup if one of its children is active
+        const academicItems = ['classroom', 'sections', 'school_year', 'subjects'];
+        if (academicItems.includes(slug)) {
+            const toggleSection = document.getElementById('hr-section');
+            const toggleBtn = document.querySelector('[data-target="hr-section"]');
+            const toggleIcon = toggleBtn.querySelector('.toggle-icon');
+            
+            if (toggleSection && toggleBtn) {
+                toggleSection.classList.add('show');
+                toggleBtn.classList.remove('collapsed');
+                toggleIcon.innerHTML = '<i class="fa-solid fa-caret-up"></i>';
+            }
+        }
     }
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const toggleButtons = document.querySelectorAll(".toggle-btn");
+
+    toggleButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            const targetId = button.getAttribute("data-target");
+            const targetSection = document.getElementById(targetId);
+            const icon = button.querySelector(".toggle-icon");
+
+            // Toggle visibility
+            targetSection.classList.toggle("show");
+            
+            // Toggle collapsed class and icon
+            if (targetSection.classList.contains("show")) {
+                button.classList.remove("collapsed");
+                icon.innerHTML = '<i class="fa-solid fa-caret-up"></i>';
+            } else {
+                button.classList.add("collapsed");
+                icon.innerHTML = '<i class="fa-solid fa-caret-down"></i>';
+            }
+        });
+    });
+});
 </script>

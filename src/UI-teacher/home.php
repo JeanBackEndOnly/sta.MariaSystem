@@ -3,6 +3,9 @@
       $studentCount = $pdo->query("SELECT COUNT(*) FROM student INNER JOIN enrolment ON student.student_id = enrolment.student_id WHERE enrolment.adviser_id = '$user_id'")->fetchColumn();
       $teacherCount = $pdo->query("SELECT COUNT(*) FROM users WHERE user_role = 'TEACHER'")->fetchColumn();
       $parentCount = $pdo->query("SELECT COUNT(*) FROM users WHERE user_role = 'PARENT'")->fetchColumn();
+      $PresentCounts = $pdo->query("SELECT COUNT(*) FROM attendance WHERE adviser_id = '$user_id' AND Attendance_type = 'Present'")->fetchColumn();
+      $AbsentCounts = $pdo->query("SELECT COUNT(*) FROM attendance WHERE adviser_id = '$user_id' AND Attendance_type = 'Absent'")->fetchColumn();
+      $LateCounts = $pdo->query("SELECT COUNT(*) FROM attendance WHERE adviser_id = '$user_id' AND Attendance_type = 'Late'")->fetchColumn();
 
       $stmt = $pdo->prepare("SELECT section_name, grade_level FROM classes WHERE adviser_id = :user_id");
         $stmt->execute([':user_id' => $user_id]);
@@ -25,20 +28,34 @@
         </div>
         <div class="d-flex justify-content-between align-items-center mt-4">
             <div class="mx-2 marginToMedia">
-                <h4>My Class</h4>
+                <h4>Activities</h4>
             </div>
         </div>
-        <div class="row justify-content-start align-items-center gap-3 d-flex text-center flex-wrap mx-2">
-            <a href="index.php?page=contents/student" class="row shadow border rounded-3 p-3 align-items-center justify-content-between col-md-5">
-                <div class="col-md-5 d-flex align-items-center justify-content-center flex-column">
-                    <h5 class="m-0 p-0 text-start w-100"><?= $sectionName["grade_level"]?></h5>
-                    <h5 class="m-0 p-0 text-start w-100"><?= 'Section: ' .  $sectionName["section_name"]?></h5>
+        <div class="row justify-content-start align-items-center justify-content-start gap-2 d-flex text-center flex-wrap">
+            <div class="row shadow border rounded-3 p-3 align-items-center justify-content-between col-md-3 mx-1 mb-2">
+                <div class="d-flex flex-column align-items-center justify-content-end col-md-12">
+                    <h1 class="m-0 p-0 text-center w-100"><?= $studentCount ?></h1>
+                    <strong class="m-0 p-0 text-center w-100">Total Students</strong>
                 </div>
-                <div class="d-flex flex-column align-items-center justify-content-end col-md-7">
-                    <h1 class="m-0 p-0 text-end w-100"><?= $studentCount ?></h1>
-                    <strong class="m-0 p-0 text-end w-100">Total Students In this section</strong>
+            </div>
+            <div class="row shadow border rounded-3 p-3 align-items-center justify-content-between col-md-3 mx-1 mb-2">
+                <div class="d-flex flex-column align-items-center justify-content-end col-md-12">
+                    <h1 class="m-0 p-0 text-center w-100"><?= round($PresentCounts / 2) ?></h1>
+                    <strong class="m-0 p-0 text-center w-100">Total Present</strong>
                 </div>
-            </a>
+            </div>
+            <div class="row shadow border rounded-3 p-3 align-items-center justify-content-between col-md-3 mx-1 mb-2">
+                <div class="d-flex flex-column align-items-center justify-content-end col-md-12">
+                    <h1 class="m-0 p-0 text-center w-100"><?= round($AbsentCounts / 2) ?></h1>
+                    <strong class="m-0 p-0 text-center w-100">Total Absent</strong>
+                </div>
+            </div>
+            <div class="row shadow border rounded-3 p-3 align-items-center justify-content-between col-md-3 mx-1 mb-2">
+                <div class="d-flex flex-column align-items-center justify-content-end col-md-12">
+                    <h1 class="m-0 p-0 text-center w-100"><?= round($LateCounts / 2) ?></h1>
+                    <strong class="m-0 p-0 text-center w-100">Total Tardiness</strong>
+                </div>
+            </div>
         </div>
 
     </section>

@@ -1,4 +1,4 @@
-<div class="d-flex justify-content-between align-items-center mb-2">
+<div class="d-flex justify-content-start align-items-center mb-2">
     <div class="mx-2">
         <h4><i class="fa-solid fa-folder me-2"></i></i>Learners Management</h4>
     </div>
@@ -19,6 +19,7 @@
                 <option value="transferred_in">Transferred in</option>
                 <option value="transferred_out">Transferred out</option>
                 <option value="not_active">not active</option>
+                <option value="rejected">Rejected</option>
                 <option value="dropped">Dropped</option>
             </select>
         </div>

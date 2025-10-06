@@ -11,7 +11,7 @@
     $schoolYear = $stmt->fetch(PDO::FETCH_ASSOC);
 
 ?>
-<div class="d-flex justify-content-between align-items-center mb-2">
+<div class="d-flex justify-content-start align-items-center mb-2">
     <div class="mx-2">
         <h4><i class="fa-solid fa-folder me-2"></i></i>Enrollment Management</h4>
     </div>

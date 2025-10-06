@@ -50,7 +50,7 @@
                 <span class=""><i class=""></i></span> Attendance 
             </a>
             <a href="index.php?page=contents/datas" class="nav-item p-2 rounded-1 nav-datas">
-                <span class=""><i class=""></i></span> Generate Data 
+                <span class=""><i class=""></i></span> Generate Report 
             </a>
             <a href="index.php?page=contents/settings" class="nav-item p-2 rounded-1 nav-settings">
                 <span class=""><i class=""></i></span> Account Settings 

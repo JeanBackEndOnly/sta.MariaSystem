@@ -7,20 +7,12 @@
     <div class="col-md-4">
         <input type="text" class="form-control" name="search" placeholder="Search....">
     </div>
-    <div class="col-md-4">
-        <select name="category" id="categorySelect" class="form-select">
-            <option value="">Select Categories</option>
-            <option value="Classrooms">Classrooms</option>
-            <option value="Sections">Sections</option> 
-            <option value="school year">School Year</option>
-            <option value="Subjects">Subjects</option>
-        </select>
-    </div>
-    <div class="col-md-4">
+    
+    <div class="col-md-2">
         <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createClassrooms" id="createClassroomBtn">Create Classrooms</button>
-        <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSection" id="createSectionBtn">Create Section</button>
+        <!-- <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSection" id="createSectionBtn">Create Section</button>
         <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSchoolYear" id="createSchoolYearBtn">Create School Year</button>
-        <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSubjects" id="createSubjectsBtn">Create Subjects</button>
+        <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSubjects" id="createSubjectsBtn">Create Subjects</button> -->
     </div>
 <!-- add Classroom Modal -->
  <div class="modal fade" id="createClassrooms" tabindex="-1" aria-labelledby="createClassroomsLabel" aria-hidden="true">
