@@ -211,6 +211,75 @@ function db_connect()
                 p_contact VARCHAR(50),
                 FOREIGN KEY (student_id) REFERENCES student(student_id) ON DELETE CASCADE
             )",
+            "CREATE TABLE IF NOT EXISTS sf9_data (
+    id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    student_id INT(11),
+    student_name VARCHAR(150),
+    lrn VARCHAR(30),
+    age INT(11),
+    sex VARCHAR(10),
+    grade VARCHAR(20),
+    section VARCHAR(50),
+    school_year VARCHAR(20),
+    teacher VARCHAR(100),
+    guardian VARCHAR(150),
+    days_school_june INT(11) DEFAULT 0,
+    days_present_june INT(11) DEFAULT 0,
+    days_absent_june INT(11) DEFAULT 0,
+    days_school_july INT(11) DEFAULT 0,
+    days_present_july INT(11) DEFAULT 0,
+    days_absent_july INT(11) DEFAULT 0,
+    days_school_aug INT(11) DEFAULT 0,
+    days_present_aug INT(11) DEFAULT 0,
+    days_absent_aug INT(11) DEFAULT 0,
+    days_school_sep INT(11) DEFAULT 0,
+    days_present_sep INT(11) DEFAULT 0,
+    days_absent_sep INT(11) DEFAULT 0,
+    days_school_oct INT(11) DEFAULT 0,
+    days_present_oct INT(11) DEFAULT 0,
+    days_absent_oct INT(11) DEFAULT 0,
+    days_school_nov INT(11) DEFAULT 0,
+    days_present_nov INT(11) DEFAULT 0,
+    days_absent_nov INT(11) DEFAULT 0,
+    days_school_dec INT(11) DEFAULT 0,
+    days_present_dec INT(11) DEFAULT 0,
+    days_absent_dec INT(11) DEFAULT 0,
+    days_school_jan INT(11) DEFAULT 0,
+    days_present_jan INT(11) DEFAULT 0,
+    days_absent_jan INT(11) DEFAULT 0,
+    days_school_feb INT(11) DEFAULT 0,
+    days_present_feb INT(11) DEFAULT 0,
+    days_absent_feb INT(11) DEFAULT 0,
+    days_school_mar INT(11) DEFAULT 0,
+    days_present_mar INT(11) DEFAULT 0,
+    days_absent_mar INT(11) DEFAULT 0,
+    days_school_apr INT(11) DEFAULT 0,
+    days_present_apr INT(11) DEFAULT 0,
+    days_absent_apr INT(11) DEFAULT 0,
+" . implode(',', array_map(function($i) {
+    return "
+        subject_$i VARCHAR(100),
+        q1_$i DECIMAL(5,2),
+        q2_$i DECIMAL(5,2),
+        q3_$i DECIMAL(5,2),
+        q4_$i DECIMAL(5,2),
+        final_$i DECIMAL(5,2),
+        remarks_$i VARCHAR(20)
+    ";
+}, range(1, 15))) . ",
+    general_average DECIMAL(5,2),
+" . implode(',', array_map(function($i) {
+    return "
+        behavior_$i VARCHAR(255),
+        b{$i}_q1 VARCHAR(5),
+        b{$i}_q2 VARCHAR(5),
+        b{$i}_q3 VARCHAR(5),
+        b{$i}_q4 VARCHAR(5)
+    ";
+}, range(1, 7))) . ",
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES student(student_id) ON DELETE CASCADE
+)"
 
 
             
