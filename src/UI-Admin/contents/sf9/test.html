@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JSpreadsheet Test</title>
+  <link rel="stylesheet" href="jspreadsheet.css" />
+  <link rel="stylesheet" href="jsuites.css" />
+</head>
+<body>
+  <div id="spreadsheet"></div>
+
+  <script src="jsuites.js"></script>
+  <script src="jspreadsheet.js"></script>
+  <script>
+    // Create a simple spreadsheet with test data
+    jspreadsheet(document.getElementById('spreadsheet'), {
+      data: [
+        ['Name', 'Age', 'Grade'],
+        ['Juan Dela Cruz', 15, '9'],
+        ['Maria Clara', 14, '8']
+      ],
+      minDimensions: [5, 5]
+    });
+  </script>
+</body>
+</html>
