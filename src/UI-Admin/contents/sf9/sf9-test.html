@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JSpreadsheet Test</title>
+  <link rel="stylesheet" href="jsuites.css">
+  <link rel="stylesheet" href="jspreadsheet.css">
+  <script src="jsuites.js"></script>
+  <script src="jspreadsheet.js"></script>
+</head>
+<body>
+  <div id="spreadsheet"></div>
+
+  <script>
+    // Initialize a simple spreadsheet
+    jspreadsheet(document.getElementById('spreadsheet'), {
+      data: [
+        ['Name', 'Math', 'Science'],
+        ['Juan', 90, 85],
+        ['Maria', 88, 92]
+      ],
+      columns: [
+        { type: 'text', title: 'Name', width: 150 },
+        { type: 'numeric', title: 'Math', width: 100 },
+        { type: 'numeric', title: 'Science', width: 100 }
+      ]
+    });
+  </script>
+</body>
+</html>
