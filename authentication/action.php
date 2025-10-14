@@ -260,9 +260,16 @@ if($action === 'feedback_form'){
         echo $registration;
     }
     exit();
-}
+} 
 if($action === 'sfFour_form'){
     $registration = $crud->sfFour_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'sfEight_form'){
+    $registration = $crud->sfEight_form();
     if($registration){
         echo $registration;
     }

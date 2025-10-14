@@ -181,6 +181,7 @@ function db_connect()
             )",
             "CREATE TABLE IF NOT EXISTS sf_add_data (
                 sf_add_data_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                sf_type VARCHAR(20),
                 school_id VARCHAR(20),
                 school_name VARCHAR(100),
                 Division VARCHAR(100),
@@ -240,6 +241,38 @@ function db_connect()
                 ''
             ]);
         }
+            // Check and insert SF1 if it doesn't exist
+        $checkSF1 = $pdo->prepare("SELECT COUNT(*) FROM sf_add_data WHERE sf_type = 'sf_1'");
+        $checkSF1->execute();
+        if ($checkSF1->fetchColumn() == 0) {
+            $stmtSF1 = $pdo->prepare("INSERT INTO sf_add_data (sf_type) VALUES ('sf_1')");
+            $stmtSF1->execute();
+        }
+
+        // Check and insert SF2 if it doesn't exist
+        $checkSF2 = $pdo->prepare("SELECT COUNT(*) FROM sf_add_data WHERE sf_type = 'sf_2'");
+        $checkSF2->execute();
+        if ($checkSF2->fetchColumn() == 0) {
+            $stmtSF2 = $pdo->prepare("INSERT INTO sf_add_data (sf_type) VALUES ('sf_2')");
+            $stmtSF2->execute();
+        }
+
+        // Check and insert SF4 if it doesn't exist
+        $checkSF4 = $pdo->prepare("SELECT COUNT(*) FROM sf_add_data WHERE sf_type = 'sf_4'");
+        $checkSF4->execute();
+        if ($checkSF4->fetchColumn() == 0) {
+            $stmtSF4 = $pdo->prepare("INSERT INTO sf_add_data (sf_type) VALUES ('sf_4')");
+            $stmtSF4->execute();
+        }
+
+        // Check and insert SF8 if it doesn't exist
+        $checkSF8 = $pdo->prepare("SELECT COUNT(*) FROM sf_add_data WHERE sf_type = 'sf_8'");
+        $checkSF8->execute();
+        if ($checkSF8->fetchColumn() == 0) {
+            $stmtSF8 = $pdo->prepare("INSERT INTO sf_add_data (sf_type) VALUES ('sf_8')");
+            $stmtSF8->execute();
+        }
+
         return $pdo;
     } catch (PDOException $e) {
         die("Database error: " . $e->getMessage());
