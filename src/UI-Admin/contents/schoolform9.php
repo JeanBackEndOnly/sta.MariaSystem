@@ -20,6 +20,16 @@ function build_sf9_filename($lrn, $first, $last, $grade) {
     $filename = trim($safe_lrn . '_' . $safe_first . '_' . $safe_last . '_' . $safe_grade . '.xlsx', '_');
     return $filename;
 }
+// Fetch grade levels and sections for dropdowns
+$grades = [];
+$sections = [];
+
+$gradeQuery = $pdo->query("SELECT DISTINCT section_grade_level FROM sections ORDER BY section_grade_level");
+$grades = $gradeQuery->fetchAll(PDO::FETCH_COLUMN);
+
+$sectionQuery = $pdo->query("SELECT section_id, section_name, section_grade_level FROM sections ORDER BY section_name");
+$sections = $sectionQuery->fetchAll(PDO::FETCH_ASSOC);
+
 
 // Fetch student info (student_id in GET)
 $student_id = isset($_GET['student_id']) ? trim($_GET['student_id']) : null;
@@ -454,6 +464,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   @media (max-width: 767px) {
     .sidebar img { width:86px; height:104px; }
   }
+  
 </style>
 </head>
 <body>
@@ -491,12 +502,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label>Sex</label>
           <input type="text" class="form-control form-control-sm mb-1" name="student_sex"
                  value="<?= htmlspecialchars($_POST['student_sex'] ?? ($existingSf9['sex'] ?? $student['sex'] ?? '')) ?>">
-          <label>Grade</label>
-          <input type="text" class="form-control form-control-sm mb-1" name="student_grade"
-                 value="<?= htmlspecialchars($_POST['student_grade'] ?? ($existingSf9['grade'] ?? $student['gradeLevel'] ?? '')) ?>">
-          <label>Section</label>
-          <input type="text" class="form-control form-control-sm mb-1" name="student_section"
-                 value="<?= htmlspecialchars($_POST['student_section'] ?? ($existingSf9['section'] ?? $student['section'] ?? '')) ?>">
+         <label>Grade</label>
+<select name="student_grade" id="grade_level" class="form-control form-control-sm mb-1">
+  <option value="">Select Grade</option>
+  <?php foreach ($grades as $g): ?>
+    <option value="<?= htmlspecialchars($g) ?>" 
+      <?= (($existingSf9['grade'] ?? $student['gradeLevel'] ?? '') == $g) ? 'selected' : '' ?>>
+      <?= htmlspecialchars($g) ?>
+    </option>
+  <?php endforeach; ?>
+</select>
+
+         <label>Section</label>
+<select name="student_section" id="section" class="form-control form-control-sm mb-1">
+  <option value="">Select Section</option>
+  <?php foreach ($sections as $s): ?>
+    <option value="<?= htmlspecialchars($s['section_name']) ?>"
+            data-grade="<?= htmlspecialchars($s['section_grade_level']) ?>"
+            <?= (($existingSf9['section'] ?? $student['section'] ?? '') == $s['section_name']) ? 'selected' : '' ?>>
+      <?= htmlspecialchars($s['section_name']) ?>
+    </option>
+  <?php endforeach; ?>
+</select>
+
           <label>School Year</label>
           <input type="text" class="form-control form-control-sm mb-1" id="student_sy" name="student_sy"
                  value="<?= htmlspecialchars($_POST['student_sy'] ?? ($existingSf9['school_year'] ?? '')) ?>">
@@ -509,7 +537,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="text-center mt-2 mb-4 d-flex justify-content-center gap-2">
           <!-- Generate SF9 -->
-          <button type="submit" class="btn btn-primary btn-lg">Save SF9</button>
+          <button type="submit" class="btn btn-primary btn-lg">Generate SF9</button>
 
           <!-- Download SF9 (same script download action) -->
           <?php if ($student): 
@@ -810,8 +838,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
   });
   <?php endif; ?>
+
+  document.getElementById('grade_level').addEventListener('change', function() {
+    const selectedGrade = this.value;
+    const sectionSelect = document.getElementById('section');
+    const options = sectionSelect.querySelectorAll('option[data-grade]');
+    
+    sectionSelect.value = "";
+    
+    options.forEach(opt => {
+        if (!selectedGrade || opt.getAttribute('data-grade') === selectedGrade) {
+            opt.style.display = '';
+        } else {
+            opt.style.display = 'none';
+        }
+    });
+});
 </script>
 
 </body>
 </html>
-
