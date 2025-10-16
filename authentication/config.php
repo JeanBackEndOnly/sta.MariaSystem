@@ -279,7 +279,7 @@ function db_connect()
         remark VARCHAR(255),
         scholastic_records JSON,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );";
+    )",
 
             
             "CREATE TABLE IF NOT EXISTS sf9_data (
