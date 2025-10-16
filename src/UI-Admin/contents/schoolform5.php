@@ -45,16 +45,15 @@ foreach($progressCategories as $status=>$range){
     $formData['progress'][$status] = ['male'=>0,'female'=>0,'total'=>0];
 }
 
-if ($sectionId) {
+if ($sectionId && $gradeLevel && $sectionName) {
     $stmt = $mysqli->prepare("
         SELECT sf9.lrn, sf9.student_name, sf9.general_average, s.sex
         FROM sf9_data sf9
         JOIN student s ON s.lrn = sf9.lrn
-        JOIN sections sec ON sec.section_id = ?
-        WHERE sf9.grade = sec.section_grade_level AND sf9.section = sec.section_name
+        WHERE sf9.grade = ? AND sf9.section = ?
         ORDER BY s.lname, s.fname
     ");
-    $stmt->bind_param("i", $sectionId);
+    $stmt->bind_param("ss", $gradeLevel, $sectionName);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -64,14 +63,14 @@ if ($sectionId) {
         $formData['lrn'][$rowNum] = $student['lrn'];
         $formData['name'][$rowNum] = $student['student_name'];
         $formData['average'][$rowNum] = $student['general_average'];
-        $formData['action'][$rowNum] = ''; // editable
-        $formData['sex'][$rowNum] = strtoupper($student['sex']); // auto-fill
+        $formData['action'][$rowNum] = '';
+        $formData['sex'][$rowNum] = strtoupper($student['sex']);
 
-        // Count male/female totals
+        // Count totals
         if ($student['sex'] === 'MALE') $formData['male_total']++;
         if ($student['sex'] === 'FEMALE') $formData['female_total']++;
 
-        // Auto-generate Learning Progress
+        // Auto-generate learning progress
         $avg = (float)$student['general_average'];
         foreach($progressCategories as $status=>$range){
             if($avg >= $range['min'] && $avg <= $range['max']){
@@ -125,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $formData['did_not_meet'][$r] = $_POST['did_not_meet'][$r] ?? '';
     }
 
-    // Totals auto-count from Sex
+    // Totals
     $male=0; $female=0;
     for ($r = 13; $r <= $totalRows; $r++) {
         if($r==$skipRow) continue;
@@ -233,10 +232,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['sf5_download'] = $filename;
     $downloadLink = $filename;
 
-    header("Location: ".$_SERVER['PHP_SELF']);
+    header("Location: ".$_SERVER['PHP_SELF']."?section_id={$sectionId}&grade={$gradeLevel}&section={$sectionName}");
     exit;
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
