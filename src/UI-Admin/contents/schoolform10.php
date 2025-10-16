@@ -25,11 +25,12 @@ if ($student_id) {
 $saveDir = 'C:/xampp/htdocs/sta.MariaSystem/sf10_files';
 if (!is_dir($saveDir)) mkdir($saveDir, 0777, true);
 
-$showSuccess = false;
-$successMessage = '';
-$errorMessage = '';
+$grades = $sections = $school_years = $advisers = [];
+$learning_areas_all = $q1_all = $q2_all = $q3_all = $q4_all = [];
+$final_ratings_all = $remarks_all = $general_averages = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // --- Personal / Eligibility ---
     $last_name = $_POST['last_name'] ?? ($student['lname'] ?? '');
     $first_name = $_POST['first_name'] ?? ($student['fname'] ?? '');
     $middle_name = $_POST['middle_name'] ?? ($student['mname'] ?? '');
@@ -52,20 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $testing_center_address = $_POST['testing_center_address'] ?? '';
     $remark = $_POST['remark'] ?? '';
 
-    // Scholastic Records Arrays
-    $grades = [];
-    $sections = [];
-    $school_years = [];
-    $advisers = [];
-    $learning_areas_all = [];
-    $q1_all = [];
-    $q2_all = [];
-    $q3_all = [];
-    $q4_all = [];
-    $final_ratings_all = [];
-    $remarks_all = [];
-    $general_averages = [];
-
+    // --- Scholastic Records ---
     for($i=1;$i<=4;$i++){
         $grades[$i] = $_POST['grade'.$i] ?? '';
         $sections[$i] = $_POST['section'.$i] ?? '';
@@ -76,17 +64,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $q2_all[$i] = $_POST['q2_'.$i] ?? [];
         $q3_all[$i] = $_POST['q3_'.$i] ?? [];
         $q4_all[$i] = $_POST['q4_'.$i] ?? [];
-        $final_ratings_all[$i] = $_POST['final_rating_'.$i] ?? [];
         $remarks_all[$i] = $_POST['remarks_table_'.$i] ?? [];
-        $general_averages[$i] = $_POST['general_average_'.$i] ?? '';
+
+        $final_ratings_all[$i] = [];
+        $total = 0; $count = 0;
+        for($r=0;$r<15;$r++){
+            $q1 = is_numeric($q1_all[$i][$r] ?? null) ? floatval($q1_all[$i][$r]) : 0;
+            $q2 = is_numeric($q2_all[$i][$r] ?? null) ? floatval($q2_all[$i][$r]) : 0;
+            $q3 = is_numeric($q3_all[$i][$r] ?? null) ? floatval($q3_all[$i][$r]) : 0;
+            $q4 = is_numeric($q4_all[$i][$r] ?? null) ? floatval($q4_all[$i][$r]) : 0;
+            if($q1 || $q2 || $q3 || $q4){
+                $final = round(($q1+$q2+$q3+$q4)/4, 2);
+                $final_ratings_all[$i][$r] = $final;
+                $total += $final; $count++;
+            } else {
+                $final_ratings_all[$i][$r] = '';
+            }
+        }
+        $general_averages[$i] = $count ? round($total/$count, 2) : '';
     }
 
+    // --- Insert into sf10_data ---
+    $personal_data = [
+        'student_id' => $student_id,
+        'last_name' => $last_name,
+        'first_name' => $first_name,
+        'middle_name' => $middle_name,
+        'suffix' => $suffix,
+        'lrn' => $lrn,
+        'birthdate' => $birthdate,
+        'sex' => $sex,
+        'school_name' => $school_name,
+        'school_id' => $school_id,
+        'school_address' => $school_address,
+        'kinder_progress_report' => !empty($kinder_progress_report)?1:0,
+        'eccd_checklist' => !empty($eccd_checklist)?1:0,
+        'kinder_certificate' => !empty($kinder_certificate)?1:0,
+        'pept_passer' => !empty($pept_passer)?1:0,
+        'pept_text' => $pept_text,
+        'exam_date' => $exam_date,
+        'others_check' => !empty($others_check)?1:0,
+        'others_text' => $others_text,
+        'testing_center_name' => $testing_center_name,
+        'testing_center_address' => $testing_center_address,
+        'remark' => $remark,
+        'scholastic_records' => json_encode([
+            'grades' => $grades,
+            'sections' => $sections,
+            'school_years' => $school_years,
+            'advisers' => $advisers,
+            'learning_areas' => $learning_areas_all,
+            'q1' => $q1_all,
+            'q2' => $q2_all,
+            'q3' => $q3_all,
+            'q4' => $q4_all,
+            'final_ratings' => $final_ratings_all,
+            'remarks' => $remarks_all,
+            'general_averages' => $general_averages
+        ])
+    ];
+
+    $columns = implode(',', array_keys($personal_data));
+    $placeholders = implode(',', array_fill(0, count($personal_data), '?'));
+    $stmt = $pdo->prepare("INSERT INTO sf10_data ($columns) VALUES ($placeholders)");
+    $stmt->execute(array_values($personal_data));
+
+    // --- Load Excel template ---
     try {
         $template_path = 'C:/xampp/htdocs/sta.MariaSystem/src/UI-Admin/contents/sf10/sf10.xlsx';
         $spreadsheet = IOFactory::load($template_path);
         $sheet = $spreadsheet->getSheet(0);
 
-        // Personal Info
+        // --- Personal Info ---
         $sheet->setCellValue('E9', $last_name);
         $sheet->setCellValue('R9', $first_name);
         $sheet->setCellValue('AD9', $suffix);
@@ -95,18 +144,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sheet->setCellValue('V10', $birthdate);
         $sheet->setCellValue('AT10', $sex);
 
-        // Eligibility
+        // --- Eligibility ---
         $sheet->setCellValue('K14', $kinder_progress_report);
         $sheet->setCellValue('U14', $eccd_checklist);
         $sheet->setCellValue('AE14', $kinder_certificate);
         $sheet->getStyle('K14')->getFont()->setSize(18)->setBold(true);
         $sheet->getStyle('U14')->getFont()->setSize(18)->setBold(true);
         $sheet->getStyle('AE14')->getFont()->setSize(18)->setBold(true);
-
         $sheet->setCellValue('F15', $school_name);
         $sheet->setCellValue('T15', $school_id);
         $sheet->setCellValue('Z15', $school_address);
-
         $sheet->setCellValue('B18', $pept_passer);
         $sheet->getStyle('B18')->getFont()->setSize(18)->setBold(true);
         $sheet->setCellValue('J18', $pept_text);
@@ -119,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sheet->setCellValue('M19', $testing_center_address);
         $sheet->setCellValue('AJ19', $remark);
 
-        // Scholastic Records Mapping
+        // --- Scholastic Records Mapping ---
         $scholastic_positions = [
             1 => ['grade'=>'F25','section'=>'J25','sy'=>'S25','adviser'=>'H26','start_row'=>30,'start_col'=>'B','q1'=>'K','q2'=>'L','q3'=>'N','q4'=>'O','final'=>'P','remarks'=>'S','gen_avg'=>'S45'],
             2 => ['grade'=>'Z25','section'=>'AE25','sy'=>'AU25','adviser'=>'AC26','start_row'=>30,'start_col'=>'V','q1'=>'AJ','q2'=>'AM','q3'=>'AO','q4'=>'AR','final'=>'AT','remarks'=>'AW','gen_avg'=>'AW45'],
@@ -146,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sheet->setCellValue($pos['gen_avg'],$general_averages[$i]);
         }
 
-        // DepEd Logo
+        // --- DepEd Logo ---
         $drawing = new Drawing();
         $drawing->setName('DepEd Logo');
         $drawing->setDescription('DepEd Logo');
@@ -156,36 +203,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $drawing->setHeight(80);
         $drawing->setWorksheet($sheet);
 
+        // --- Build filename and save ---
         $filename = build_sf10_filename($lrn, $first_name, $last_name);
         $savePath = $saveDir . DIRECTORY_SEPARATOR . $filename;
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
         $writer->save($savePath);
-        $showSuccess = true;
-        $successMessage = "SF10 saved: {$filename}";
-    } catch (Exception $e) {
-        $errorMessage = "Error: " . $e->getMessage();
-    }
-}
 
-if (isset($_GET['download']) && $_GET['download'] == '1' && $student) {
-    $fileName = build_sf10_filename($student['lrn'], $student['fname'], $student['lname']);
-    $filePath = $saveDir . DIRECTORY_SEPARATOR . $fileName;
-    if (file_exists($filePath)) {
+        // --- Force download ---
         header('Content-Description: File Transfer');
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="' . basename($fileName) . '"');
+        header('Content-Disposition: attachment; filename="'.basename($filename).'"');
         header('Expires: 0');
         header('Cache-Control: must-revalidate');
         header('Pragma: public');
-        header('Content-Length: ' . filesize($filePath));
+        header('Content-Length: ' . filesize($savePath));
         flush();
-        readfile($filePath);
+        readfile($savePath);
         exit;
-    } else {
-        die("File not found.");
+
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage();
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -236,14 +277,14 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
           <label class="form-label">Sex</label>
           <input type="text" class="form-control form-control-sm" name="sex" value="<?= htmlspecialchars($_POST['sex'] ?? $student['sex'] ?? '') ?>">
           <div class="text-center mt-3 d-flex justify-content-center gap-2 flex-wrap">
-            <button type="submit" class="btn btn-primary btn-lg">Save</button>
-            <?php if ($student):
+            <button type="submit" class="btn btn-primary btn-lg">Save and Download</button>
+            <?php /* if ($student):
                   $downloadUrl = htmlspecialchars($_SERVER['PHP_SELF']) . '?student_id=' . urlencode($student_id) . '&download=1';
             ?>
               <a href="<?= $downloadUrl ?>" class="btn btn-success btn-lg">Download</a>
             <?php else: ?>
-              <a href="#" class="btn btn-success btn-lg disabled">Download</a>
-            <?php endif; ?>
+             <a href="#" class="btn btn-success btn-lg disabled">Download</a>
+            <?php endif;*/?> 
             <button type="button" class="btn btn-secondary btn-lg" onclick="window.history.back();">Back</button>
           </div>
         </div>
@@ -380,3 +421,37 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
 <?php endif; ?>
 </body>
 </html>
+<script>
+function recalc(i){
+    let total = 0, count = 0;
+    let q1s = document.querySelectorAll(`[name='q1_${i}[]']`);
+    let q2s = document.querySelectorAll(`[name='q2_${i}[]']`);
+    let q3s = document.querySelectorAll(`[name='q3_${i}[]']`);
+    let q4s = document.querySelectorAll(`[name='q4_${i}[]']`);
+    let finals = document.querySelectorAll(`[name='final_rating_${i}[]']`);
+    for(let r=0;r<15;r++){
+        let q1=parseFloat(q1s[r].value)||0;
+        let q2=parseFloat(q2s[r].value)||0;
+        let q3=parseFloat(q3s[r].value)||0;
+        let q4=parseFloat(q4s[r].value)||0;
+        let final=0;
+        if(q1||q2||q3||q4){
+            final=((q1+q2+q3+q4)/4).toFixed(2);
+            total+=parseFloat(final); count++;
+        }
+        finals[r].value=final?final:'';
+    }
+    document.querySelector(`[name='general_average_${i}']`).value=count?(total/count).toFixed(2):'';
+}
+
+// Attach listeners
+for(let i=1;i<=4;i++){
+    let qInputs = document.querySelectorAll(`[name^='q1_${i}'],[name^='q2_${i}'],[name^='q3_${i}'],[name^='q4_${i}']`);
+    qInputs.forEach(input=>{
+        input.addEventListener('input',()=>recalc(i));
+    });
+}
+
+// Initial calculation on page load
+for(let i=1;i<=4;i++) recalc(i);
+</script>
