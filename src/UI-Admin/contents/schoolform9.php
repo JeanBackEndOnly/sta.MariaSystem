@@ -1,17 +1,14 @@
 <?php
-// part 1 - full backend (save/load/download)
-require_once 'C:/xampp/htdocs/sta.MariaSystem/vendor/autoload.php'; // absolute path
+require_once 'C:/xampp/htdocs/sta.MariaSystem/vendor/autoload.php'; 
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
-// DATABASE CONNECTION
 $pdo = new PDO("mysql:host=localhost;dbname=stamariadb;charset=utf8", "root", "");
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// helper to build safe filename from values
 function build_sf9_filename($lrn, $first, $last, $grade) {
     $safe_lrn = preg_replace('/[^A-Za-z0-9_-]/', '', (string)$lrn);
     $safe_first = preg_replace('/[^A-Za-z0-9_-]/', '', (string)$first);
@@ -20,7 +17,7 @@ function build_sf9_filename($lrn, $first, $last, $grade) {
     $filename = trim($safe_lrn . '_' . $safe_first . '_' . $safe_last . '_' . $safe_grade . '.xlsx', '_');
     return $filename;
 }
-// Fetch grade levels and sections for dropdowns
+
 $grades = [];
 $sections = [];
 
@@ -30,8 +27,6 @@ $grades = $gradeQuery->fetchAll(PDO::FETCH_COLUMN);
 $sectionQuery = $pdo->query("SELECT section_id, section_name, section_grade_level FROM sections ORDER BY section_name");
 $sections = $sectionQuery->fetchAll(PDO::FETCH_ASSOC);
 
-
-// Fetch student info (student_id in GET)
 $student_id = isset($_GET['student_id']) ? trim($_GET['student_id']) : null;
 $student = null;
 if ($student_id) {
@@ -40,7 +35,6 @@ if ($student_id) {
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-// helper to render name like before
 function getFullName($person) {
     if (!$person) return "Unknown";
     $first = htmlspecialchars($person['fname'] ?? $person['firstname'] ?? '');
@@ -68,27 +62,23 @@ if (!empty($student['guardian_id'])) {
     }
 }
 
-// Student photo path
 $default_photo = "assets/image/users.png";
 $student_photo_path = $default_photo;
 if (!empty($student['student_profile']) && file_exists(__DIR__ . "/assets/image/" . $student['student_profile'])) {
     $student_photo_path = "assets/image/" . $student['student_profile'];
 }
 
-// Where files are saved
 $saveDir = 'C:/xampp/htdocs/sta.MariaSystem/sf9_files';
 if (!is_dir($saveDir)) mkdir($saveDir, 0777, true);
 
-// Try to load latest existing sf9_data for this student (to prefill form)
 $existingSf9 = null;
 if ($student_id) {
-    // choose latest by created_at for this student
+    
     $q = $pdo->prepare("SELECT * FROM sf9_data WHERE student_id = ? ORDER BY created_at DESC LIMIT 1");
     $q->execute([$student_id]);
     $existingSf9 = $q->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-// Helper to populate array fields (subjects, q1..q4, remarks, finals, behaviors)
 $existing_subjects = array_fill(0, 15, '');
 $existing_q1 = array_fill(0, 15, '');
 $existing_q2 = array_fill(0, 15, '');
@@ -460,7 +450,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .table-behavior select { width:72px; height:32px; text-align:center; }
   .table-behavior td:first-child { text-align:left; font-weight:600; font-size:13px; max-width:220px; }
   .btn-lg { padding:10px 18px; font-size:16px; }
-  .header-brand { border-bottom: solid 1px rgba(0,0,0,.2); height: 75px; }
+  .header-brand { border-bottom: solid 1px, color: #FF3860, height: 75px; }
+  
   @media (max-width: 767px) {
     .sidebar img { width:86px; height:104px; }
   }
@@ -537,15 +528,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="text-center mt-2 mb-4 d-flex justify-content-center gap-2">
           <!-- Generate SF9 -->
-          <button type="submit" class="btn btn-primary btn-lg">Generate SF9</button>
+          <button type="submit" class="btn btn-primary btn-lg">Save</button>
 
           <!-- Download SF9 (same script download action) -->
           <?php if ($student): 
                 $downloadUrl = htmlspecialchars($_SERVER['PHP_SELF']) . '?student_id=' . urlencode($student_id) . '&download=1';
           ?>
-            <a href="<?= $downloadUrl ?>" class="btn btn-success btn-lg">Download SF9</a>
+            <a href="<?= $downloadUrl ?>" class="btn btn-success btn-lg">Download</a>
           <?php else: ?>
-            <a href="#" class="btn btn-success btn-lg disabled" title="No student selected">Download SF9</a>
+            <a href="#" class="btn btn-success btn-lg disabled" title="No student selected">Download</a>
           <?php endif; ?>
         </div>
 <a href="javascript:history.back()" class="btn btn-secondary btn-lg">Back</a>
