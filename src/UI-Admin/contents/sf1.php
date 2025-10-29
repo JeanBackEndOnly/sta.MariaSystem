@@ -1,9 +1,10 @@
 <?php
-// Get selected grade level from filter
+// Get selected grade level and section from filter
 $selectedGrade = $_POST['gradeLevelCategory'] ?? '';
+$selectedSection = $_POST['section'] ?? '';
 
-// Build the SQL query with optional grade level filter
-$sql = "SELECT student.*, parents_info.*, stuEnrolmentInfo.*, enrolment.Grade_level 
+// Build the SQL query with optional filters
+$sql = "SELECT student.*, parents_info.*, stuEnrolmentInfo.*, enrolment.Grade_level, enrolment.section_name
         FROM student
         INNER JOIN parents_info ON student.student_id = parents_info.student_id
         INNER JOIN stuEnrolmentInfo ON student.student_id = stuEnrolmentInfo.student_id
@@ -15,16 +16,47 @@ if (!empty($selectedGrade)) {
     $sql .= " AND enrolment.Grade_level = :grade_level";
 }
 
+// Add section filter if selected - FIXED: using section_name instead of section_id
+if (!empty($selectedSection)) {
+    // Get the section name from sections table
+    $stmtSectionName = $pdo->prepare("SELECT section_name FROM sections WHERE section_id = :section_id");
+    $stmtSectionName->bindParam(':section_id', $selectedSection);
+    $stmtSectionName->execute();
+    $sectionData = $stmtSectionName->fetch(PDO::FETCH_ASSOC);
+    
+    if ($sectionData) {
+        $sectionName = $sectionData['section_name'];
+        $sql .= " AND enrolment.section_name = :section_name";
+    }
+}
+
 $stmtStudents = $pdo->prepare($sql);
 
-// Bind parameter if grade level is selected
+// Bind parameters if selected
 if (!empty($selectedGrade)) {
     $stmtStudents->bindParam(':grade_level', $selectedGrade);
+}
+if (!empty($selectedSection) && isset($sectionName)) {
+    $stmtStudents->bindParam(':section_name', $sectionName);
 }
 
 $stmtStudents->execute();
 $studentsEnrolled = $stmtStudents->fetchAll(PDO::FETCH_ASSOC);
+
+// Get sections based on selected grade level for the dropdown
+$sectionsSql = "SELECT * FROM sections WHERE section_status = 'Available'";
+if (!empty($selectedGrade)) {
+    $sectionsSql .= " AND section_grade_level = :grade_level";
+}
+$stmtSections = $pdo->prepare($sectionsSql);
+if (!empty($selectedGrade)) {
+    $stmtSections->bindParam(':grade_level', $selectedGrade);
+}
+$stmtSections->execute();
+$availableSections = $stmtSections->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
+<!-- Your HTML and CSS remain the same -->
 <style>
 main {
     font-family: Arial, sans-serif;
@@ -161,13 +193,20 @@ input {
     pointer-events: none;
 }
 </style>
+
 <main>
     <?php
         $stmt = $pdo->prepare("SELECT * FROM sf_add_data");
         $stmt->execute();
         $data_sf_four = $stmt->fetch(PDO::FETCH_ASSOC);
     ?>
-    <form class="main-container" id="sfFour-form">
+    <form class="main-container" id="sfFour-form" method="POST">
+        <div class="mt-3 text-start">
+            <button type="submit" class="btn btn-danger">Save Data</button>
+            <button type="button" id="applyFilter" class="btn btn-primary">Apply Filter</button>
+            <button type="button" id="clearFilter" class="btn btn-warning">Clear Filter</button>
+            <button type="button" class="btn btn-secondary">Generate Report</button>
+        </div>
         <input type="hidden" name="id" value="<?= htmlspecialchars($data_sf_four["sf_add_data_id"] ?? '') ?>">
         <div class="col-md-12 d-flex justify-content-between">
             <div class="col-md-3 d-flex align-items-center justify-content-start">
@@ -238,7 +277,14 @@ input {
                             <option value="Grade 6" <?= $selectedGrade == 'Grade 6' ? 'selected' : '' ?>>Grade 6</option>
                         </select>
                         <label class="me-2 col-1">Section</label>
-                        <input type="text" name="section" value="<?= htmlspecialchars($data_sf_four["section"] ?? '') ?>" class="flex-grow-1" placeholder="Section">
+                        <select name="section" id="section" class="form-select">
+                            <option value="">All Sections</option>
+                            <?php foreach($availableSections as $section): ?>
+                            <option value="<?= $section["section_id"] ?>" <?= $selectedSection == $section["section_id"] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($section["section_name"]) ?>
+                            </option>
+                            <?php endforeach ?>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -288,19 +334,37 @@ input {
                                 <th rowspan="2">Name</th>
                                 <th rowspan="2">Relationship</th>
                             </tr>
-                            <tr>
-                                <!-- ADDRESS second level sub-headers -->
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                            </tr>
+                           
                         </thead>
                         <tbody id="studentsTableBody">
                             <?php if(empty($studentsEnrolled)): ?>
                                 <tr>
                                     <td colspan="20" style="text-align: center; height: 50px;">
-                                        <?= empty($selectedGrade) ? 'No students found' : 'No students found in ' . $selectedGrade ?>
+                                        <?php
+                                        if (!empty($selectedGrade) && !empty($selectedSection)) {
+                                            $sectionName = '';
+                                            foreach($availableSections as $section) {
+                                                if ($section['section_id'] == $selectedSection) {
+                                                    $sectionName = $section['section_name'];
+                                                    break;
+                                                }
+                                            }
+                                            echo 'No students found in ' . $selectedGrade . ' - ' . $sectionName;
+                                        } elseif (!empty($selectedGrade)) {
+                                            echo 'No students found in ' . $selectedGrade;
+                                        } elseif (!empty($selectedSection)) {
+                                            $sectionName = '';
+                                            foreach($availableSections as $section) {
+                                                if ($section['section_id'] == $selectedSection) {
+                                                    $sectionName = $section['section_name'];
+                                                    break;
+                                                }
+                                            }
+                                            echo 'No students found in ' . $sectionName;
+                                        } else {
+                                            echo 'No students found';
+                                        }
+                                        ?>
                                     </td>
                                 </tr>
                             <?php else: ?>
@@ -334,468 +398,169 @@ input {
                 </div>
             </div>
         </div>
-        
-        <div class="mt-3 text-start">
-            <button type="button" id="applyFilter" class="btn btn-primary">Apply Filter</button>
-            <button type="button" id="clearFilter" class="btn btn-warning">Clear Filter</button>
-            <button type="button" class="btn btn-secondary">Generate Report</button>
-        </div>
     </form>
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const categoryFilter = document.getElementById('categoryFilter');
+    const sectionFilter = document.getElementById('section');
     const applyFilterBtn = document.getElementById('applyFilter');
     const clearFilterBtn = document.getElementById('clearFilter');
     const studentsTableBody = document.getElementById('studentsTableBody');
-    const form = document.getElementById('sfFour-form');
+    const generateReportBtn = document.querySelector('.btn-secondary');
 
-    // Apply filter button click
-    applyFilterBtn.addEventListener('click', function() {
-        filterStudents();
-    });
-
-    // Clear filter button click
+    // Apply filter
+    applyFilterBtn.addEventListener('click', filterStudents);
+    
+    // Clear filter
     clearFilterBtn.addEventListener('click', function() {
         categoryFilter.value = '';
+        sectionFilter.value = '';
         filterStudents();
     });
 
     // Filter students function
     function filterStudents() {
         const gradeLevel = categoryFilter.value;
+        const section = sectionFilter.value;
+        const formData = new FormData();
         
-        // Show loading state
-        form.classList.add('loading');
+        formData.append('gradeLevelCategory', gradeLevel);
+        formData.append('section', section);
+
         studentsTableBody.innerHTML = '<tr><td colspan="20" style="text-align: center;">Loading...</td></tr>';
 
-        // Create form data
-        const formData = new FormData();
-        formData.append('gradeLevelCategory', gradeLevel);
-
-        // AJAX request to filter students
         fetch('', {
             method: 'POST',
             body: formData
         })
         .then(response => response.text())
         .then(html => {
-            // Create a temporary element to parse the response
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
-            
-            // Extract the table body content from the response
             const newTableBody = tempDiv.querySelector('#studentsTableBody');
             if (newTableBody) {
                 studentsTableBody.innerHTML = newTableBody.innerHTML;
             }
             
-            form.classList.remove('loading');
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            studentsTableBody.innerHTML = '<tr><td colspan="20" style="text-align: center;">Error loading data</td></tr>';
-            form.classList.remove('loading');
-        });
-    }
-
-    // Get the Generate Report button
-    const generateReportBtn = document.querySelector('.btn-secondary');
-    
-    // Add click event listener
-    generateReportBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        generatePrintableReport();
-    });
-    
-    function generatePrintableReport() {
-        // Store original content
-        const originalContent = document.querySelector('.main-container').innerHTML;
-        
-        // Create a print-friendly version
-        const printContent = createPrintFriendlyContent();
-        
-        // Open print window
-        const printWindow = window.open('', '_blank', 'width=1200,height=800');
-        
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>School Form 1 (SF1) School Register</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        margin: 10px;
-                        color: #000;
-                        font-size: 12px;
-                    }
-                    .print-container {
-                        width: 100%;
-                    }
-                    .header-section {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: 15px;
-                    }
-                    .logo {
-                        height: 80px;
-                    }
-                    .form-title {
-                        text-align: center;
-                        border-bottom: 2px solid #0d6efd;
-                        padding-bottom: 5px;
-                        margin-bottom: 10px;
-                    }
-                    .form-title h2 {
-                        margin: 0;
-                        font-size: 16px;
-                    }
-                    .form-title p {
-                        margin: 2px 0 0 0;
-                        font-size: 10px;
-                        color: #666;
-                    }
-                    .school-info {
-                        margin-bottom: 15px;
-                        font-size: 11px;
-                    }
-                    .school-info table {
-                        width: 100%;
-                        border-collapse: collapse;
-                    }
-                    .school-info td {
-                        padding: 1px 3px;
-                        vertical-align: top;
-                    }
-                    .student-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-size: 9px;
-                        margin-top: 5px;
-                    }
-                    .student-table th,
-                    .student-table td {
-                        border: 1px solid #000;
-                        padding: 2px;
-                        text-align: center;
-                        vertical-align: middle;
-                    }
-                    .student-table th {
-                        background-color: #f0f0f0 !important;
-                        font-weight: bold;
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
-                    .name-column {
-                        width: 180px;
-                        text-align: left !important;
-                    }
-                    .birthdate-column {
-                        width: 60px;
-                    }
-                    .age-column {
-                        width: 30px;
-                    }
-                    .sex-column {
-                        width: 25px;
-                    }
-                    .parent-column {
-                        width: 100px;
-                        text-align: left !important;
-                    }
-                    .contact-column {
-                        width: 80px;
-                    }
-                    .small-column {
-                        width: 40px;
-                    }
-                    @media print {
-                        body { margin: 5mm; }
-                        .print-container { width: 100%; }
-                        .student-table { font-size: 8px; }
-                    }
-                    @page {
-                        size: landscape;
-                        margin: 5mm;
-                    }
-                </style>
-            </head>
-            <body>
-                ${printContent}
-                <script>
-                    window.onload = function() {
-                        window.print();
-                        setTimeout(function() {
-                            window.close();
-                        }, 500);
-                    };
-                <\/script>
-            </body>
-            </html>
-        `);
-        
-        printWindow.document.close();
-    }
-    
-    function createPrintFriendlyContent() {
-        // Get school information for the header
-        const schoolInfo = `
-            <div class="school-info">
-                <table>
-                    <tr>
-                        <td style="width: 25%;"><strong>School ID:</strong> ${document.querySelector('input[name="school_id"]')?.value || ''}</td>
-                        <td style="width: 25%;"><strong>Region:</strong> ${document.querySelector('input[name="region"]')?.value || ''}</td>
-                        <td style="width: 25%;"><strong>Division:</strong> ${document.querySelector('input[name="Division"]')?.value || ''}</td>
-                        <td style="width: 25%;"><strong>District:</strong> ${document.querySelector('input[name="district"]')?.value || ''}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>School Name:</strong> ${document.querySelector('input[name="school_name"]')?.value || ''}</td>
-                        <td><strong>School Year:</strong> ${document.querySelector('input[name="school_year_name"]')?.value || ''}</td>
-                        <td><strong>Grade Level:</strong> ${document.querySelector('select[name="gradeLevelCategory"]')?.value || 'All'}</td>
-                        <td><strong>Section:</strong> ${document.querySelector('input[name="section"]')?.value || ''}</td>
-                    </tr>
-                </table>
-            </div>
-        `;
-        
-        return `
-            <div class="print-container">
-                <div class="header-section">
-                    <img src="../../assets/image/logo.png" alt="School Logo" class="logo">
-                    <div class="form-title">
-                        <h2>School Form 1 (SF1) School Register</h2>
-                        <p>(this replaces Form 1, Master List & STS Form 2-Family Background and Profile)</p>
-                    </div>
-                    <img src="../../assets/image/deped.png" alt="DepEd Logo" class="logo">
-                </div>
-                ${schoolInfo}
-                ${document.querySelector('.student-table').outerHTML}
-                <div style="margin-top: 10px; font-size: 10px; text-align: center;">
-                    <p>Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
-                </div>
-            </div>
-        `;
-    }
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const categoryFilter = document.getElementById('categoryFilter');
-    const applyFilterBtn = document.getElementById('applyFilter');
-    const clearFilterBtn = document.getElementById('clearFilter');
-    const studentsTableBody = document.getElementById('studentsTableBody');
-    const form = document.getElementById('sfFour-form');
-    const generateReportBtn = document.querySelector('.btn-secondary');
-
-    // Apply filter button click
-    applyFilterBtn.addEventListener('click', function() {
-        filterStudents();
-    });
-
-    // Clear filter button click
-    clearFilterBtn.addEventListener('click', function() {
-        categoryFilter.value = '';
-        filterStudents();
-    });
-
-    // Filter students function
-    function filterStudents() {
-        const gradeLevel = categoryFilter.value;
-        
-        // Show loading state
-        form.classList.add('loading');
-        studentsTableBody.innerHTML = '<tr><td colspan="20" style="text-align: center;">Loading...</td></tr>';
-
-        // Create form data
-        const formData = new FormData();
-        formData.append('gradeLevelCategory', gradeLevel);
-
-        // AJAX request to filter students
-        fetch('', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.text())
-        .then(html => {
-            // Create a temporary element to parse the response
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = html;
-            
-            // Extract the table body content from the response
-            const newTableBody = tempDiv.querySelector('#studentsTableBody');
-            if (newTableBody) {
-                studentsTableBody.innerHTML = newTableBody.innerHTML;
+            // Update sections dropdown from the response
+            const newSectionFilter = tempDiv.querySelector('#section');
+            if (newSectionFilter) {
+                sectionFilter.innerHTML = newSectionFilter.innerHTML;
             }
-            
-            form.classList.remove('loading');
         })
         .catch(error => {
             console.error('Error:', error);
             studentsTableBody.innerHTML = '<tr><td colspan="20" style="text-align: center;">Error loading data</td></tr>';
-            form.classList.remove('loading');
         });
     }
 
-    // Generate Report button click
-    generateReportBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        generatePrintableReport();
-    });
+    // Generate Report
+    generateReportBtn.addEventListener('click', generatePrintableReport);
 
     function generatePrintableReport() {
-        // Get current form values
-        const schoolId = document.querySelector('input[name="school_id"]')?.value || '';
-        const region = document.querySelector('input[name="region"]')?.value || '';
-        const division = document.querySelector('input[name="Division"]')?.value || '';
-        const district = document.querySelector('input[name="district"]')?.value || '';
-        const schoolName = document.querySelector('input[name="school_name"]')?.value || '';
-        const schoolYear = document.querySelector('input[name="school_year_name"]')?.value || '';
-        const gradeLevel = document.querySelector('select[name="gradeLevelCategory"]')?.value || 'All';
-        const section = document.querySelector('input[name="section"]')?.value || '';
+        // Get form data
+        const schoolData = {
+            schoolId: document.querySelector('input[name="school_id"]')?.value || '',
+            region: document.querySelector('input[name="region"]')?.value || '',
+            division: document.querySelector('input[name="Division"]')?.value || '',
+            district: document.querySelector('input[name="district"]')?.value || '',
+            schoolName: document.querySelector('input[name="school_name"]')?.value || '',
+            schoolYear: document.querySelector('input[name="school_year_name"]')?.value || '',
+            gradeLevel: document.querySelector('select[name="gradeLevelCategory"]')?.value || 'All',
+            section: document.querySelector('select[name="section"] option:checked')?.textContent || 'All Sections'
+        };
 
-        // Get current date
-        const currentDate = new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-        const currentTime = new Date().toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        const currentDate = new Date().toLocaleDateString();
+        const currentTime = new Date().toLocaleTimeString();
 
         // Create print window
-        const printWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes');
+        const printWindow = window.open('', '_blank', 'width=1300,height=800');
         
-        // Get the table HTML
-        const tableHTML = document.querySelector('.table-bordered').outerHTML;
-
         printWindow.document.write(`
             <!DOCTYPE html>
             <html>
             <head>
                 <title>School Form 1 (SF1) - School Register</title>
                 <style>
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                    }
-                    body {
-                        font-family: Arial, sans-serif;
-                        margin: 20px;
-                        color: #000;
+                    body { 
+                        font-family: Arial; 
+                        margin: 15px; 
+                        font-size: 11px; 
                         background: white;
-                        font-size: 12px;
-                        line-height: 1.4;
                     }
-                    .print-container {
-                        width: 100%;
-                        max-width: 100%;
-                    }
-                    .header-section {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: 20px;
+                    .header { 
+                        display: flex; 
+                        justify-content: space-between; 
+                        align-items: center; 
+                        margin-bottom: 15px;
+                        border-bottom: 2px solid #0066cc;
                         padding-bottom: 10px;
-                        border-bottom: 2px solid #0d6efd;
                     }
-                    .logo {
-                        height: 80px;
-                        width: auto;
+                    .logo { 
+                        height: 70px; 
                     }
-                    .form-title {
-                        text-align: center;
-                        flex-grow: 1;
+                    .title { 
+                        text-align: center; 
                     }
-                    .form-title h1 {
-                        margin: 0;
-                        font-size: 18px;
-                        color: #000;
+                    .title h1 { 
+                        margin: 0; 
+                        font-size: 16px; 
+                        color: #0066cc;
                     }
-                    .form-title p {
-                        margin: 5px 0 0 0;
-                        font-size: 11px;
-                        color: #666;
-                        font-style: italic;
+                    .title p { 
+                        margin: 5px 0 0 0; 
+                        font-size: 10px; 
+                        color: #666; 
                     }
                     .school-info {
-                        margin-bottom: 15px;
+                        background: #f8f8f8;
                         padding: 10px;
-                        background: #f8f9fa;
                         border-radius: 5px;
-                        border: 1px solid #dee2e6;
+                        margin-bottom: 15px;
+                        border: 1px solid #ddd;
                     }
-                    .school-info table {
+                    .info-row {
+                        display: flex;
+                        margin-bottom: 5px;
+                    }
+                    .info-item {
+                        flex: 1;
+                        padding: 0 10px;
+                    }
+                    .info-item strong {
+                        color: #333;
+                    }
+                    table {
                         width: 100%;
                         border-collapse: collapse;
-                    }
-                    .school-info td {
-                        padding: 4px 8px;
-                        vertical-align: top;
-                        border: none;
-                    }
-                    .school-info strong {
-                        color: #000;
-                    }
-                    .report-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 15px;
                         font-size: 9px;
+                        margin-top: 10px;
                     }
-                    .report-table th,
-                    .report-table td {
-                        border: 1px solid #000;
-                        padding: 3px;
+                    th, td {
+                        border: 1px solid black !important;
+                        padding: 4px 3px;
                         text-align: center;
                         vertical-align: middle;
-                        page-break-inside: avoid;
                     }
-                    .report-table th {
-                        background-color: #f0f0f0 !important;
+                    th {
+                        background-color: #e6e6e6 !important;
                         font-weight: bold;
-                        color: #000;
-                    }
-                    .report-table tr {
-                        page-break-inside: avoid;
-                        page-break-after: auto;
+                        border-bottom: 2px solid black !important;
                     }
                     .footer {
                         margin-top: 20px;
-                        padding-top: 10px;
-                        border-top: 1px solid #ccc;
                         text-align: center;
-                        font-size: 10px;
+                        font-size: 9px;
                         color: #666;
-                    }
-                    .page-break {
-                        page-break-before: always;
+                        border-top: 1px solid #ccc;
+                        padding-top: 10px;
                     }
                     @media print {
-                        body {
-                            margin: 10mm;
-                            font-size: 10px;
-                        }
-                        .print-container {
-                            width: 100%;
-                        }
-                        .report-table {
-                            font-size: 8px;
-                        }
-                        .header-section {
-                            margin-bottom: 15px;
-                        }
-                        .logo {
-                            height: 70px;
-                        }
-                        .no-print {
-                            display: none !important;
-                        }
+                        body { margin: 10mm; }
+                        table { font-size: 8px; }
+                        th, td { padding: 3px 2px; }
                     }
                     @page {
                         size: landscape;
@@ -804,145 +569,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 </style>
             </head>
             <body>
-                <div class="print-container">
-                    <!-- Header Section -->
-                    <div class="header-section">
-                        <img src="${window.location.origin + '/../../assets/image/logo.png'}" alt="School Logo" class="logo" onerror="this.style.display='none'">
-                        <div class="form-title">
-                            <h1>School Form 1 (SF1) School Register</h1>
-                            <p>(this replaces Form 1, Master List & STS Form 2-Family Background and Profile)</p>
-                        </div>
-                        <img src="${window.location.origin + '/../../assets/image/deped.png'}" alt="DepEd Logo" class="logo" onerror="this.style.display='none'">
+                <div class="header">
+                    <img src="${window.location.origin}/../../assets/image/logo.png" class="logo">
+                    <div class="title">
+                        <h1>School Form 1 (SF1) School Register</h1>
+                        <p>(this replaces Form 1, Master List & STS Form 2-Family Background and Profile)</p>
                     </div>
+                    <img src="${window.location.origin}/../../assets/image/deped.png" class="logo">
+                </div>
 
-                    <!-- School Information -->
-                    <div class="school-info">
-                        <table>
-                            <tr>
-                                <td style="width: 25%;"><strong>School ID:</strong> ${schoolId}</td>
-                                <td style="width: 25%;"><strong>Region:</strong> ${region}</td>
-                                <td style="width: 25%;"><strong>Division:</strong> ${division}</td>
-                                <td style="width: 25%;"><strong>District:</strong> ${district}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>School Name:</strong> ${schoolName}</td>
-                                <td><strong>School Year:</strong> ${schoolYear}</td>
-                                <td><strong>Grade Level:</strong> ${gradeLevel}</td>
-                                <td><strong>Section:</strong> ${section}</td>
-                            </tr>
-                        </table>
+                <div class="school-info">
+                    <div class="info-row">
+                        <div class="info-item"><strong>School ID:</strong> ${schoolData.schoolId}</div>
+                        <div class="info-item"><strong>Region:</strong> ${schoolData.region}</div>
+                        <div class="info-item"><strong>Division:</strong> ${schoolData.division}</div>
+                        <div class="info-item"><strong>District:</strong> ${schoolData.district}</div>
                     </div>
-
-                    <!-- Student Data Table -->
-                    <div class="table-container">
-                        ${tableHTML}
-                    </div>
-
-                    <!-- Footer -->
-                    <div class="footer">
-                        <p><strong>Generated on:</strong> ${currentDate} at ${currentTime}</p>
-                        <p>This is a computer-generated report. No signature required.</p>
+                    <div class="info-row">
+                        <div class="info-item"><strong>School Name:</strong> ${schoolData.schoolName}</div>
+                        <div class="info-item"><strong>School Year:</strong> ${schoolData.schoolYear}</div>
+                        <div class="info-item"><strong>Grade Level:</strong> ${schoolData.gradeLevel}</div>
+                        <div class="info-item"><strong>Section:</strong> ${schoolData.section}</div>
                     </div>
                 </div>
 
+                ${document.querySelector('.table-bordered').outerHTML}
+
+                <div class="footer">
+                    <p><strong>Generated on:</strong> ${currentDate} at ${currentTime}</p>
+                    <p>Computer-generated report</p>
+                </div>
+
                 <script>
-                    // Auto-print and close
                     window.onload = function() {
-                        // Add slight delay to ensure all images are loaded
-                        setTimeout(function() {
+                        setTimeout(() => {
                             window.print();
-                            
-                            // Close window after printing
-                            setTimeout(function() {
-                                window.close();
-                            }, 1000);
+                            setTimeout(() => window.close(), 1000);
                         }, 500);
                     };
-
-                    // Handle print dialog cancel
-                    window.addEventListener('afterprint', function() {
-                        setTimeout(function() {
-                            window.close();
-                        }, 500);
-                    });
-
-                    // Fallback close button for mobile/tablet
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const closeBtn = document.createElement('button');
-                        closeBtn.innerHTML = 'Close Window';
-                        closeBtn.style.cssText = 'position: fixed; top: 10px; right: 10px; padding: 10px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; z-index: 10000;';
-                        closeBtn.className = 'no-print';
-                        closeBtn.onclick = function() { window.close(); };
-                        document.body.appendChild(closeBtn);
-                    });
                 <\/script>
             </body>
             </html>
         `);
 
         printWindow.document.close();
-
-        // Focus on the print window
-        printWindow.focus();
     }
-
-    // Additional utility functions
-    function exportToPDF() {
-        // This would require a PDF library like jsPDF or html2pdf.js
-        console.log('PDF export functionality would be implemented here');
-        alert('PDF export feature would require additional libraries like jsPDF or html2pdf.js');
-    }
-
-    function exportToExcel() {
-        // Simple CSV export
-        const table = document.querySelector('.table-bordered');
-        const rows = table.querySelectorAll('tr');
-        let csv = [];
-        
-        rows.forEach(row => {
-            const rowData = [];
-            const cells = row.querySelectorAll('th, td');
-            cells.forEach(cell => {
-                rowData.push(cell.textContent.trim());
-            });
-            csv.push(rowData.join(','));
-        });
-        
-        const csvContent = csv.join('\\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'SF1_School_Register.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    // Optional: Add right-click context menu for additional export options
-    document.addEventListener('contextmenu', function(e) {
-        if (e.target.closest('.table-bordered')) {
-            e.preventDefault();
-            // Could show custom context menu with export options
-        }
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+P for print
-        if (e.ctrlKey && e.key === 'p') {
-            e.preventDefault();
-            generatePrintableReport();
-        }
-        // Ctrl+E for Excel export
-        if (e.ctrlKey && e.key === 'e') {
-            e.preventDefault();
-            exportToExcel();
-        }
-    });
-
-    // Show keyboard shortcuts help
-    console.log('Keyboard shortcuts:');
-    console.log('Ctrl+P - Generate Printable Report');
-    console.log('Ctrl+E - Export to Excel (CSV)');
 });
 </script>
