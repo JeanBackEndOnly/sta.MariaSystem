@@ -3,11 +3,11 @@ session_start();
 require_once 'C:/xampp/htdocs/sta.MariaSystem/vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-/* ---------- Database Connection ---------- */
+
 $mysqli = new mysqli("localhost", "root", "", "stamariadb");
 if ($mysqli->connect_error) die("DB Connection failed: " . $mysqli->connect_error);
 
-/* ---------- Paths ---------- */
+
 $templatePath = 'C:/xampp/htdocs/sta.MariaSystem/src/UI-Admin/contents/sf5/sf5.xlsx';
 $saveDir = 'C:/xampp/htdocs/sta.MariaSystem/sf5_files';
 if (!is_dir($saveDir)) mkdir($saveDir, 0777, true);
@@ -18,7 +18,7 @@ $skipRow = 33;
 $formData = $_SESSION['sf5_form'] ?? [];
 $downloadLink = $_SESSION['sf5_download'] ?? '';
 
-/* ---------- Load Section from URL ---------- */
+
 $sectionId = $_GET['section_id'] ?? '';
 $gradeLevel = $_GET['grade'] ?? '';
 $sectionName = $_GET['section'] ?? '';
@@ -28,12 +28,12 @@ if ($sectionId) {
     $formData['section'] = $sectionName;
 }
 
-/* ---------- Populate Learners from SF9 ---------- */
+
 $formData['male_total'] = 0;
 $formData['female_total'] = 0;
 $formData['combined_total'] = 0;
 
-// Initialize Learning Progress
+
 $progressCategories = [
     'did_not_meet' => ['min'=>0, 'max'=>74],
     'fairly_satisfactory' => ['min'=>75, 'max'=>79],
@@ -45,12 +45,16 @@ foreach($progressCategories as $status=>$range){
     $formData['progress'][$status] = ['male'=>0,'female'=>0,'total'=>0];
 }
 
-if ($sectionId && $gradeLevel && $sectionName) {
+
+if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName)) {
+    $gradeLevel = trim($gradeLevel);
+    $sectionName = trim($sectionName);
+
     $stmt = $mysqli->prepare("
         SELECT sf9.lrn, sf9.student_name, sf9.general_average, s.sex
         FROM sf9_data sf9
         JOIN student s ON s.lrn = sf9.lrn
-        WHERE sf9.grade = ? AND sf9.section = ?
+        WHERE sf9.grade = ? AND LOWER(sf9.section) = LOWER(?)
         ORDER BY s.lname, s.fname
     ");
     $stmt->bind_param("ss", $gradeLevel, $sectionName);
@@ -59,18 +63,16 @@ if ($sectionId && $gradeLevel && $sectionName) {
 
     $rowNum = 13;
     while ($student = $result->fetch_assoc()) {
-        if ($rowNum == $skipRow) $rowNum++; // skip row 33
+        if ($rowNum == $skipRow) $rowNum++;
         $formData['lrn'][$rowNum] = $student['lrn'];
         $formData['name'][$rowNum] = $student['student_name'];
         $formData['average'][$rowNum] = $student['general_average'];
         $formData['action'][$rowNum] = '';
         $formData['sex'][$rowNum] = strtoupper($student['sex']);
 
-        // Count totals
         if ($student['sex'] === 'MALE') $formData['male_total']++;
         if ($student['sex'] === 'FEMALE') $formData['female_total']++;
 
-        // Auto-generate learning progress
         $avg = (float)$student['general_average'];
         foreach($progressCategories as $status=>$range){
             if($avg >= $range['min'] && $avg <= $range['max']){
@@ -80,7 +82,6 @@ if ($sectionId && $gradeLevel && $sectionName) {
                 break;
             }
         }
-
         $rowNum++;
         if ($rowNum > $totalRows) break;
     }
@@ -88,7 +89,24 @@ if ($sectionId && $gradeLevel && $sectionName) {
     $stmt->close();
 }
 
-/* ---------- Handle Download ---------- */
+
+if (!empty($gradeLevel) && !empty($sectionName)) {
+    $loadAct = $mysqli->prepare("SELECT action_taken FROM sf5_data WHERE grade_level=? AND section=? AND school_year=? LIMIT 1");
+    $loadAct->bind_param("sss", $gradeLevel, $sectionName, $formData['school_year']);
+    $loadAct->execute();
+    $res = $loadAct->get_result();
+    if ($row = $res->fetch_assoc()) {
+        $savedActions = json_decode($row['action_taken'], true);
+        if (is_array($savedActions)) {
+            foreach ($savedActions as $r => $val) {
+                $formData['action'][$r] = $val;
+            }
+        }
+    }
+    $loadAct->close();
+}
+
+
 if (isset($_GET['download'])) {
     if (!empty($_SESSION['sf5_download'])) {
         $file = $saveDir . DIRECTORY_SEPARATOR . $_SESSION['sf5_download'];
@@ -106,14 +124,13 @@ if (isset($_GET['download'])) {
     } else die("No file to download.");
 }
 
-/* ---------- Handle Form Submission ---------- */
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['school_year'] = $_POST['school_year'] ?? '';
     $formData['curriculum'] = $_POST['curriculum'] ?? '';
     $formData['grade_level'] = $_POST['grade_level'] ?? '';
     $formData['section'] = $_POST['section'] ?? '';
 
-    // Learners
     for ($r = 13; $r <= $totalRows; $r++) {
         if ($r == $skipRow) continue;
         $formData['lrn'][$r] = $_POST['lrn'][$r] ?? '';
@@ -124,7 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $formData['did_not_meet'][$r] = $_POST['did_not_meet'][$r] ?? '';
     }
 
-    // Totals
     $male=0; $female=0;
     for ($r = 13; $r <= $totalRows; $r++) {
         if($r==$skipRow) continue;
@@ -136,7 +152,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['female_total']=$female;
     $formData['combined_total']=$male+$female;
 
-    // Auto-generate Learning Progress based on averages & sex
     foreach($progressCategories as $status=>$range){
         $formData['progress'][$status] = ['male'=>0,'female'=>0,'total'=>0];
     }
@@ -154,7 +169,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Summary (manual input)
     $summaryRows = ['promoted','conditional','retained'];
     foreach ($summaryRows as $status) {
         $formData['summary'][$status]['male'] = (int)($_POST['summary'][$status]['male'] ?? 0);
@@ -167,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['reviewed_by'] = $_POST['reviewed_by'] ?? '';
     $_SESSION['sf5_form'] = $formData;
 
-    /* ---------- Save Excel ---------- */
+  
     $spreadsheet = IOFactory::load($templatePath);
     $sheet = $spreadsheet->getActiveSheet();
 
@@ -186,7 +200,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sheet->setCellValue("I{$r}", $formData['did_not_meet'][$r] ?? '');
     }
 
-    // Totals
     $sheet->setCellValue('F33', $formData['male_total']);
     $sheet->setCellValue('F60', $formData['female_total']);
     $sheet->setCellValue('F61', $formData['combined_total']);
@@ -232,10 +245,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['sf5_download'] = $filename;
     $downloadLink = $filename;
 
+    
+    $actionData = json_encode($formData['action'], JSON_UNESCAPED_UNICODE);
+    $check = $mysqli->prepare("SELECT id FROM sf5_data WHERE grade_level=? AND section=? AND school_year=? LIMIT 1");
+    $check->bind_param("sss", $formData['grade_level'], $formData['section'], $formData['school_year']);
+    $check->execute();
+    $checkRes = $check->get_result();
+
+    if ($checkRes->num_rows > 0) {
+        $row = $checkRes->fetch_assoc();
+        $update = $mysqli->prepare("UPDATE sf5_data SET action_taken=? WHERE id=?");
+        $update->bind_param("si", $actionData, $row['id']);
+        $update->execute();
+        $update->close();
+    } else {
+        $insert = $mysqli->prepare("INSERT INTO sf5_data (school_year, grade_level, section, action_taken) VALUES (?,?,?,?)");
+        $insert->bind_param("ssss", $formData['school_year'], $formData['grade_level'], $formData['section'], $actionData);
+        $insert->execute();
+        $insert->close();
+    }
+    $check->close();
+
     header("Location: ".$_SERVER['PHP_SELF']."?section_id={$sectionId}&grade={$gradeLevel}&section={$sectionName}");
     exit;
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -264,7 +299,7 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 <form method="post" id="sf5-form">
 <div class="row">
 <div class="col-md-8">
-<!-- School Info -->
+
 <div class="card p-3 mb-3">
 <h5>School Info</h5>
 <div class="row">
@@ -275,13 +310,13 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 </div>
 </div>
 
-<!-- Learners Table -->
+
 <div class="card p-3 mb-3">
 <h5>Learners Table</h5>
 <div class="scrollable-table">
 <table class="table table-bordered table-sm text-center align-middle">
 <thead>
-<tr><th>LRN</th><th>Learner Name</th><th>General Average</th><th>Action Taken</th><th>Sex</th><th>Did Not Meet</th></tr>
+<tr><th>LRN</th><th>Learner's Name</th><th>General Average</th><th>ACTION TAKEN: PROMOTED, CONDITIONAL, or RETAINED</th><th>Sex</th><th>Did Not Meet Expectations of the ff. Learning Area/s as of end of current School Year </th></tr>
 </thead>
 <tbody>
 <?php for ($r=13;$r<=59;$r++): if ($r==$skipRow) continue; ?>
@@ -307,7 +342,7 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 </div>
 
 <div class="col-md-4">
-<!-- Summary Table -->
+
 <div class="card p-3 mb-3">
 <h5>Summary Table</h5>
 <table class="table table-bordered table-sm text-center align-middle">
@@ -323,7 +358,7 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 </table>
 </div>
 
-<!-- Progress Table -->
+
 <div class="card p-3 mb-3">
 <h5>Learning Progress</h5>
 <table class="table table-bordered table-sm text-center align-middle">
@@ -339,7 +374,7 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 </table>
 </div>
 
-<!-- Signatories -->
+
 <div class="card p-3 mb-3">
 <h5>Signatories</h5>
 <div class="mb-2"><input type="text" name="prepared_by" class="form-control form-control-sm" placeholder="Prepared By" value="<?=htmlspecialchars($formData['prepared_by']??'')?>"></div>
@@ -351,7 +386,7 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 </form>
 </div>
 
-<!-- Fixed Buttons -->
+
 <div id="action-buttons">
    <button type="button" class="btn btn-secondary" onclick="history.back()">Back</button>
     <button type="submit" form="sf5-form" class="btn btn-primary">Save</button>
