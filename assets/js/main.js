@@ -77,7 +77,7 @@ $(document).ready(function () {
               icon: "error",
               toast: true,
               position: "top-end",
-              timer: 3000,
+              timer: 1000,
               showConfirmButton: false
           });
           $form.data("isSubmitted", false);
@@ -104,10 +104,10 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      $form[0].reset(); // Reset form on success
+                      location.reload(); // Reload page on success
                   });
               } else {
                   Swal.fire({
@@ -116,7 +116,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -129,7 +129,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -184,13 +184,10 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      // $form[0].reset(); // Reset form on success
-                      // $('#createClassrooms').modal('hide'); // Close modal
-                      // loadClassrooms(); // Refresh classroom list
-                      $form[0].reset(); 
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -199,7 +196,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -212,7 +209,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -268,13 +265,10 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      // $form[0].reset(); // Reset form on success
-                      // $('#createClassrooms').modal('hide'); // Close modal
-                      // loadClassrooms(); // Refresh classroom list
-                      $form[0].reset(); 
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -283,7 +277,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -296,7 +290,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -324,7 +318,7 @@ $(document).ready(function () {
               icon: "error",
               toast: true,
               position: "top-end",
-              timer: 3000,
+              timer: 1000,
               showConfirmButton: false,
           });
           $form.data("isSubmitted", false);
@@ -351,13 +345,10 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      // $form[0].reset(); // Reset form on success
-                      // $('#createClassrooms').modal('hide'); // Close modal
-                      // loadClassrooms(); // Refresh classroom list
-                      $form[0].reset(); 
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -366,7 +357,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -379,7 +370,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -410,7 +401,7 @@ $(document).ready(function () {
               icon: "error",
               toast: true,
               position: "top-end",
-              timer: 3000,
+              timer: 1000,
               showConfirmButton: false,
           });
           $form.data("isSubmitted", false);
@@ -437,13 +428,10 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      // $form[0].reset(); // Reset form on success
-                      // $('#createClassrooms').modal('hide'); // Close modal
-                      // loadClassrooms(); // Refresh classroom list
-                      $form[0].reset(); 
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -452,7 +440,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -465,7 +453,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -529,13 +517,10 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      // $form[0].reset(); // Reset form on success
-                      // $('#createClassrooms').modal('hide'); // Close modal
-                      // loadClassrooms(); // Refresh classroom list
-                      $form[0].reset(); 
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -544,7 +529,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -557,7 +542,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -593,7 +578,7 @@ $(document).ready(function () {
               icon: "error",
               toast: true,
               position: "top-end",
-              timer: 3000,
+              timer: 1000,
               showConfirmButton: false,
           });
           $form.data("isSubmitted", false);
@@ -620,13 +605,13 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
                       // $form[0].reset(); // Reset form on success
                       // $('#createClassrooms').modal('hide'); // Close modal
                       // loadClassrooms(); // Refresh classroom list
-                      $form[0].reset(); 
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -635,7 +620,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -648,7 +633,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -770,7 +755,7 @@ $(document).ready(function () {
             icon: "error",
             toast: true,
             position: "top-end",
-            timer: 3000,
+            timer: 1000,
             showConfirmButton: false,
         });
         $form.data("isSubmitted", false);
@@ -784,7 +769,7 @@ $(document).ready(function () {
             icon: "error",
             toast: true,
             position: "top-end",
-            timer: 3000,
+            timer: 1000,
             showConfirmButton: false,
         });
         $form.data("isSubmitted", false);
@@ -811,7 +796,7 @@ $(document).ready(function () {
                     icon: "success",
                     toast: true,
                     position: "top-end",
-                    timer: 3000,
+                    timer: 1000,
                     showConfirmButton: false,
                 }).then(() => {
                     $form[0].reset();
@@ -827,7 +812,7 @@ $(document).ready(function () {
                     icon: "error",
                     toast: true,
                     position: "top-end",
-                    timer: 3000,
+                    timer: 1000,
                     showConfirmButton: false,
                 });
             }
@@ -840,7 +825,7 @@ $(document).ready(function () {
                 icon: "error",
                 toast: true,
                 position: "top-end",
-                timer: 3000,
+                timer: 1000,
                 showConfirmButton: false,
             });
         },
@@ -906,13 +891,10 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      // $form[0].reset(); // Reset form on success
-                      // $('#createClassrooms').modal('hide'); // Close modal
-                      // loadClassrooms(); // Refresh classroom list
-                      $form[0].reset(); 
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -921,7 +903,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -934,7 +916,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -967,7 +949,7 @@ $(document).ready(function () {
               icon: "error",
               toast: true,
               position: "top-end",
-              timer: 3000,
+              timer: 1000,
               showConfirmButton: false,
           });
           $form.data("isSubmitted", false);
@@ -994,13 +976,10 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      // $form[0].reset(); // Reset form on success
-                      // $('#createClassrooms').modal('hide'); // Close modal
-                      // loadClassrooms(); // Refresh classroom list
-                      $form[0].reset(); 
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -1009,7 +988,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -1022,7 +1001,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -1054,7 +1033,7 @@ $(document).ready(function () {
               icon: "error",
               toast: true,
               position: "top-end",
-              timer: 3000,
+              timer: 1000,
               showConfirmButton: false,
           });
           $form.data("isSubmitted", false);
@@ -1081,13 +1060,10 @@ $(document).ready(function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      // $form[0].reset(); // Reset form on success
-                      // $('#createClassrooms').modal('hide'); // Close modal
-                      // loadClassrooms(); // Refresh classroom list
-                      $form[0].reset(); 
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -1096,7 +1072,7 @@ $(document).ready(function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -1109,7 +1085,7 @@ $(document).ready(function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -1464,10 +1440,10 @@ $(document).on('click', '.deleteClassroomBtn', function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      
+                        location.reload();
                   });
               } else {
                   Swal.fire({
@@ -1476,7 +1452,7 @@ $(document).on('click', '.deleteClassroomBtn', function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -1489,7 +1465,7 @@ $(document).on('click', '.deleteClassroomBtn', function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -1563,10 +1539,10 @@ $(document).on("submit", "#editClassroom-form", function (e) {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      
+                        location.reload();
                   });
               } else {
                   Swal.fire({
@@ -1575,7 +1551,7 @@ $(document).on("submit", "#editClassroom-form", function (e) {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -1588,13 +1564,13 @@ $(document).on("submit", "#editClassroom-form", function (e) {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
           complete: function () {
             $form.data("isSubmitted", false);
-            $btn.prop("disabled", false).html('Deleted'); // Changed from 'Deactivated' to 'Update'
+            $btn.prop("disabled", false).html('Update'); 
         }
       });
   });
@@ -1628,10 +1604,10 @@ $(document).on("submit", "#editClassroom-form", function (e) {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      
+                    location.reload();
                   });
               } else {
                   Swal.fire({
@@ -1640,7 +1616,7 @@ $(document).on("submit", "#editClassroom-form", function (e) {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -1653,7 +1629,7 @@ $(document).on("submit", "#editClassroom-form", function (e) {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -1737,10 +1713,10 @@ $(document).on("submit", "#editSection-form", function (e) {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      
+                        location.reload();
                   });
               } else {
                   Swal.fire({
@@ -1749,7 +1725,7 @@ $(document).on("submit", "#editSection-form", function (e) {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -1762,13 +1738,13 @@ $(document).on("submit", "#editSection-form", function (e) {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
           complete: function () {
             $form.data("isSubmitted", false);
-            $btn.prop("disabled", false).html('Deleted'); // Changed from 'Deactivated' to 'Update'
+            $btn.prop("disabled", false).html('Update'); // Changed from 'Deactivated' to 'Update'
         }
       });
   });
@@ -1808,10 +1784,10 @@ $(document).on('click', '.deleteSchoolyearBtn', function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      
+                      location.reload();
                   });
               } else {
                   Swal.fire({
@@ -1820,7 +1796,7 @@ $(document).on('click', '.deleteSchoolyearBtn', function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -1833,7 +1809,7 @@ $(document).on('click', '.deleteSchoolyearBtn', function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -1915,10 +1891,10 @@ $(document).on('click', '.editSubjectBtn', function () {
                       icon: "success",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   }).then(() => {
-                      
+                    location.reload();
                   });
               } else {
                   Swal.fire({
@@ -1927,7 +1903,7 @@ $(document).on('click', '.editSubjectBtn', function () {
                       icon: "error",
                       toast: true,
                       position: "top-end",
-                      timer: 3000,
+                      timer: 1000,
                       showConfirmButton: false,
                   });
               }
@@ -1940,7 +1916,7 @@ $(document).on('click', '.editSubjectBtn', function () {
                   icon: "error",
                   toast: true,
                   position: "top-end",
-                  timer: 3000,
+                  timer: 1000,
                   showConfirmButton: false,
               });
           },
@@ -2016,7 +1992,7 @@ $(document).on("submit", "#editSubjects-form", function (e) {
                     icon: "success",
                     toast: true,
                     position: "top-end",
-                    timer: 2000,
+                    timer: 1000,
                     showConfirmButton: false,
                 }).then(() => {
                     $('#editSchoolyear').modal('hide');
@@ -2527,7 +2503,7 @@ $(document).on("submit", "#editSubjects-form", function (e) {
                         icon: "success",
                         toast: true,
                         position: "top-end",
-                        timer: 2000,
+                        timer: 1000,
                         showConfirmButton: false,
                     }).then(() => {
                         location.reload();
@@ -2565,7 +2541,7 @@ $(document).on("submit", "#editSubjects-form", function (e) {
                         icon: "success",
                         toast: true,
                         position: "top-end",
-                        timer: 2000,
+                        timer: 1000,
                         showConfirmButton: false,
                     }).then(() => {
                         location.reload();

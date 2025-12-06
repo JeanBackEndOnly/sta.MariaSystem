@@ -48,10 +48,7 @@
             </div>
         </div>
     </div>
-    <div class="schoolYearDisplays">
-        <div class="col-md-12 mt-3">
-            <h4><strong>School Year</strong></h4>
-        </div>
+    <div class="schoolYearDisplays mt-3">
         <div class="table-container-wrapper">
             <?php
             $stmt = $pdo->prepare("SELECT * FROM school_year ORDER BY created_date DESC");
@@ -61,8 +58,8 @@
         ?>
 
             <!-- Fixed Header -->
-            <div class="table-header">
-                <table class="table table-bordered table-sm text-center mb-0">
+            <div class="table-responsive-lg modern-table">
+                <table class="table table-hover table-bordered align-middle text-center text-dark">
                     <thead>
                         <tr>
                             <th width="5%">#</th>
@@ -76,10 +73,12 @@
             </div>
 
             <!-- Scrollable Body -->
-            <div class="table-body-scroll">
-                <table class="table table-bordered table-sm text-center mb-0">
+            <div class="table-responsive-lg modern-table">
+                <table class="table table-hover table-bordered align-middle text-center text-dark">
                     <tbody>
-                        <?php foreach($school_year as $user) : ?>
+                        <?php
+                        if($school_year){
+                        foreach($school_year as $user) : ?>
                         <tr>
                             <td width="5%"><?= $count++ ?></td>
                             <td width="25%">
@@ -99,13 +98,14 @@
                                     <button type="button" id="deactivationBtn" data-id="<?= $user["school_year_id"] ?>"
                                         class="btn btn-danger btn-sm">Deactivate</button>
                                     <button type="button" data-id="<?= $user["school_year_id"] ?>"
-                                        class="btn btn-info btn-sm editSchoolyearBtn">Edit</button>
-                                    <button type="button" data-id="<?= $user["school_year_id"] ?>"
                                         class="btn btn-danger btn-sm deleteSchoolyearBtn">Delete</button>
                                 </div>
                             </td>
                         </tr>
-                        <?php endforeach ?>
+                        <?php endforeach;
+                        }else{
+                            echo '<tr><td colspan="5">No School Year Found</td></tr>';
+                        } ?>
                     </tbody>
                 </table>
             </div>
@@ -180,37 +180,24 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="editSchoolyear" tabindex="-1" aria-labelledby="editSchoolyearLabel" aria-hidden="true">
-        <div class="modal-dialog modal-md">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title text-white" id="editSchoolyearLabel">Deactivation</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
-                        onclick="location.reload()"></button>
-                </div>
-                <div class="modal-body">
-                    <form class="row g-3" id="editSchoolyear-form" method="post">
-                        <input type="hidden" name="school_year_id" id="school_year_id_edit">
-                        <div class="my-2">
-                            <label class="form-label">Section Status</label>
-                            <select name="school_year_status" id="school_year_status" class="form-control">
-                                <option value="">Select school year status</option>
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                            </select>
-                        </div>
-                        <div class="my-2">
-                            <label class="form-label">School Year Name</label>
-                            <input type="text" id="school_year_name" name="school_year_name" class="form-control"
-                                placeholder="ex. Jupiter">
-                        </div>
-                        <button type="submit" class="btn btn-primary px-5">
-                            edit
-                        </button>
-                </div>
-                </form>
-            </div>
-        </div>
-    </div>
     </div>
 </main>
+<script>
+    // Search for School Year Table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    const tableBody = document.querySelector('table tbody');
+    
+    if (!searchInput || !tableBody) return;
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        const rows = tableBody.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            row.style.display = rowText.includes(searchTerm) ? '' : 'none';
+        });
+    });
+});
+</script>

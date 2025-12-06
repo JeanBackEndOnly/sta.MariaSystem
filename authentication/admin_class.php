@@ -619,7 +619,7 @@ class Action
 
             return json_encode([
                 'status' => 1,
-                'message' => 'School Year Deactivated successfully!'
+                'message' => 'Student Rejected successfully!'
             ]);
 
         } catch (PDOException $e) {
@@ -1029,7 +1029,7 @@ class Action
             } else {
                 return json_encode([
                     'status' => 0,
-                    'message' => 'No changes made (maybe same values or invalid ID) the room id is: ' . $classroom_id
+                    'message' => 'No changes made (maybe same values or invalid ID) the room id is: ' . $section_id
                 ]);
             }
 
@@ -1237,7 +1237,7 @@ class Action
             } else {
                 return json_encode([
                     'status' => 0,
-                    'message' => 'No changes made (maybe same values or invalid ID): ' . $school_year_id
+                    'message' => 'No changes made (maybe same values or invalid ID): ' . $subject_id
                 ]);
             }
 

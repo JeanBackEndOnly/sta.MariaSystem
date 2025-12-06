@@ -9,8 +9,8 @@
             <input type="text" class="form-control" name="search" placeholder="Search....">
         </div>
         <div class="col-md-2">
-            <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSection"
-                id="createSectionBtn">Create Section</button>
+            <button class="btn btn-danger m-0 w-100" data-bs-toggle="modal" data-bs-target="#createSection"
+                id="createSectionBtn">+ Create Section</button>
         </div>
     </div>
     <div class="modal fade" id="createSection" tabindex="-1" aria-labelledby="createSectionLabel" aria-hidden="true">
@@ -53,10 +53,7 @@
             </div>
         </div>
     </div>
-    <div class="sectionsDisplays">
-        <div class="col-md-12 mt-3">
-            <h4><strong>Sections</strong></h4>
-        </div>
+    <div class="sectionsDisplays mt-3">
         <div class="table-container-wrapper">
             <?php
             $stmt = $pdo->prepare("SELECT * FROM sections ORDER BY created_date DESC");
@@ -66,8 +63,8 @@
         ?>
 
             <!-- Fixed Header -->
-            <div class="table-header">
-                <table class="table table-bordered table-sm text-center mb-0">
+            <div class="table-responsive-lg modern-table">
+                <table class="table table-hover table-bordered align-middle text-center text-dark">
                     <thead>
                         <tr>
                             <th width="5%">#</th>
@@ -82,8 +79,8 @@
             </div>
 
             <!-- Scrollable Body -->
-            <div class="table-body-scroll">
-                <table class="table table-bordered table-sm text-center mb-0">
+            <div class="table-responsive-lg modern-table">
+                <table class="table table-hover table-bordered align-middle text-center text-dark">
                     <tbody>
                         <?php foreach($sections as $user) : ?>
                         <tr>
@@ -141,7 +138,7 @@
         <div class="modal-dialog modal-md">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title text-white" id="editSectionsLabel">Deactivation</h5>
+                    <h5 class="modal-title text-white" id="editSectionsLabel">Update Section</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
                         onclick="location.reload()"></button>
                 </div>
@@ -174,7 +171,7 @@
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary px-5">
-                            edit
+                            Update Section
                         </button>
                 </div>
                 </form>
@@ -183,3 +180,22 @@
     </div>
     </div>
 </main>
+<script>
+    // Simplified Search for Sections Table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    const tableBody = document.querySelector('table tbody');
+    
+    if (!searchInput || !tableBody) return;
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        const rows = tableBody.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            row.style.display = rowText.includes(searchTerm) ? '' : 'none';
+        });
+    });
+});
+</script>

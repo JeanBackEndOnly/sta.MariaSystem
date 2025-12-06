@@ -9,8 +9,8 @@
             <input type="text" class="form-control" name="search" placeholder="Search....">
         </div>
         <div class="col-md-2">
-            <button class="btn btn-danger m-0" data-bs-toggle="modal" data-bs-target="#createSubjects"
-                id="createSubjectsBtn">Create Subjects</button>
+            <button class="btn btn-danger m-0 w-100" data-bs-toggle="modal" data-bs-target="#createSubjects"
+                id="createSubjectsBtn">+ Create Subjects</button>
         </div>
     </div>
     <!-- add Subjects -->
@@ -68,7 +68,6 @@
     </div>
     <div class="subjectsDisplays">
         <div class="col-md-12 mt-3">
-            <h4><strong>Subjects</strong></h4>
         </div>
         <div class="table-container-wrapper">
             <?php
@@ -79,8 +78,8 @@
         ?>
 
             <!-- Fixed Header -->
-            <div class="table-header">
-                <table class="table table-bordered table-sm text-center mb-0">
+            <div class="table-responsive-lg modern-table">
+                <table class="table table-hover table-bordered align-middle text-center text-dark">
                     <thead>
                         <tr>
                             <th width="5%">#</th>
@@ -96,10 +95,12 @@
             </div>
 
             <!-- Scrollable Body -->
-            <div class="table-body-scroll">
-                <table class="table table-bordered table-sm text-center mb-0">
+            <div class="table-responsive-lg modern-table">
+                <table class="table table-hover table-bordered align-middle text-center text-dark">
                     <tbody>
-                        <?php foreach($subjects as $subject) : ?>
+                        <?php
+                        if($subjects){
+                        foreach($subjects as $subject) : ?>
                         <tr>
                             <td width="5%"><?= $count++ ?></td>
                             <td width="15%">
@@ -127,7 +128,10 @@
                                 </div>
                             </td>
                         </tr>
-                        <?php endforeach ?>
+                        <?php endforeach;
+                        }else{
+                            echo "<tr><td colspan='7'>No Subjects Found</td></tr>";
+                        } ?>
                     </tbody>
                 </table>
             </div>
@@ -160,7 +164,7 @@
         <div class="modal-dialog modal-md">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title text-white" id="editSubjectsLabel">Deactivation</h5>
+                    <h5 class="modal-title text-white" id="editSubjectsLabel">Update Subject</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
                         onclick="location.reload()"></button>
                 </div>
@@ -203,7 +207,7 @@
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary px-5">
-                            edit
+                            Update subject
                         </button>
                 </div>
                 </form>
@@ -235,6 +239,25 @@ document.querySelectorAll('.editSubjectBtn').forEach(button => {
         // For now, just show the modal
         const editModal = new bootstrap.Modal(document.getElementById('editSubjects'));
         editModal.show();
+    });
+});
+</script>
+<script>
+    // Search for Subjects Table
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    const tableBody = document.querySelector('table tbody');
+    
+    if (!searchInput || !tableBody) return;
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        const rows = tableBody.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            row.style.display = rowText.includes(searchTerm) ? '' : 'none';
+        });
     });
 });
 </script>

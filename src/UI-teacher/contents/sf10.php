@@ -1,111 +1,147 @@
 <?php
-// Database connection (adjust as needed)
-$conn = new mysqli("localhost", "root", "", "stamariadb");
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+    $query = "SELECT classes.*, users.* FROM classes
+    INNER JOIN users ON classes.adviser_id = users.user_id";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Check if AJAX search
-$search = '';
-if (isset($_GET['ajax']) && $_GET['ajax'] == 1 && isset($_GET['search'])) {
-    $search = $conn->real_escape_string($_GET['search']);
-}
+    $query = "SELECT * FROM school_year WHERE school_year_status = 'Active'";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $schoolYear = $stmt->fetch(PDO::FETCH_ASSOC);
+
 ?>
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="mx-2">
+        <h4><i class="fa-solid fa-folder me-2"></i>SF10 Learner's Permanent Academic Record</h4>
+    </div>
+</div>
 
-<div class="container mt-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="m-0">SF10 Learner’s Permanent Academic Record</h4>
-        <div style="width: 280px;">
-            <input 
-                type="text" 
-                id="searchInput" 
-                class="form-control" 
-                placeholder="Search LRN, Name, Grade, or Sex..."
-                value="<?= htmlspecialchars($search) ?>"
-            >
+<!-- Search and Filters -->
+
+<div class="row g-2  justify-content-between">
+    <div class="row mb-3  justify-content-start">
+        <div class="col-md-4">
+            <input type="text" id="searchInput" name="search" class="form-control"
+                placeholder="Search by name, role, status, or date...">
+        </div>
+        <div class="col-md-4">
+            <select id="categoryFilter" name="statusCategory" class="form-select">
+                <option value="">Grade Level</option>
+                <option value="Grade 1">Grade 1</option>
+                <option value="Grade 2">Grade 2</option>
+                <option value="Grade 3">Grade 3</option>
+                <option value="Grade 4">Grade 4</option>
+                <option value="Grade 5">Grade 5</option>
+                <option value="Grade 6">Grade 6</option>
+            </select>
         </div>
     </div>
+    <!-- Accounts Displays -->
+    <div class="table-container-wrapper">
+        <?php
+            $stmt = $pdo->prepare("SELECT * FROM student ORDER BY lname, fname");
+            $stmt->execute();
+            $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $count = 1;
+        ?>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <table class="table table-hover table-striped align-middle">
-                <thead class="table-primary text-center">
+        <!-- Fixed Header -->
+        <div class="table-header">
+            <table class="table table-bordered table-sm text-center mb-0">
+                <thead>
                     <tr>
+                        <th>#</th>
                         <th>LRN</th>
-                        <th>First Name</th>
-                        <th>Middle Name</th>
-                        <th>Last Name</th>
+                        <th>Name</th>
                         <th>Grade Level</th>
                         <th>Sex</th>
                         <th>Enrolment Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
-                <tbody id="studentTable" class="text-center">
-                    <?php
-                    // Build query
-                    if ($search != '') {
-                        $query = "SELECT * FROM student 
-                                  WHERE lrn LIKE '%$search%' 
-                                     OR fname LIKE '%$search%' 
-                                     OR mname LIKE '%$search%' 
-                                     OR lname LIKE '%$search%' 
-                                     OR gradeLevel LIKE '%$search%' 
-                                     OR sex LIKE '%$search%' 
-                                  ORDER BY lname, fname";
-                    } else {
-                        $query = "SELECT * FROM student ORDER BY lname, fname";
-                    }
+            </table>
+        </div>
 
-                    $result = $conn->query($query);
-
-                    if ($result && $result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            echo "<tr class='student-row' data-id='" . htmlspecialchars($row['student_id']) . "'>
-                                    <td>" . htmlspecialchars($row['lrn']) . "</td>
-                                    <td>" . htmlspecialchars($row['fname']) . "</td>
-                                    <td>" . htmlspecialchars($row['mname']) . "</td>
-                                    <td>" . htmlspecialchars($row['lname']) . "</td>
-                                    <td>" . htmlspecialchars($row['gradeLevel']) . "</td>
-                                    <td>" . htmlspecialchars($row['sex']) . "</td>
-                                    <td>" . htmlspecialchars($row['enrolment_status']) . "</td>
-                                  </tr>";
-                        }
-                    } else {
-                        echo "<tr><td colspan='7' class='text-center text-muted'>No students found.</td></tr>";
-                    }
-                    ?>
+        <!-- Scrollable Body -->
+        <div class="table-body-scroll">
+            <table class="table table-bordered table-sm text-center mb-0">
+                <tbody>
+                    <?php foreach($students as $stu) : ?>
+                    <tr>
+                        <td><?= $count++ ?></td>
+                        <td>
+                            <?= htmlspecialchars($stu["lrn"])  ?>
+                        </td>
+                        <td>
+                            <div class="text-wrap" style="min-width: 120px;">
+                                <?= htmlspecialchars($stu["fname"] . ' ' . $stu["lname"]) ?>
+                            </div>
+                        </td>
+                        <td>
+                            <?= htmlspecialchars($stu["gradeLevel"])  ?>
+                        </td>
+                        <td>
+                            <?= htmlspecialchars($stu["sex"])  ?>
+                        </td>
+                        <td><?= htmlspecialchars($stu["enrolment_status"]) ?></td>
+                        <td>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a
+                                    href="/sta.MariaSystem/src/UI-Admin/contents/schoolform10.php?student_id=<?= htmlspecialchars($stu["student_id"]) ?>"><button
+                                        class="btn btn-sm m-0 px-4 py-2 btn-info">View</button></a>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach ?>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-
 <script>
-document.getElementById('searchInput').addEventListener('keyup', function() {
-    const search = this.value.trim();
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', 'contents/sf10.php?ajax=1&search=' + encodeURIComponent(search), true);
-    xhr.onload = function() {
-        if (this.status === 200) {
-            document.getElementById('studentTable').innerHTML = this.responseText;
-            attachRowClickEvents();
-        }
-    };
-    xhr.send();
-});
-
-function attachRowClickEvents() {
-    const rows = document.querySelectorAll('.student-row');
-    rows.forEach(row => {
-        row.addEventListener('click', function() {
-            const studentId = this.getAttribute('data-id');
-            if (studentId) {
-                window.location.href = '/sta.MariaSystem/src/UI-Admin/contents/schoolform10.php?student_id=' + studentId;
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const tableBody = document.querySelector('.table-body-scroll tbody');
+    const tableRows = tableBody.querySelectorAll('tr');
+    
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const gradeFilterValue = categoryFilter.value; // This is the grade level filter
+        
+        tableRows.forEach(row => {
+            let showRow = true;
+            
+            // Search filter - search in LRN, Name, Grade Level, Sex, Enrolment Status
+            if (searchTerm) {
+                const rowText = row.textContent.toLowerCase();
+                if (!rowText.includes(searchTerm)) {
+                    showRow = false;
+                }
             }
+            
+            // Grade Level filter
+            if (gradeFilterValue && showRow) {
+                const gradeCell = row.querySelector('td:nth-child(4)'); // Grade level column (4th column)
+                if (gradeCell) {
+                    const gradeText = gradeCell.textContent.trim();
+                    if (gradeText !== gradeFilterValue) {
+                        showRow = false;
+                    }
+                }
+            }
+            
+            // Show/hide row
+            row.style.display = showRow ? '' : 'none';
         });
-    });
-}
-
-// Initialize row clicks
-attachRowClickEvents();
+    }
+    
+    // Add event listeners
+    searchInput.addEventListener('input', filterTable);
+    categoryFilter.addEventListener('change', filterTable);
+    
+    // Initial filter
+    filterTable();
+});
 </script>

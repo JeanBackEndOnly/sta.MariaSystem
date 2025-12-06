@@ -7,7 +7,7 @@
 <!-- Search and Filters -->
 
 <div class="row g-2  justify-content-between">
-    <div class="row mb-3  justify-content-between">
+    <div class="row mb-4  justify-content-between">
         <div class="col-md-4">
             <input type="text" id="searchInput" name="search" class="form-control"
                 placeholder="Search by name, role, status, or date...">
@@ -68,74 +68,77 @@
         <div class="table-body-scroll">
             <table class="table table-bordered table-sm text-center mb-0">
                 <tbody>
-                    <?php foreach($users as $user) : ?>
-                    <tr data-status="<?= htmlspecialchars($user['enrolment_status']) ?>"
-                        data-grade="<?= htmlspecialchars($user['gradeLevel'] ?? '') ?>"
-                        data-name="<?= htmlspecialchars($user['lname'] . ' ' . $user['fname'] . ' ' . $user['mname']) ?>">
-                        <td width="5%"><?= $count++ ?></td>
-                        <td width="10%"><?= htmlspecialchars($user["lrn"]) ?></td>
-                        <td width="20%">
-                            <?= htmlspecialchars($user["lname"]) . " " . htmlspecialchars($user["fname"]) . " " .  
-                            (!empty($user["mname"]) ? htmlspecialchars(substr($user["mname"], 0, 1)) . ". " : "") ?>
-                        </td>
-                        <td width="20%">
-                            <?= htmlspecialchars($user["parentLastname"]) . " " . htmlspecialchars($user["parentFirstname"]) ?>
-                        </td>
-                        <td width="10%">
-                            <?= htmlspecialchars($user["gradeLevel"]) ?>
-                        </td>
-                        <?php
-                                $statusMap = [
-                                    'active'      => ['success',   'Enrolled'],
-                                    'pending'     => ['warning',   'Pending'],
-                                    'transferred' => ['secondary',      'Transferred'],
-                                    'dropped'     => ['danger',    'Dropped'],
-                                    'rejected'    => ['danger', 'Rejected']
-                                ];
+                    <?php
+                        if($users){
+                            foreach($users as $user) : ?>
+                            <tr data-status="<?= htmlspecialchars($user['enrolment_status']) ?>"
+                                data-grade="<?= htmlspecialchars($user['gradeLevel'] ?? '') ?>"
+                                data-name="<?= htmlspecialchars($user['lname'] . ' ' . $user['fname'] . ' ' . $user['mname']) ?>">
+                                <td width="5%"><?= $count++ ?></td>
+                                <td width="10%"><?= htmlspecialchars($user["lrn"]) ?></td>
+                                <td width="20%">
+                                    <?= htmlspecialchars($user["lname"]) . " " . htmlspecialchars($user["fname"]) . " " .  
+                                    (!empty($user["mname"]) ? htmlspecialchars(substr($user["mname"], 0, 1)) . ". " : "") ?>
+                                </td>
+                                <td width="20%">
+                                    <?= htmlspecialchars($user["parentLastname"]) . " " . htmlspecialchars($user["parentFirstname"]) ?>
+                                </td>
+                                <td width="10%">
+                                    <?= htmlspecialchars($user["gradeLevel"]) ?>
+                                </td>
+                                <?php
+                                        $statusMap = [
+                                            'active'      => ['success',   'Enrolled'],
+                                            'pending'     => ['warning',   'Pending'],
+                                            'transferred' => ['secondary',      'Transferred'],
+                                            'dropped'     => ['danger',    'Dropped'],
+                                            'rejected'    => ['danger', 'Rejected']
+                                        ];
 
-                                $currentStatus = $user['enrolment_status'] ?? 'pending';
-                                $badgeClass = $statusMap[$currentStatus][0] ?? 'secondary';
-                                $label      = $statusMap[$currentStatus][1] ?? ucfirst($currentStatus);
-                                ?>
-                        <td width="10%">
-                            <span class="badge bg-<?= $badgeClass ?>"><?= $label ?></span>
-                        </td>
-                        <td width="15%">
-                            <div class="d-flex gap-1 justify-content-center">
-                                <a
-                                    href="index.php?page=contents/profile&student_id=<?= htmlspecialchars($user["student_id"]) ?>"><button
-                                        class="btn m-0 btn-sm h-100 btn-info">Profile</button>
-                                </a>
-                                <form class="status-enrolment-form">
-                                    <select name="status" class="status-enrolment-select form-select">
-                                        <option value="">Select Status</option>
-                                        <option value="active"
-                                            <?= ($user["enrolment_status"] === "active") ? "selected" : "" ?>>
-                                            Enrolled</option>
-                                        <option value="transferred_in"
-                                            <?= ($user["enrolment_status"] === "transferred_in") ? "selected" : "" ?>>
-                                            transferred in</option>
-                                        <option value="transferred_out"
-                                            <?= ($user["enrolment_status"] === "transferred_out") ? "selected" : "" ?>>
-                                            transferred out</option>
-                                        <option value="not_active"
-                                            <?= ($user["enrolment_status"] === "not_active") ? "selected" : "" ?>>
-                                            not active</option>
-                                        <option value="dropped"
-                                            <?= ($user["enrolment_status"] === "dropped") ? "selected" : "" ?>>dropped
-                                        </option>
-                                        <option value="rejected"
-                                            <?= ($user["enrolment_status"] === "rejected") ? "selected" : "" ?>>rejected
-                                        </option>
-                                    </select>
-                                    <input type="hidden" name="user_id" value="<?= $user['student_id'] ?>">
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-
-
-                    <?php endforeach ?>
+                                        $currentStatus = $user['enrolment_status'] ?? 'pending';
+                                        $badgeClass = $statusMap[$currentStatus][0] ?? 'secondary';
+                                        $label      = $statusMap[$currentStatus][1] ?? ucfirst($currentStatus);
+                                        ?>
+                                <td width="10%">
+                                    <span class="badge bg-<?= $badgeClass ?>"><?= $label ?></span>
+                                </td>
+                                <td width="15%">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a
+                                            href="index.php?page=contents/profile&student_id=<?= htmlspecialchars($user["student_id"]) ?>"><button
+                                                class="btn m-0 btn-sm h-100 btn-info">Profile</button>
+                                        </a>
+                                        <form class="status-enrolment-form">
+                                            <select name="status" class="status-enrolment-select form-select">
+                                                <option value="">Select Status</option>
+                                                <option value="active"
+                                                    <?= ($user["enrolment_status"] === "active") ? "selected" : "" ?>>
+                                                    Enrolled</option>
+                                                <option value="transferred_in"
+                                                    <?= ($user["enrolment_status"] === "transferred_in") ? "selected" : "" ?>>
+                                                    transferred in</option>
+                                                <option value="transferred_out"
+                                                    <?= ($user["enrolment_status"] === "transferred_out") ? "selected" : "" ?>>
+                                                    transferred out</option>
+                                                <option value="not_active"
+                                                    <?= ($user["enrolment_status"] === "not_active") ? "selected" : "" ?>>
+                                                    not active</option>
+                                                <option value="dropped"
+                                                    <?= ($user["enrolment_status"] === "dropped") ? "selected" : "" ?>>dropped
+                                                </option>
+                                                <option value="rejected"
+                                                    <?= ($user["enrolment_status"] === "rejected") ? "selected" : "" ?>>rejected
+                                                </option>
+                                            </select>
+                                            <input type="hidden" name="user_id" value="<?= $user['student_id'] ?>">
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                    <?php endforeach;
+                    }else{
+                            echo '<tr><td colspan="7">No learners found.</td></tr>';
+                    } ?>
                 </tbody>
             </table>
         </div>

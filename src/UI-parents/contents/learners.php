@@ -140,7 +140,7 @@
         $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach($students as $student) :
     ?>  
-    <div class="row col-md-5 border shadow rounded p-0 py-2">
+    <div class="row col-md-5 border shadow rounded p-0 py-2 mx-2">
         <div class="col-md-4 border-end m-0 p-0 d-flex flex-column align-items-center justify-content-center">
             <?php if($student["student_profile"] !== '') { ?>
                 <img src="../../assets/image/uploads/<?php echo $student["student_profile"];?>">
@@ -162,10 +162,10 @@
             <!-- BUTTONS AREA -->
             <div class="buttons w-100 d-flex justify-content-end pe-2 mt-1 pt-2 gap-2 border-top">
                 <a href="index.php?page=contents/profile&student_id=<?= htmlspecialchars($student["student_id"]) ?>">
-                    <button class="btn btn-sm m-0 btn-info">Profile</button>
+                    <button class="btn btn-sm m-0 py-2 btn-info">Profile</button>
                 </a>
                 <a href="index.php?page=contents/form&student_id=<?= htmlspecialchars($student["student_id"]) ?>">
-                    <button class="btn btn-sm m-0 btn-danger">Enrolment Form</button>
+                    <button class="btn btn-sm m-0 btn-danger py-2">Form</button>
                 </a>
 
                 <?php

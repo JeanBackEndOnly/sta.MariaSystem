@@ -74,7 +74,9 @@
                             <?= htmlspecialchars($stu["lrn"])  ?>
                         </td>
                         <td>
-                            <?= htmlspecialchars($stu["fname"] . ' ' . $stu["lname"])  ?>
+                            <div class="text-wrap" style="min-width: 120px;">
+                                <?= htmlspecialchars($stu["fname"] . ' ' . $stu["lname"]) ?>
+                            </div>
                         </td>
                         <td>
                             <?= htmlspecialchars($stu["gradeLevel"])  ?>

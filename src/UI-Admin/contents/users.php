@@ -130,8 +130,8 @@
         ?>
 
         <!-- Fixed Header -->
-        <div class="table-header">
-            <table class="table table-bordered table-sm text-center mb-0">
+        <div class="table-responsive-lg modern-table">
+            <table class="table table-hover table-bordered align-middle text-center text-dark">
                 <thead>
                     <tr>
                         <th width="5%">#</th>
@@ -149,40 +149,45 @@
         <div class="table-body-scroll">
             <table class="table table-bordered table-sm text-center mb-0">
                 <tbody>
-                    <?php foreach($users as $user) : ?>
-                    <tr>
-                        <td width="5%"><?= $count++ ?></td>
-                        <td width="20%">
-                            <?= htmlspecialchars($user["firstname"]) . " " . 
-                            (!empty($user["middlename"]) ? htmlspecialchars(substr($user["middlename"], 0, 1)) . ". " : "") . 
-                            htmlspecialchars($user["lastname"]) ?>
-                        </td>
-                        <td width="15%"><?= htmlspecialchars($user["user_role"]) ?></td>
-                        <td width="15%">
-                            <span class="badge bg-<?= ($user["status"] == 'Active') ? 'success' : 'secondary' ?>">
-                                <?= htmlspecialchars($user["status"] ?? 'Inactive') ?>
-                            </span>
-                        </td>
-                        <td width="20%"><?= htmlspecialchars($user["created_date"]) ?></td>
-                        <td width="25%">
-                            <div class="d-flex gap-1 justify-content-center">
-                                <a href="index.php?page=contents/usersProfile&user_id=<?= $user["user_id"] ?>"><button
-                                        type="button" class="btn m-0 btn-info ">View</button></a>
-                                <form class="status-form">
-                                    <select name="status" class="status-select form-select">
-                                        <option value="">Select Status</option>
-                                        <option value="Active" <?= ($user["status"] === "Active") ? "selected" : "" ?>>
-                                            Active</option>
-                                        <option value="Inactive"
-                                            <?= ($user["status"] === "Inactive") ? "selected" : "" ?>>Inactive</option>
-                                    </select>
-                                    <input type="hidden" name="user_id" value="<?= $user['user_id'] ?>">
-                                </form>
+                    <?php
+                    if($users){
+                        foreach($users as $user) : ?>
+                        <tr>
+                            <td width="5%"><?= $count++ ?></td>
+                            <td width="20%">
+                                <?= htmlspecialchars($user["firstname"]) . " " . 
+                                (!empty($user["middlename"]) ? htmlspecialchars(substr($user["middlename"], 0, 1)) . ". " : "") . 
+                                htmlspecialchars($user["lastname"]) ?>
+                            </td>
+                            <td width="15%"><?= htmlspecialchars($user["user_role"]) ?></td>
+                            <td width="15%">
+                                <span class="badge bg-<?= ($user["status"] == 'Active') ? 'success' : 'secondary' ?>">
+                                    <?= htmlspecialchars($user["status"] ?? 'Inactive') ?>
+                                </span>
+                            </td>
+                            <td width="20%"><?= htmlspecialchars($user["created_date"]) ?></td>
+                            <td width="25%">
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <a href="index.php?page=contents/usersProfile&user_id=<?= $user["user_id"] ?>"><button
+                                            type="button" class="btn m-0 btn-info ">View</button></a>
+                                    <form class="status-form">
+                                        <select name="status" class="status-select form-select">
+                                            <option value="">Select Status</option>
+                                            <option value="Active" <?= ($user["status"] === "Active") ? "selected" : "" ?>>
+                                                Active</option>
+                                            <option value="Inactive"
+                                                <?= ($user["status"] === "Inactive") ? "selected" : "" ?>>Inactive</option>
+                                        </select>
+                                        <input type="hidden" name="user_id" value="<?= $user['user_id'] ?>">
+                                    </form>
 
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach;
+                    }else{
+                            echo '<tr><td colspan="6">No users found.</td></tr>';
+                    } ?>
                 </tbody>
             </table>
         </div>
