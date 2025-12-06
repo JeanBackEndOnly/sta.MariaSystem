@@ -67,7 +67,9 @@ if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName)) {
         $formData['lrn'][$rowNum] = $student['lrn'];
         $formData['name'][$rowNum] = $student['student_name'];
         $formData['average'][$rowNum] = $student['general_average'];
-        $formData['action'][$rowNum] = '';
+      
+$formData['action'][$rowNum] = $formData['action'][$rowNum] ?? '';
+
         $formData['sex'][$rowNum] = strtoupper($student['sex']);
 
         if ($student['sex'] === 'MALE') $formData['male_total']++;
@@ -271,7 +273,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -285,9 +286,12 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 .scrollable-table { max-height:350px; overflow-y:auto; }
 .scrollable-table thead th { position:sticky; top:0; background:#f8f9fa; }
 .card { box-shadow:0 2px 8px rgba(0,0,0,0.1); border-radius:8px; }
-#action-buttons { position: fixed; bottom: 10px; left: 10px; display:flex; gap:10px; z-index:10; }
+#action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px; /* space from table */
+}
 #action-buttons button, #action-buttons a { min-width:140px; }
-
 </style>
 </head>
 <body>
@@ -310,7 +314,6 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 </div>
 </div>
 
-
 <div class="card p-3 mb-3">
 <h5>Learners Table</h5>
 <div class="scrollable-table">
@@ -324,7 +327,15 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 <td><input type="text" name="lrn[<?=$r?>]" class="form-control form-control-sm" value="<?=htmlspecialchars($formData['lrn'][$r]??'')?>"></td>
 <td><input type="text" name="name[<?=$r?>]" class="form-control form-control-sm" value="<?=htmlspecialchars($formData['name'][$r]??'')?>"></td>
 <td><input type="text" name="average[<?=$r?>]" class="form-control form-control-sm" value="<?=htmlspecialchars($formData['average'][$r]??'')?>"></td>
-<td><input type="text" name="action[<?=$r?>]" class="form-control form-control-sm" value="<?=htmlspecialchars($formData['action'][$r]??'')?>"></td>
+<td>
+<select name="action[<?=$r?>]" class="form-control form-control-sm action-select">
+    <option value="">Select</option>
+    <option value="PROMOTED" <?=($formData['action'][$r]??'')==='PROMOTED'?'selected':''?>>PROMOTED</option>
+    <option value="RETAINED" <?=($formData['action'][$r]??'')==='RETAINED'?'selected':''?>>RETAINED</option>
+    <option value="CONDITIONAL" <?=($formData['action'][$r]??'')==='CONDITIONAL'?'selected':''?>>CONDITIONAL</option>
+</select>
+</td>
+
 <td>
 <select name="sex[<?=$r?>]" class="form-control form-control-sm sex-select">
     <option value="">Select</option>
@@ -336,7 +347,16 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 </tr>
 <?php endfor; ?>
 </tbody>
+
 </table>
+
+</div>
+<div id="action-buttons">
+   <button type="button" class="btn btn-secondary" onclick="history.back()">Back</button>
+    <button type="submit" form="sf5-form" class="btn btn-primary">Save</button>
+    <?php if($downloadLink): ?>
+    <a href="?download=1" class="btn btn-success">Download</a>
+    <?php endif; ?>
 </div>
 </div>
 </div>
@@ -387,38 +407,99 @@ body { font-family:'Poppins',sans-serif; background:#f4f5f7; padding-bottom:120p
 </div>
 
 
-<div id="action-buttons">
-   <button type="button" class="btn btn-secondary" onclick="history.back()">Back</button>
-    <button type="submit" form="sf5-form" class="btn btn-primary">Save</button>
-    <?php if($downloadLink): ?>
-    <a href="?download=1" class="btn btn-success">Download</a>
-    <?php endif; ?>
-</div>
+
 
 <script>
-// Auto-count male/female/combined
+
 function updateTotals() {
-    let male=0, female=0;
-    for(let r=13;r<=59;r++){
-        if(r==<?=$skipRow?>) continue;
+    let male = 0, female = 0;
+    for (let r = 13; r <= 59; r++) {
+        if (r == <?=$skipRow?>) continue;
         const sexSelect = document.querySelector(`select[name="sex[${r}]"]`);
         const sexVal = sexSelect?.value.toUpperCase() || '';
-        if(sexVal==='MALE') male++;
-        if(sexVal==='FEMALE') female++;
+        if (sexVal === 'MALE') male++;
+        if (sexVal === 'FEMALE') female++;
     }
     let maleInput = document.querySelector('input[name="male_total"]');
-    if(!maleInput){ maleInput = document.createElement('input'); maleInput.type='hidden'; maleInput.name='male_total'; document.querySelector('form').appendChild(maleInput);}
+    if (!maleInput) { maleInput = document.createElement('input'); maleInput.type = 'hidden'; maleInput.name = 'male_total'; document.querySelector('form').appendChild(maleInput); }
     let femaleInput = document.querySelector('input[name="female_total"]');
-    if(!femaleInput){ femaleInput = document.createElement('input'); femaleInput.type='hidden'; femaleInput.name='female_total'; document.querySelector('form').appendChild(femaleInput);}
+    if (!femaleInput) { femaleInput = document.createElement('input'); femaleInput.type = 'hidden'; femaleInput.name = 'female_total'; document.querySelector('form').appendChild(femaleInput); }
     let combinedInput = document.querySelector('input[name="combined_total"]');
-    if(!combinedInput){ combinedInput = document.createElement('input'); combinedInput.type='hidden'; combinedInput.name='combined_total'; document.querySelector('form').appendChild(combinedInput);}
+    if (!combinedInput) { combinedInput = document.createElement('input'); combinedInput.type = 'hidden'; combinedInput.name = 'combined_total'; document.querySelector('form').appendChild(combinedInput); }
     maleInput.value = male;
     femaleInput.value = female;
-    combinedInput.value = male+female;
+    combinedInput.value = male + female;
 }
 
-document.querySelectorAll('select[name^="sex"]').forEach(sel=>sel.addEventListener('change',updateTotals));
+
+function updateActions() {
+    for (let r = 13; r <= 59; r++) {
+        if (r == <?=$skipRow?>) continue;
+        const avgInput = document.querySelector(`input[name="average[${r}]"]`);
+        const actionSelect = document.querySelector(`select[name="action[${r}]"]`);
+        if (!avgInput || !actionSelect) continue;
+
+        const avgStr = avgInput.value.trim();
+        if (avgStr === '') {
+            actionSelect.value = '';
+            continue;
+        }
+
+        const avg = parseFloat(avgStr);
+      if (!isNaN(avg)) {
+   
+    if (actionSelect.value !== 'CONDITIONAL' && actionSelect.value !== 'RETAINED' && actionSelect.value !== 'PROMOTED') {
+        if (avg <= 74) actionSelect.value = 'RETAINED';
+        else if (avg >= 75) actionSelect.value = 'PROMOTED';
+    }
+}
+
+    }
+    updateSummaryTable(); 
+}
+
+
+function updateSummaryTable() {
+    const summaryStatuses = ['PROMOTED', 'CONDITIONAL', 'RETAINED'];
+    const summaryInputs = {
+        'PROMOTED': { male: 0, female: 0, total: 0 },
+        'CONDITIONAL': { male: 0, female: 0, total: 0 },
+        'RETAINED': { male: 0, female: 0, total: 0 }
+    };
+
+    for (let r = 13; r <= 59; r++) {
+        if (r == <?=$skipRow?>) continue;
+        const actionSelect = document.querySelector(`select[name="action[${r}]"]`);
+        const sexSelect = document.querySelector(`select[name="sex[${r}]"]`);
+        const action = actionSelect?.value.toUpperCase() || '';
+        const sex = sexSelect?.value.toUpperCase() || '';
+
+        if (summaryStatuses.includes(action)) {
+            if (sex === 'MALE') summaryInputs[action].male++;
+            if (sex === 'FEMALE') summaryInputs[action].female++;
+            summaryInputs[action].total++;
+        }
+    }
+
+    summaryStatuses.forEach(status => {
+        const maleInput = document.querySelector(`input[name="summary[${status.toLowerCase()}][male]"]`);
+        const femaleInput = document.querySelector(`input[name="summary[${status.toLowerCase()}][female]"]`);
+        const totalInput = document.querySelector(`input[name="summary[${status.toLowerCase()}][total]"]`);
+        if (maleInput) maleInput.value = summaryInputs[status].male;
+        if (femaleInput) femaleInput.value = summaryInputs[status].female;
+        if (totalInput) totalInput.value = summaryInputs[status].total;
+    });
+}
+
+document.querySelectorAll('select[name^="sex"]').forEach(sel => sel.addEventListener('change', () => {
+    updateTotals();
+    updateSummaryTable();
+}));
+document.querySelectorAll('select[name^="action"]').forEach(sel => sel.addEventListener('change', updateSummaryTable));
+document.querySelectorAll('input[name^="average"]').forEach(inp => inp.addEventListener('input', updateActions));
 updateTotals();
+updateActions();
+updateSummaryTable();
 </script>
 </body>
 </html>
