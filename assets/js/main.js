@@ -2426,6 +2426,50 @@ $(document).on("submit", "#editSubjects-form", function (e) {
           }
       });
   });
+
+      $(document).on('click', '#personal_info', function() {
+            document.getElementById('displayStudentInfo').style.display = 'flex';
+            document.getElementById('displayAttendance').style.display = 'none';
+            document.getElementById('displayMedical').style.display = 'none';
+            document.getElementById('displayGrades').style.display = 'none';
+            
+            // Update active button
+            $('.col-md-8 button').removeClass('Active');
+            $(this).addClass('Active');
+        });
+        
+        $(document).on('click', '#attendance', function() {
+            document.getElementById('displayStudentInfo').style.display = 'none';
+            document.getElementById('displayAttendance').style.display = 'flex';
+            document.getElementById('displayMedical').style.display = 'none';
+            document.getElementById('displayGrades').style.display = 'none';
+            
+            // Update active button
+            $('.col-md-8 button').removeClass('Active');
+            $(this).addClass('Active');
+        });
+        
+        $(document).on('click', '#medical', function() {
+            document.getElementById('displayStudentInfo').style.display = 'none';
+            document.getElementById('displayAttendance').style.display = 'none';
+            document.getElementById('displayMedical').style.display = 'flex';
+            document.getElementById('displayGrades').style.display = 'none';
+            
+            // Update active button
+            $('.col-md-8 button').removeClass('Active');
+            $(this).addClass('Active');
+        });
+        
+        $(document).on('click', '#grades', function() {
+            document.getElementById('displayStudentInfo').style.display = 'none';
+            document.getElementById('displayAttendance').style.display = 'none';
+            document.getElementById('displayMedical').style.display = 'none';
+            document.getElementById('displayGrades').style.display = 'flex';
+            
+            // Update active button
+            $('.col-md-8 button').removeClass('Active');
+            $(this).addClass('Active');
+        });
   // Calculate age from birthdate
     $(document).on("change", "#birthdate", function() {
         const birthdate = new Date($(this).val());

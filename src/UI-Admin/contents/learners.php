@@ -48,8 +48,8 @@
         ?>
 
         <!-- Fixed Header -->
-        <div class="table-header">
-            <table class="table table-bordered table-sm text-center mb-0">
+        <div class="table-responsive-lg modern-table">
+            <table class="table table-hover table-bordered align-middle text-center text-dark">
                 <thead>
                     <tr>
                         <th width="5%">#</th>
@@ -65,8 +65,8 @@
         </div>
 
         <!-- Scrollable Body -->
-        <div class="table-body-scroll">
-            <table class="table table-bordered table-sm text-center mb-0">
+        <div class="table-responsive-lg modern-table">
+            <table class="table table-hover table-bordered align-middle text-center text-dark">
                 <tbody>
                     <?php
                         if($users){

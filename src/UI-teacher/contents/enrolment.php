@@ -44,7 +44,7 @@
                 ':adviser_id' => $user_id
             ]);
             $getgrade_lelvel = $stmt->fetch(PDO::FETCH_ASSOC);
-            $grade_level = $getgrade_lelvel["grade_level"];
+            $grade_level = $getgrade_lelvel["grade_level"] ?? '';
             $stmt = $pdo->prepare("SELECT * FROM student WHERE gradeLevel = :gradeLevel
             ORDER BY fname ASC");
             $stmt->execute([
