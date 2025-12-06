@@ -2599,4 +2599,4 @@ $(document).on("submit", "#editSubjects-form", function (e) {
     })
     //$form.removeClass("processing");
   }
-})
+});
