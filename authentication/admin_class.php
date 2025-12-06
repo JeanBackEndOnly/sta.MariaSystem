@@ -749,100 +749,73 @@ class Action
         }
     }
     function displayStudentInfo() {
-        $student_id = $_POST["student_id"] ?? null;
-        $f_firstname = $_POST["f_firstname"];
-        $f_middlename = $_POST["f_middlename"];
-        $f_lastname = $_POST["f_lastname"];
-        $f_suffix = $_POST["f_suffix"];
-        $m_firstname = $_POST["m_firstname"];
-        $m_middlename = $_POST["m_middlename"];
-        $m_lastname = $_POST["m_lastname"];
-        $g_firstname = $_POST["g_firstname"];
-        $g_middlename = $_POST["g_middlename"];
-        $g_lastname = $_POST["g_lastname"];
-        $g_suffix = $_POST["g_suffix"];
-        $p_contact = $_POST["p_contact"];
-        $g_relationship = $_POST["g_relationship"];
-        
-        if (!$student_id) {
+        $user_id = $_POST["user_id"] ?? null;
+
+        // User Information
+        $firstname = $_POST["firstname"] ?? '';
+        $middlename = $_POST["middlename"] ?? '';
+        $lastname = $_POST["lastname"] ?? '';
+        $suffix = $_POST["suffix"] ?? '';
+        $sex = $_POST["sex"] ?? '';
+        $email = $_POST["email"] ?? '';
+        $contact = $_POST["contact"] ?? '';
+
+        if (!$user_id) {
             return json_encode([
                 'status' => 0,
-                'message' => 'Student ID is required'
+                'message' => 'User ID is required'
             ]);
         }
 
         try {
-            // Update student table
-            $student_query = "UPDATE student SET 
-                lrn = :lrn,
-                fname = :fname,
-                mname = :mname,
-                lname = :lname,
+            // Start Transaction
+            $this->db->beginTransaction();
+
+            $user_query = "UPDATE users SET 
+                firstname = :firstname,
+                middlename = :middlename,
+                lastname = :lastname,
                 suffix = :suffix,
-                sex = :sex,
-                birthdate = :birthdate,
-                birthplace = :birthplace,
-                religion = :religion
-                WHERE student_id = :student_id";
+                gender = :gender,
+                email = :email,
+                contact = :contact
+            WHERE user_id = :user_id";
 
-            $student_stmt = $this->db->prepare($student_query);
-            $student_stmt->execute([
-                ':lrn' => $_POST['lrn'] ?? '',
-                ':fname' => $_POST['fname'] ?? '',
-                ':mname' => $_POST['mname'] ?? '',
-                ':lname' => $_POST['lname'] ?? '',
-                ':suffix' => $_POST['suffix'] ?? '',
-                ':sex' => $_POST['gender'] ?? '',   // ✅ match your form
-                ':birthdate' => $_POST['birthdate'] ?? null,
-                ':birthplace' => $_POST['birthplace'] ?? '',
-                ':religion' => $_POST['religion'] ?? '',
-                ':student_id' => $student_id
+            $user_stmt = $this->db->prepare($user_query);
+            $user_stmt->execute([
+                ':firstname' => $firstname,
+                ':middlename' => $middlename,
+                ':lastname' => $lastname,
+                ':suffix' => $suffix,
+                ':gender' => $sex,
+                ':email' => $email,
+                ':contact' => $contact,
+                ':user_id' => $user_id
             ]);
 
-            // Update enrolment info table
-            $enrolment_query = "UPDATE stuEnrolmentInfo SET 
-                mother_tongue = :mother_tongue,
-                house_no = :house_no,
-                street = :street,
-                barnagay = :barnagay,
-                city = :city,
-                province = :province,
-                country = :country,
-                zip_code = :zip_code
-                WHERE student_id = :student_id";
-
-            $enrolment_stmt = $this->db->prepare($enrolment_query);
-            $enrolment_stmt->execute([
-                ':mother_tongue' => $_POST['mother_tongue'] ?? '',
-                ':house_no' => $_POST['house_no'] ?? '',
-                ':street' => $_POST['street'] ?? '',
-                ':barnagay' => $_POST['barnagay'] ?? '',
-                ':city' => $_POST['city'] ?? '',
-                ':province' => $_POST['province'] ?? '',
-                ':country' => $_POST['country'] ?? '',
-                ':zip_code' => $_POST['zip_code'] ?? '',
-                ':student_id' => $student_id
-            ]);
-
-            $stmtUpdateParentInfo = $this->db->prepare("UPDATE parents_info SET f_firstname = '$f_firstname', f_middlename = '$f_middlename',
-                f_suffix = '$f_suffix', m_firstname = '$m_firstname', m_middlename = '$m_middlename', m_lastname = '$m_lastname',
-                f_lastname = '$f_lastname', g_firstname = '$g_firstname', g_middlename = '$g_middlename', g_lastname = '$g_lastname', g_suffix = '$g_suffix',
-                p_contact = '$p_contact', g_relationship = '$g_relationship' WHERE student_id = '$student_id'");
-            $stmtUpdateParentInfo->execute();
+            $this->db->commit();
 
             return json_encode([
                 'status' => 1,
-                'message' => 'Student information updated successfully!'
+                'message' => 'User information updated successfully!',
+                'data' => [
+                    'name' => $firstname . ' ' . $lastname,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]
             ]);
 
         } catch (PDOException $e) {
+            $this->db->rollBack();
             error_log("Database error: " . $e->getMessage());
+
             return json_encode([
                 'status' => 0,
-                'message' => 'An error occurred. Please try again later.'
+                'message' => 'An error occurred. Please try again later.',
+                'error' => $e->getMessage()
             ]);
         }
     }
+
     function medical_update() {
         $student_id = $_POST["student_id"] ?? null;
         

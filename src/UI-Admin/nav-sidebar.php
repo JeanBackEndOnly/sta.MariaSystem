@@ -89,7 +89,7 @@ $profile = $result["admin_picture"];
             <a href="index.php?page=home" class="text-black nav-item rounded-1 p-2 nav-home">
                 <span class=""><i class=""></i></span> Dashboard
             </a>
-            <a href="index.php?page=contents/users" class="text-black nav-item rounded-1 p-2 nav-users">
+            <a href="index.php?page=contents/users" class="text-black nav-item rounded-1 p-2 nav-users nav-usersProfile">
                 <span class=""><i class=""></i></span> User Management 
             </a>
             <a href="index.php?page=contents/learners" class="text-black nav-item rounded-1 p-2 nav-learners">
