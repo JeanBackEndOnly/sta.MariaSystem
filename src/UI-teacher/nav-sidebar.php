@@ -49,7 +49,7 @@
              <a href="index.php?page=contents/attendance" class="nav-item p-2 rounded-1 nav-attendance">
                 <span class=""><i class=""></i></span> Attendance 
             </a>
-            <a href="index.php?page=contents/datas" class="nav-item p-2 rounded-1 nav-datas">
+            <a href="index.php?page=contents/datas" class="nav-item p-2 rounded-1 nav-datas nav-sf5 nav-sf8 nav-sf9 nav-sf10">
                 <span class=""><i class=""></i></span> Generate Report 
             </a>
             <a href="index.php?page=contents/settings" class="nav-item p-2 rounded-1 nav-settings">
