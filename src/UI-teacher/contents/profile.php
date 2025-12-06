@@ -114,7 +114,7 @@ $gradesData = [];
                             <div class="col-6">
                                 <div class="stat-card p-3 rounded-3 bg-light">
                                     <small class="text-muted d-block">Grade Level</small>
-                                    <div class="fw-bold fs-5">
+                                    <div  class="fw-bold fs-5">
                                         <?= htmlspecialchars($student_info["gradeLevel"] ?? 'N/A') ?>
                                     </div>
                                 </div>
@@ -194,7 +194,7 @@ $gradesData = [];
                             </h5>
                         </div>
                         <div class="card-body p-4">
-                            <form id="displayStudentInfo" class="row g-3">
+                            <form id="student-update-form" class="row g-3">
                                 <input type="hidden" name="student_id" value="<?= htmlspecialchars($student_info["student_id"] ?? '') ?>">
                                 
                                 <!-- Student Basic Info -->
@@ -246,13 +246,13 @@ $gradesData = [];
                                 
                                 <div class="col-md-3">
                                     <label class="form-label fw-semibold">LRN</label>
-                                    <input type="text" name="lrn" class="form-control"
+                                    <input readonly type="text" name="lrn" class="form-control"
                                            value="<?= htmlspecialchars($student_info["lrn"] ?? '') ?>">
                                 </div>
                                 
                                 <div class="col-md-3">
                                     <label class="form-label fw-semibold">Grade Level</label>
-                                    <input type="text" name="gradeLevel" class="form-control"
+                                    <input readonly type="text" name="gradeLevel" class="form-control"
                                            value="<?= htmlspecialchars($student_info["gradeLevel"] ?? '') ?>">
                                 </div>
                                 
@@ -272,7 +272,7 @@ $gradesData = [];
                                     </h6>
                                 </div>
                                 
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label fw-semibold">Birth Date</label>
                                     <div class="input-group">
                                         <input type="date" name="birthdate" class="form-control"
@@ -283,13 +283,13 @@ $gradesData = [];
                                     </div>
                                 </div>
                                 
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label fw-semibold">Birth Place</label>
                                     <input type="text" name="birthplace" class="form-control"
                                            value="<?= htmlspecialchars($student_info["birthplace"] ?? '') ?>">
                                 </div>
                                 
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label fw-semibold">Age</label>
                                     <input type="text" readonly class="form-control bg-light" 
                                            id="calculatedAge" value="<?= $age ?>">
@@ -307,15 +307,6 @@ $gradesData = [];
                                     </select>
                                 </div>
                                 
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Mother Tongue</label>
-                                    <select name="mother_tongue" class="form-select">
-                                        <option value="">Select Mother Tongue</option>
-                                        <option value="Tagalog" <?= ($student_info["mother_tongue"] ?? '') == 'Tagalog' ? 'selected' : '' ?>>Tagalog</option>
-                                        <option value="Cebuano" <?= ($student_info["mother_tongue"] ?? '') == 'Cebuano' ? 'selected' : '' ?>>Cebuano</option>
-                                        <!-- Add other options -->
-                                    </select>
-                                </div>
                                 
                                 <!-- Parent Information -->
                                 <div class="col-12 mt-4">

@@ -43,7 +43,7 @@
              <a href="index.php?page=contents/enrolment" class="nav-item p-2 rounded-1 nav-enrolment">
                 <span class=""><i class=""></i></span> Enrollment Process 
             </a>
-             <a href="index.php?page=contents/student" class="nav-item p-2 rounded-1 nav-student">
+             <a href="index.php?page=contents/student" class="nav-item p-2 rounded-1 nav-student nav-profile">
                 <span class=""><i class=""></i></span> Students 
             </a>
              <a href="index.php?page=contents/attendance" class="nav-item p-2 rounded-1 nav-attendance">

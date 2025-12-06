@@ -214,8 +214,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         try {
             // Handle profile picture
-            if (isset($_FILES["user_profile"]) && $_FILES["user_profile"]["error"] === 0) {
-                $upload = $_FILES["user_profile"];
+            if (isset($_FILES["student_profile"]) && $_FILES["student_profile"]["error"] === 0) {
+                $upload = $_FILES["student_profile"];
                 $target_dir = "uploads/";
                 $image_file_name = uniqid() . "-" . basename($upload["name"]);
                 $target_file = $target_dir . $image_file_name;
@@ -236,7 +236,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             middlename = :middlename,
                             suffix = :suffix,
                             email = :email,
-                            profile_picture = :profile_picture
+                            student_profile = :student_profile
                         WHERE user_id = :user_id";
 
                 $stmt = $pdo->prepare($query);
@@ -246,7 +246,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $stmt->bindParam(':middlename', $mname);
                 $stmt->bindParam(':suffix', $suffix);
                 $stmt->bindParam(':email', $email);
-                $stmt->bindParam(':profile_picture', $profile);
+                $stmt->bindParam(':student_profile', $profile);
 
                 $stmt->execute();
 

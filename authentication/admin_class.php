@@ -748,6 +748,146 @@ class Action
             ]);
         }
     }
+    function student_update_form() {
+    try {
+
+        $student_id = $_POST["student_id"] ?? null;
+        if (!$student_id) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'Student ID is required'
+            ]);
+        }
+
+        // ---- Student Info ----
+        $fname = $_POST["fname"] ?? '';
+        $mname = $_POST["mname"] ?? '';
+        $lname = $_POST["lname"] ?? '';
+        $suffix = $_POST["suffix"] ?? '';
+        $sex = $_POST["gender"] ?? ''; // Form uses "gender"
+        $birthdate = $_POST["birthdate"] ?? '';
+        $birthplace = $_POST["birthplace"] ?? '';
+        $religion = $_POST["religion"] ?? '';
+
+        // ---- Parent Info ----
+        $f_firstname = $_POST["f_firstname"] ?? '';
+        $f_middlename = $_POST["f_middlename"] ?? '';
+        $f_lastname = $_POST["f_lastname"] ?? '';
+
+        $m_firstname = $_POST["m_firstname"] ?? '';
+        $m_middlename = $_POST["m_middlename"] ?? '';
+        $m_lastname = $_POST["m_lastname"] ?? '';
+
+        $g_firstname = $_POST["g_firstname"] ?? '';
+        $g_middlename = $_POST["g_middlename"] ?? '';
+        $g_lastname = $_POST["g_lastname"] ?? '';
+        $g_relationship = $_POST["g_relationship"] ?? '';
+        $p_contact = $_POST["p_contact"] ?? '';
+
+        // ---- Address Info ----
+        $house_no = $_POST["house_no"] ?? '';
+        $street = $_POST["street"] ?? '';
+        $barangay = $_POST["barnagay"] ?? '';
+        $city = $_POST["city"] ?? '';
+        $province = $_POST["province"] ?? '';
+        $country = $_POST["country"] ?? '';
+        $zip_code = $_POST["zip_code"] ?? '';
+
+        // Start Transaction
+        $this->db->beginTransaction();
+
+        // ============================
+        // UPDATE STUDENT TABLE
+        // ============================
+        $stmt = $this->db->prepare("
+            UPDATE student SET 
+                fname = :fname,
+                mname = :mname,
+                lname = :lname,
+                suffix = :suffix,
+                sex = :sex,
+                birthdate = :birthdate,
+                birthplace = :birthplace,
+                religion = :religion,
+                address = :address
+            WHERE student_id = :student_id
+        ");
+
+        $fullAddress = "$house_no $street, $barangay, $city, $province, $country, $zip_code";
+
+        $stmt->execute([
+            ':fname' => $fname,
+            ':mname' => $mname,
+            ':lname' => $lname,
+            ':suffix' => $suffix,
+            ':sex' => $sex,
+            ':birthdate' => $birthdate,
+            ':birthplace' => $birthplace,
+            ':religion' => $religion,
+            ':address' => $fullAddress,
+            ':student_id' => $student_id
+        ]);
+
+        // ============================
+        // UPDATE parents_info TABLE
+        // ============================
+        $stmt2 = $this->db->prepare("
+            UPDATE parents_info SET 
+                f_firstname = :f_firstname,
+                f_middlename = :f_middlename,
+                f_lastname = :f_lastname,
+                
+                m_firstname = :m_firstname,
+                m_middlename = :m_middlename,
+                m_lastname = :m_lastname,
+
+                g_firstname = :g_firstname,
+                g_middlename = :g_middlename,
+                g_lastname = :g_lastname,
+                g_relationship = :g_relationship,
+
+                p_contact = :p_contact
+            WHERE student_id = :student_id
+        ");
+
+        $stmt2->execute([
+            ':f_firstname' => $f_firstname,
+            ':f_middlename' => $f_middlename,
+            ':f_lastname' => $f_lastname,
+
+            ':m_firstname' => $m_firstname,
+            ':m_middlename' => $m_middlename,
+            ':m_lastname' => $m_lastname,
+
+            ':g_firstname' => $g_firstname,
+            ':g_middlename' => $g_middlename,
+            ':g_lastname' => $g_lastname,
+            ':g_relationship' => $g_relationship,
+
+            ':p_contact' => $p_contact,
+            ':student_id' => $student_id
+        ]);
+
+        // Commit Transaction
+        $this->db->commit();
+
+        return json_encode([
+            'status' => 1,
+            'message' => 'Student profile updated successfully!'
+        ]);
+
+    } catch (PDOException $e) {
+
+        $this->db->rollBack();
+
+        return json_encode([
+            'status' => 0,
+            'message' => 'Database error occurred. Please try again.',
+            'error' => $e->getMessage() // Remove in production
+        ]);
+    }
+}
+
     function displayStudentInfo() {
         $user_id = $_POST["user_id"] ?? null;
 
