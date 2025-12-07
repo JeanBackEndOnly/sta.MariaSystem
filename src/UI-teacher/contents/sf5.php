@@ -1,140 +1,191 @@
 <?php
-    $query = "SELECT classes.*, users.* FROM classes
-    INNER JOIN users ON classes.adviser_id = users.user_id";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute();
-    $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "stamariadb";
 
-    $query = "SELECT * FROM school_year WHERE school_year_status = 'Active'";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute();
-    $schoolYear = $stmt->fetch(PDO::FETCH_ASSOC);
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
-?>
-<div class="d-flex justify-content-between align-items-center mb-2">
-    <div class="mx-2">
-        <h4><i class="fa-solid fa-folder me-2"></i>SF5 - Report on Promotion and Level of Proficiency</h4>
-    </div>
-</div>
+if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
+    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-<!-- Search and Filters -->
-
-<div class="row g-2  justify-content-between">
-    <div class="row mb-3  justify-content-start">
-        <div class="col-md-4">
-            <input type="text" id="searchInput" name="search" class="form-control"
-                placeholder="Search by name, role, status, or date...">
-        </div>
-        <div class="col-md-4">
-            <select id="categoryFilter" name="statusCategory" class="form-select">
-                <option value="">Grade Level</option>
-                <option value="Grade 1">Grade 1</option>
-                <option value="Grade 2">Grade 2</option>
-                <option value="Grade 3">Grade 3</option>
-                <option value="Grade 4">Grade 4</option>
-                <option value="Grade 5">Grade 5</option>
-                <option value="Grade 6">Grade 6</option>
-            </select>
-        </div>
-    </div>
-    <!-- Accounts Displays -->
-    <div class="table-container-wrapper">
-        <?php
-            $stmt = $pdo->prepare("SELECT * FROM sections ORDER BY section_grade_level, section_name LIMIT 20");
-            $stmt->execute();
-            $sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $count = 1;
-        ?>
-
-        <!-- Fixed Header -->
-        <div class="table-header">
-            <table class="table table-bordered table-sm text-center mb-0">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Section</th>
-                        <th>Grade Level</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
-
-        <!-- Scrollable Body -->
-        <div class="table-body-scroll">
-            <table class="table table-bordered table-sm text-center mb-0">
-                <tbody>
-                    <?php foreach($sections as $sec) : ?>
-                    <tr>
-                        <td><?= $count++ ?></td>
-                        <td>
-                            <?= htmlspecialchars($sec["section_name"])  ?>
-                        </td>
-                        <td><?= htmlspecialchars($sec["section_grade_level"]) ?></td>
-                        <td>
-                            <div class="d-flex gap-1 justify-content-center">
-                                <a
-                                    href="/sta.MariaSystem/src/UI-Admin/contents/schoolform5.php?section_id=<?= htmlspecialchars($sec["section_id"]) ?>&grade=<?= htmlspecialchars($sec["section_grade_level"]) ?>&section=<?= htmlspecialchars($sec["section_name"]) ?>"><button
-                                        class="btn btn-sm m-0 px-4 py-2 btn-info">View</button></a>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const categoryFilter = document.getElementById('categoryFilter');
-    const tableBody = document.querySelector('.table-body-scroll tbody');
-    const tableRows = tableBody.querySelectorAll('tr');
-    
-    function filterTable() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const gradeFilterValue = categoryFilter.value; // This is the grade level filter
-        
-        tableRows.forEach(row => {
-            let showRow = true;
-            
-            // Search filter (search by name/section)
-            if (searchTerm) {
-                const nameCell = row.querySelector('td:nth-child(2)'); // Section name column
-                const gradeCell = row.querySelector('td:nth-child(3)'); // Grade level column
-                
-                const nameText = nameCell ? nameCell.textContent.toLowerCase() : '';
-                const gradeText = gradeCell ? gradeCell.textContent.toLowerCase() : '';
-                
-                // Check if search term exists in section name or grade level
-                if (!nameText.includes(searchTerm) && 
-                    !gradeText.includes(searchTerm)) {
-                    showRow = false;
-                }
-            }
-            
-            // Grade Level filter
-            if (gradeFilterValue && showRow) {
-                const gradeCell = row.querySelector('td:nth-child(3)'); // Grade level column (3rd column)
-                if (gradeCell) {
-                    const gradeText = gradeCell.textContent.trim();
-                    if (gradeText !== gradeFilterValue) {
-                        showRow = false;
-                    }
-                }
-            }
-            
-            // Show/hide row
-            row.style.display = showRow ? '' : 'none';
-        });
+    if ($search === '') {
+        $sql = "SELECT * FROM sections ORDER BY section_grade_level, section_name LIMIT 20";
+        $stmt = $conn->prepare($sql);
+    } else {
+        $searchLike = "%{$search}%";
+        $sql = "SELECT * FROM sections 
+                WHERE section_name LIKE ? OR section_grade_level LIKE ?
+                ORDER BY section_grade_level, section_name
+                LIMIT 20";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('ss', $searchLike, $searchLike);
     }
-    
-    // Add event listeners
-    searchInput.addEventListener('input', filterTable);
-    categoryFilter.addEventListener('change', filterTable);
-    
-    // Initial filter
-    filterTable();
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            echo "<tr class='section-row' 
+                     data-id='" . htmlspecialchars($row['section_id']) . "' 
+                     data-grade='" . htmlspecialchars($row['section_grade_level']) . "'
+                     data-section='" . htmlspecialchars($row['section_name']) . "'>
+                    <td>" . htmlspecialchars($row['section_name']) . "</td>
+                    <td>" . htmlspecialchars($row['section_grade_level']) . "</td>
+                  </tr>";
+        }
+    } else {
+        echo "<tr><td colspan='2' class='text-center text-muted'>No sections found.</td></tr>";
+    }
+    exit;
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SF5 - Report on Promotion</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body {
+    background-color: #f5f7fa;
+    font-family: "Segoe UI", sans-serif;
+}
+.card {
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.table thead {
+    background-color: #0056b3;
+    color: #fff;
+}
+.table-hover tbody tr:hover {
+    background-color: #eaf2ff;
+    cursor: pointer;
+}
+.scroll-container {
+    max-height: 480px;
+    overflow-y: auto;
+}
+.scroll-container::-webkit-scrollbar {
+    width: 8px;
+}
+.scroll-container::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 8px;
+}
+.header-bar {
+    background-color: #FF3860;
+    color: white;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.header-bar h4 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+.header-bar input {
+    width: 280px;
+    border-radius: 10px;
+    border: 1px solid #ced4da;
+}
+</style>
+</head>
+<body>
+
+<div class="container mt-4">
+
+    <!-- Header -->
+    <div class="header-bar">
+        <h4>SF5 - Report on Promotion and Level of Proficiency</h4>
+        <input 
+            type="text" 
+            id="searchInput" 
+            class="form-control" 
+            placeholder="Search Section or Grade Level..."
+        >
+    </div>
+
+    <!-- Table Container -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="scroll-container">
+                <table class="table table-hover table-striped align-middle text-center mb-0">
+                    <thead>
+                        <tr>
+                            <th>Section</th>
+                            <th>Grade Level</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sectionTable">
+                        <?php
+                        $query = "SELECT * FROM sections ORDER BY section_grade_level, section_name LIMIT 20";
+                        $result = $conn->query($query);
+                        if ($result && $result->num_rows > 0) {
+                            while ($row = $result->fetch_assoc()) {
+                                echo "<tr class='section-row'
+                                         data-id='" . htmlspecialchars($row['section_id']) . "'
+                                         data-grade='" . htmlspecialchars($row['section_grade_level']) . "'
+                                         data-section='" . htmlspecialchars($row['section_name']) . "'>
+                                        <td>" . htmlspecialchars($row['section_name']) . "</td>
+                                        <td>" . htmlspecialchars($row['section_grade_level']) . "</td>
+                                      </tr>";
+                            }
+                        } else {
+                            echo "<tr><td colspan='2' class='text-muted py-3'>No sections found.</td></tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Live search (AJAX)
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const search = this.value.trim();
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'contents/sf5.php?ajax=1&search=' + encodeURIComponent(search), true);
+    xhr.onload = function() {
+        if (this.status === 200) {
+            document.getElementById('sectionTable').innerHTML = this.responseText;
+            attachRowClickEvents();
+        }
+    };
+    xhr.send();
 });
+
+// Clickable rows redirect
+function attachRowClickEvents() {
+    document.querySelectorAll('.section-row').forEach(row => {
+        row.addEventListener('click', function() {
+            const sectionId = this.dataset.id;
+            const gradeLevel = this.dataset.grade;
+            const sectionName = this.dataset.section;
+            if (sectionId && gradeLevel && sectionName) {
+                window.location.href = `/sta.MariaSystem/src/UI-Admin/contents/schoolform5.php`
+                    + `?section_id=${encodeURIComponent(sectionId)}`
+                    + `&grade=${encodeURIComponent(gradeLevel)}`
+                    + `&section=${encodeURIComponent(sectionName)}`;
+            }
+        });
+    });
+}
+attachRowClickEvents();
 </script>
+
+</body>
+</html>
