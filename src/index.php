@@ -6,6 +6,10 @@
         background-position: center;
         background-repeat: no-repeat;
     }
+    .button-eye{
+        position: absolute; right: .7rem; bottom: .7rem;
+        background: none; border: none; cursor: pointer;
+    }
 </style>
 <main class="p-0 d-flex justify-content-center align-items-center w-100 h-100">
     <div class="shadow rounded-3 col-md-3 bg-white">
@@ -21,6 +25,8 @@
                 </div>
                 <div class="mb-3">
                     <input type="password" class="form-control" name="password" placeholder="Password: ">
+                    <i class="fa-solid fa-eye button-eye" id="password-toggle"></i>
+
                 </div>
                 <div class="m-0 text-center d-flex flex-column ">
                     <button type="submit" class="btn btn-danger mb-0 buttonLogin p-1 py-2"
@@ -37,31 +43,48 @@
                 </div>
             </form>
         </div>
-        <!-- FORGOT PASSWORD MODAL -->
-        <div class="modal fade" id="changePassword" tabindex="-1" aria-labelledby="passwordModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog">
-                <form method="POST" action="../auth/authentications.php" class="modal-content">
-                    <input type="hidden" name="csrf_token" value="<?= $csrf_token; ?>">
-                    <input type="hidden" name="usersForgottenPass" value="true">
-                    <div class="modal-header modalBG">
-                        <h5 class="modal-title text-start w-100" id="passwordModalLabel" style="color: #fff;">Enter
-                            your username:</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <label for="usernameConfim">Username:</label>
-                        <input type="text" name="usernameAuth" id="usernameConfim" class="form-control" required>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Confirm</button>
-                    </div>
-                </form>
-            </div>
-        </div>
     </div>
 </main>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const passwordInput = document.querySelector('input[name="password"]');
+    const passwordToggle = document.getElementById('password-toggle');
+    
+    if (passwordInput && passwordToggle) {
+        // Add padding to password input to prevent text overlap
+        passwordInput.style.paddingRight = '40px';
+        
+        // Wrap the password input in a relative container if not already
+        if (passwordInput.parentNode.style.position !== 'relative') {
+            passwordInput.parentNode.style.position = 'relative';
+        }
+        
+        // Toggle password visibility
+        passwordToggle.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Toggle eye icon
+            if (type === 'text') {
+                this.className = 'fa-solid fa-eye-slash button-eye';
+                this.title = 'Hide password';
+            } else {
+                this.className = 'fa-solid fa-eye button-eye';
+                this.title = 'Show password';
+            }
+        });
+        
+        // Add hover effect
+        passwordToggle.addEventListener('mouseenter', function() {
+            this.style.color = '#495057';
+        });
+        
+        passwordToggle.addEventListener('mouseleave', function() {
+            this.style.color = '#6c757d';
+        });
+    }
+});
+</script>
 <?php if (
         isset($_GET['incorrect'])
     ): ?>

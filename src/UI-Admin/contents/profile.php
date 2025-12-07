@@ -194,8 +194,8 @@ $gradesData = [];
                             </h5>
                         </div>
                         <div class="card-body p-4">
-                            <form id="displayStudentInfo" class="row g-3">
-                                <input type="hidden" name="student_id" value="<?= htmlspecialchars($student_info["student_id"] ?? '') ?>">
+                            <form id="student-update-form" class="row g-3">
+                                <input type="hidden" name="student_id" value="<?= $student_id  ?>">
                                 
                                 <!-- Student Basic Info -->
                                 <div class="col-12">

@@ -125,7 +125,7 @@ $profile = $result["admin_picture"];
             <a href="index.php?page=contents/feedback" class="text-black nav-item rounded-1 p-2 nav-feedback">
                 <span class=""><i class=""></i></span> Feedbacks
             </a>
-            <a href="index.php?page=contents/datas" class="text-black nav-item rounded-1 p-2 nav-datas">
+            <a href="index.php?page=contents/datas" class="text-black nav-item rounded-1 p-2 nav-datas nav-sf1 nav-sf4">
                 <span class=""><i class=""></i></span> Generate Reports
             </a>
             <a href="index.php?page=contents/settings" class="text-black nav-item rounded-1 p-2 nav-settings">

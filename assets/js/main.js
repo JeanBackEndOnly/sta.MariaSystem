@@ -847,6 +847,11 @@ $(document).ready(function () {
     $('#studentID').val(studentID);
     $('#rejectEnrolment').modal('show');
   });
+  $(document).on('click', '#approvalBtn', function () {
+    const studentID = $(this).data('id');
+    $('#student_id').val(studentID);
+    $('#AddNewAccount').modal('show');
+  });
   $(document).on("submit", "#rejectEnrolment-form", function (e) { 
     // alert('Button Submit');
       e.preventDefault();
@@ -1921,11 +1926,6 @@ $(document).on('click', '.editSchoolyearBtn', function () {
 
 //   Subjects
 
-$(document).on('click', '.editSubjectBtn', function () {
-    const subject_id = $(this).data('id');
-    $('#subject_id_delete').val(subject_id);
-    $('#deleteSubject').modal('show');
-});
  $(document).on("submit", "#deleteSubject-form", function (e) { 
     // alert('Button Submit');
       e.preventDefault();
@@ -2565,7 +2565,7 @@ $(document).on("submit", "#editSubjects-form", function (e) {
                         icon: "success",
                         toast: true,
                         position: "top-end",
-                        timer: 1000,
+                        timer: 3000,
                         showConfirmButton: false,
                     }).then(() => {
                         location.reload();

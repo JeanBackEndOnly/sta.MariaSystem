@@ -110,6 +110,10 @@
 ?>
 
     <form class="main-container" id="sfFour-form">
+        <div class="mt-3 text-start">
+            <button type="submit" class="btn btn-primary">Save Data</button>
+            <button class="btn btn-secondary">Generate Report</button>
+        </div>
         <input type="hidden" name="id" value="<?= htmlspecialchars($data_sf_four["sf_add_data_id"] ?? '') ?>">
 
         <div class="form-title text-center w-100">
@@ -797,10 +801,6 @@
             </table>
         </div>
 
-        <div class="mt-3 text-start">
-            <button type="submit" class="btn btn-primary">Save Data</button>
-            <button class="btn btn-secondary">Generate Report</button>
-        </div>
     </form>
 </main>
 <script>
