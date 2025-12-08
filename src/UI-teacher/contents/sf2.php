@@ -338,7 +338,7 @@ $count = 1;
                         ?>
                         <tr>
                             <td><?= $male_count++ ?></td>
-                            <td style="text-align: left; padding-left: 10px;">
+                            <td style="text-align: left; padding-left: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars(strtoupper($student["lname"] . ', ' . $student["fname"] . ' ' . $student["mname"])) ?>">
                                 <?= htmlspecialchars(strtoupper($student["lname"] . ', ' . $student["fname"] . ' ' . $student["mname"])) ?>
                             </td>
                             
@@ -416,7 +416,7 @@ $count = 1;
                         ?>
                         <tr>
                             <td><?= $female_count++ ?></td>
-                            <td style="text-align: left; padding-left: 10px;">
+                            <td style="text-align: left; padding-left: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 <?= htmlspecialchars(strtoupper($student["lname"] . ', ' . $student["fname"] . ' ' . $student["mname"])) ?>
                             </td>
                             
