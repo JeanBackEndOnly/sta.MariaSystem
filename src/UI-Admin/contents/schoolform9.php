@@ -75,7 +75,7 @@ if (!empty($student['student_profile']) && file_exists(__DIR__ . "/assets/image/
 }
 
 
-$saveDir = 'C:/xampp/htdocs/sta.MariaSystem/sf9_files';
+$saveDir = 'C:/xampp/htdocs/sta.MariaSystem-main/sf9_files';
 if (!is_dir($saveDir)) mkdir($saveDir, 0777, true);
 
 $existingSf9 = null;
@@ -127,7 +127,7 @@ if (isset($_GET['download']) && $_GET['download'] === '1') {
     }
     // file name saving as excel file based sa student info
     $fileName = build_sf9_filename($student['lrn'] ?? '', $student['fname'] ?? '', $student['lname'] ?? '', $student['gradeLevel'] ?? '');
-    $filePath = 'C:/xampp/htdocs/sta.MariaSystem/sf9_files/' . $fileName;
+    $filePath = 'C:/xampp/htdocs/sta.MariaSystem-main/sf9_files/' . $fileName;
 
     if (!file_exists($filePath)) {
         die("Error: File not found on server. Path: " . htmlspecialchars($filePath));
@@ -178,7 +178,7 @@ foreach ($subjects_for_grade as $i => $subject_name) {
   
 
     
-    $template_path = 'C:/xampp/htdocs/sta.MariaSystem/src/UI-Admin/contents/sf9/sf9.xlsx';
+    $template_path = 'C:/xampp/htdocs/sta.MariaSystem-main/src/UI-Admin/contents/sf9/sf9.xlsx';
     $spreadsheet = IOFactory::load($template_path);
 
     $sheet = $spreadsheet->getSheetByName('Sheet1');
@@ -245,7 +245,7 @@ foreach ($targetCells as $cell) {
     $drawing = new Drawing();
     $drawing->setName('DepEd Logo');
     $drawing->setDescription('DepEd Logo');
-    $drawing->setPath('C:/xampp/htdocs/sta.MariaSystem/assets/image/deped.png');
+    $drawing->setPath('C:/xampp/htdocs/sta.MariaSystem-main/assets/image/deped.png');
     $drawing->setCoordinates('P5');
     $drawing->setWidth(80);
     $drawing->setHeight(80);
@@ -941,4 +941,5 @@ document.getElementById('grade_level').addEventListener('change', function() {
 
 </body>
 </html>
+
 
