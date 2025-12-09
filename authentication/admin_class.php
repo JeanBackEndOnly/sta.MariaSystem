@@ -2215,7 +2215,7 @@ class Action
                 return json_encode([
                     'status' => 1,
                     'message' => ($stmt->rowCount() > 0)
-                        ? 'SF4 updated successfully'
+                        ? 'School Form updated successfully'
                         : 'No changes were made (data is already up-to-date)'
                 ]);
 

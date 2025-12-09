@@ -321,37 +321,7 @@
                                 <input type="text" name="birthplace" class="form-control" placeholder="Birth Place">
                             </div>
                             
-                            <!-- Profile Picture Upload -->
-                            <div class="col-md-4 mb-3">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body text-center">
-                                        <div class="mb-3">
-                                            <img src="../../assets/image/users.png" id="profilePreview" class="w-100 h-auto rounded-circle" style="max-width: 150px;">
-                                        </div>
-                                        <label class="btn btn-outline-primary w-100">
-                                            <i class="fa-solid fa-camera me-2"></i> Upload Photo
-                                            <input type="file" class="form-control d-none" name="student_profile" id="profileUpload" accept="image/*">
-                                        </label>
-                                        <small class="text-muted d-block mt-2">JPG, PNG or GIF (Max 2MB)</small>
-                                    </div>
-                                </div>
-                            </div>
                             
-                            <!-- Information Alert -->
-                            <div class="col-md-8 mb-3">
-                                <div class="info-alert h-100">
-                                    <div class="d-flex">
-                                        <div class="me-3">
-                                            <i class="fa fa-info-circle fa-2x" style="color: #0c5460;"></i>
-                                        </div>
-                                        <div>
-                                            <h6 class="alert-heading">Important Information</h6>
-                                            <p class="mb-2">Your enrollment request will be verified by the school administration. You will receive a notification once the verification is complete.</p>
-                                            <small><i class="fa-solid fa-clock me-1"></i> Verification usually takes 24-48 hours</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <div class="col-12 text-center mt-3 pt-3 border-top">
@@ -401,7 +371,7 @@
                         <!-- Profile Picture -->
                         <div class="col-md-4 text-center mb-3 mb-md-0">
                             <div class="position-relative d-inline-block">
-                                <?php if($student["student_profile"] !== null): ?>
+                                <?php if($student["student_profile"] !== ''): ?>
                                     <img src="../../authentication/uploads/<?php echo htmlspecialchars($student["student_profile"]);?>" 
                                          class="img-fluid" alt="Profile Picture">
                                 <?php else: ?>
