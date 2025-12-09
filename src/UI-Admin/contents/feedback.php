@@ -136,7 +136,7 @@
                                         data-title="<?= htmlspecialchars($feedback["title"]) ?>"
                                         data-description="<?= htmlspecialchars($feedback["description"]) ?>"
                                         data-feed_at="<?= htmlspecialchars($feedback["feed_at"]) ?>"
-                                        data-name="<?= htmlspecialchars($parentName ) ?>"
+                                        data-name="<?= htmlspecialchars($parentName) ?>"
                                         >
                                         Read more
                                     </a>

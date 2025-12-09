@@ -1,115 +1,138 @@
 <style>
-    main {
-        font-family: Arial, sans-serif;
-        background-color: #f8f9fa;
-        padding: 20px;
-        max-width: 80vw;
-        max-height: 88vh !important;
-        overflow: auto !important;
-    }
+main {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+    padding: 20px;
+    max-width: 80vw;
+    max-height: 88vh !important;
+    overflow: auto !important;
+}
 
-    .main-container {
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin: 0 auto;
-        min-width: 2500px !important;
-        /* overflow: auto !important; */
-    }
+.main-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin: 0 auto;
+    min-width: 2500px !important;
+    /* overflow: auto !important; */
+}
 
-    .scroll-container {
-        width: 100%;
-        /* overflow-x: auto; */
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-        margin-top: 20px;
-    }
+.scroll-container {
+    width: 100%;
+    /* overflow-x: auto; */
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-top: 20px;
+}
 
-    .form-table {
-        min-width: 2500px;
-        /* Increased to ensure scrolling */
-        width: 100%;
-    }
+.form-table {
+    min-width: 2500px;
+    /* Increased to ensure scrolling */
+    width: 100%;
+}
 
-    .form-table>div {
-        display: flex;
-        border-bottom: 1px solid #dee2e6;
-    }
+.form-table>div {
+    display: flex;
+    border-bottom: 1px solid #dee2e6;
+}
 
-    .form-table>div>div {
-        padding: 8px;
-        border-right: 1px solid #dee2e6;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-    }
+.form-table>div>div {
+    padding: 8px;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
 
-    .form-table>div>div:last-child {
-        border-right: none;
-    }
+.form-table>div>div:last-child {
+    border-right: none;
+}
 
-    .header-row {
-        background-color: #f8f9fa;
-        font-weight: bold;
-    }
+.header-row {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
 
-    input {
-        border: 1px solid #ced4da;
-        padding: 4px 8px;
-        border-radius: 4px;
-        width: 100%;
-        box-sizing: border-box;
-    }
+input {
+    border: 1px solid #ced4da;
+    padding: 4px 8px;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
 
-    .nested-columns {
-        display: flex;
-        flex-direction: column;
-    }
+.nested-columns {
+    display: flex;
+    flex-direction: column;
+}
 
-    .nested-row {
-        display: flex;
-        flex: 1;
-    }
+.nested-row {
+    display: flex;
+    flex: 1;
+}
 
-    .nested-cell {
-        flex: 1;
-        border-right: 1px solid #dee2e6;
-        padding: 4px;
-        text-align: center;
-        font-size: 0.85rem;
-    }
+.nested-cell {
+    flex: 1;
+    border-right: 1px solid #dee2e6;
+    padding: 4px;
+    text-align: center;
+    font-size: 0.85rem;
+}
 
-    .nested-cell:last-child {
-        border-right: none;
-    }
+.nested-cell:last-child {
+    border-right: none;
+}
 
-    .scroll-indicator {
-        text-align: center;
-        color: #6c757d;
-        font-size: 0.9rem;
-        margin-top: 5px;
-    }
+.scroll-indicator {
+    text-align: center;
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
 
-    .form-title {
-        border-bottom: 2px solid #0d6efd;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-    }
+.form-title {
+    border-bottom: 2px solid #0d6efd;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
 
-    .form-section {
-        margin-bottom: 15px;
-    }
+.form-section {
+    margin-bottom: 15px;
+}
 </style>
 <main>
-<?php
+    <?php
     $stmt = $pdo->prepare("SELECT * FROM sf_add_data");
     $stmt->execute();
     $data_sf_four = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
-    <form class="main-container" id="sfFour-form">
+    <?php
+// Get selected month from the form
+$selected_month = isset($_POST['month']) ? $_POST['month'] : (isset($_GET['month']) ? $_GET['month'] : '');
+$month_number = 0;
+
+// Convert month name to month number
+if ($selected_month) {
+    $months = [
+        'JANUARY' => 1, 'FEBRUARY' => 2, 'MARCH' => 3, 'APRIL' => 4,
+        'MAY' => 5, 'JUNE' => 6, 'JULY' => 7, 'AUGUST' => 8,
+        'SEPTEMBER' => 9, 'OCTOBER' => 10, 'NOVEMBER' => 11, 'DECEMBER' => 12
+    ];
+    $month_number = $months[strtoupper($selected_month)] ?? 0;
+}
+
+// Get current year for filtering
+$current_year = date('Y');
+
+$stmt = $pdo->prepare("SELECT * FROM sf_add_data");
+$stmt->execute();
+$data_sf_four = $stmt->fetch(PDO::FETCH_ASSOC);
+?>
+
+    <form class="main-container" id="sfFour-form" method="POST">
         <div class="mt-3 text-start">
             <button type="submit" class="btn btn-primary">Save Data</button>
             <button class="btn btn-secondary">Generate Report</button>
@@ -174,36 +197,42 @@
                         <select name="month" id="month_attendance" class="form-select" onchange="this.form.submit()">
                             <option value="">Select Month</option>
                             <?php
-                            $months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-                            foreach ($months as $month) {
-                                $selected = ($selected_month == $month) ? 'selected' : '';
-                                echo "<option value='$month' $selected>$month</option>";
-                            }
-                            ?>
+                        $months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+                        foreach ($months as $month) {
+                            $selected = ($selected_month == $month) ? 'selected' : '';
+                            echo "<option value='$month' $selected>$month</option>";
+                        }
+                        ?>
                         </select>
                     </div>
                 </div>
             </div>
         </div>
 
+        <?php if ($selected_month && $month_number): ?>
+        <?php
+    // Calculate first day of selected month (this should be outside the loop)
+    $first_day_of_month = date("$current_year-$month_number-01");
+    ?>
+
         <div class="scroll-container">
             <style>
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    text-align: center;
-                }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                text-align: center;
+            }
 
-                th,
-                td {
-                    border: 1px solid #000;
-                    padding: 5px;
-                    vertical-align: middle;
-                }
+            th,
+            td {
+                border: 1px solid #000;
+                padding: 5px;
+                vertical-align: middle;
+            }
 
-                th {
-                    background: #f8f8f8;
-                }
+            th {
+                background: #f8f8f8;
+            }
             </style>
 
             <div class="">
@@ -293,10 +322,7 @@
                         $adviserId = $row['adviser_id'];
                         $gradeLevel = $row['grade_level'];
 
-                        // Debug output
-                        echo "<!-- DEBUG: Section: " . $row['sec_name'] . " | Grade Level: " . $gradeLevel . " | Adviser: " . $row['adviser_fname'] . " " . $row['adviser_lname'] . " -->";
-
-                        // Attendance per month
+                        // Attendance per month - Filtered by selected month
                         $stmtAttend = $pdo->prepare("
                             SELECT 
                                 SUM(CASE WHEN st.sex='MALE' THEN 1 ELSE 0 END) AS male_present,
@@ -307,39 +333,53 @@
                             INNER JOIN enrolment e ON a.student_id = e.student_id
                             WHERE a.adviser_id = :adviser_id
                             AND e.Grade_level = :grade_level
-                            AND MONTH(a.morning_attendance) = MONTH(CURRENT_DATE())
-                            AND YEAR(a.morning_attendance) = YEAR(CURRENT_DATE())
+                            AND MONTH(a.morning_attendance) = :month_number
+                            AND YEAR(a.morning_attendance) = :current_year
                             AND a.attendance_type = 'Present'
                         ");
-                        $stmtAttend->execute(['adviser_id' => $adviserId, 'grade_level' => $gradeLevel]);
+                        $stmtAttend->execute([
+                            'adviser_id' => $adviserId, 
+                            'grade_level' => $gradeLevel,
+                            'month_number' => $month_number,
+                            'current_year' => $current_year
+                        ]);
                         $attend = $stmtAttend->fetch(PDO::FETCH_ASSOC);
 
                         // NO LONGER PARTICIPATING - (A) Cumulative as of Previous Month
                         $stmtNotActivePrev = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS male_prev,
-                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS female_prev
+                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS male_prev,
+                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS female_prev
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.adviser_id = :adviser_id
                             AND e.Grade_level = :grade_level
                             AND st.enrolment_status = 'not_active'
                         ");
-                        $stmtNotActivePrev->execute(['adviser_id' => $adviserId, 'grade_level' => $gradeLevel]);
+                        $stmtNotActivePrev->execute([
+                            'adviser_id' => $adviserId, 
+                            'grade_level' => $gradeLevel, // Fixed: changed $grade_level to $gradeLevel
+                            'first_day_of_month' => $first_day_of_month
+                        ]);
                         $notActivePrev = $stmtNotActivePrev->fetch(PDO::FETCH_ASSOC);
 
                         // NO LONGER PARTICIPATING - (B) For the Month
                         $stmtNotActiveMonth = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_month,
-                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_month
+                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS male_month,
+                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS female_month
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.adviser_id = :adviser_id
                             AND e.Grade_level = :grade_level
                             AND st.enrolment_status = 'not_active'
                         ");
-                        $stmtNotActiveMonth->execute(['adviser_id' => $adviserId, 'grade_level' => $gradeLevel]);
+                        $stmtNotActiveMonth->execute([
+                            'adviser_id' => $adviserId, 
+                            'grade_level' => $gradeLevel, // Fixed: changed $grade_level to $gradeLevel
+                            'month_number' => $month_number,
+                            'current_year' => $current_year
+                        ]);
                         $notActiveMonth = $stmtNotActiveMonth->fetch(PDO::FETCH_ASSOC);
 
                         // Calculate (A + B) Cumulative as End of Month for No Longer Participating
@@ -350,29 +390,38 @@
                         // TRANSFERRED OUT - (A) Cumulative as of Previous Month
                         $stmtTransOutPrev = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS male_prev,
-                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS female_prev
+                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS male_prev,
+                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS female_prev
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.adviser_id = :adviser_id
                             AND e.Grade_level = :grade_level
                             AND st.enrolment_status = 'transferred_out'
                         ");
-                        $stmtTransOutPrev->execute(['adviser_id' => $adviserId, 'grade_level' => $gradeLevel]);
+                        $stmtTransOutPrev->execute([
+                            'adviser_id' => $adviserId, 
+                            'grade_level' => $gradeLevel, // Fixed: changed $grade_level to $gradeLevel
+                            'first_day_of_month' => $first_day_of_month
+                        ]);
                         $transOutPrev = $stmtTransOutPrev->fetch(PDO::FETCH_ASSOC);
 
                         // TRANSFERRED OUT - (B) For the Month
                         $stmtTransOutMonth = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_month,
-                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_month
+                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS male_month,
+                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS female_month
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.adviser_id = :adviser_id
                             AND e.Grade_level = :grade_level
                             AND st.enrolment_status = 'transferred_out'
                         ");
-                        $stmtTransOutMonth->execute(['adviser_id' => $adviserId, 'grade_level' => $gradeLevel]);
+                        $stmtTransOutMonth->execute([
+                            'adviser_id' => $adviserId, 
+                            'grade_level' => $gradeLevel, // Fixed: changed $grade_level to $gradeLevel
+                            'month_number' => $month_number,
+                            'current_year' => $current_year
+                        ]);
                         $transOutMonth = $stmtTransOutMonth->fetch(PDO::FETCH_ASSOC);
 
                         // Calculate (A + B) Cumulative as End of Month for Transferred Out
@@ -383,29 +432,38 @@
                         // TRANSFERRED IN - (A) Cumulative as of Previous Month
                         $stmtTransInPrev = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS male_prev,
-                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS female_prev
+                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS male_prev,
+                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS female_prev
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.adviser_id = :adviser_id
                             AND e.Grade_level = :grade_level
                             AND st.enrolment_status = 'transferred_in'
                         ");
-                        $stmtTransInPrev->execute(['adviser_id' => $adviserId, 'grade_level' => $gradeLevel]);
+                        $stmtTransInPrev->execute([
+                            'adviser_id' => $adviserId, 
+                            'grade_level' => $gradeLevel, // Fixed: changed $grade_level to $gradeLevel
+                            'first_day_of_month' => $first_day_of_month
+                        ]);
                         $transInPrev = $stmtTransInPrev->fetch(PDO::FETCH_ASSOC);
 
                         // TRANSFERRED IN - (B) For the Month
                         $stmtTransInMonth = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_month,
-                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_month
+                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS male_month,
+                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS female_month
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.adviser_id = :adviser_id
                             AND e.Grade_level = :grade_level
                             AND st.enrolment_status = 'transferred_in'
                         ");
-                        $stmtTransInMonth->execute(['adviser_id' => $adviserId, 'grade_level' => $gradeLevel]);
+                        $stmtTransInMonth->execute([
+                            'adviser_id' => $adviserId, 
+                            'grade_level' => $gradeLevel, // Fixed: changed $grade_level to $gradeLevel
+                            'month_number' => $month_number,
+                            'current_year' => $current_year
+                        ]);
                         $transInMonth = $stmtTransInMonth->fetch(PDO::FETCH_ASSOC);
 
                         // Calculate (A + B) Cumulative as End of Month for Transferred In
@@ -590,11 +648,15 @@
                             INNER JOIN student st ON a.student_id = st.student_id
                             INNER JOIN enrolment e ON e.student_id = st.student_id
                             WHERE e.Grade_level = :grade_level
-                            AND MONTH(a.morning_attendance) = MONTH(CURRENT_DATE())
-                            AND YEAR(a.morning_attendance) = YEAR(CURRENT_DATE())
+                            AND MONTH(a.morning_attendance) = :month_number
+                            AND YEAR(a.morning_attendance) = :current_year
                             AND a.attendance_type = 'Present'
                         ");
-                        $stmtAttend->execute(['grade_level' => $gradeLevel]);
+                        $stmtAttend->execute([
+                            'grade_level' => $gradeLevel,
+                            'month_number' => $month_number,
+                            'current_year' => $current_year
+                        ]);
                         $attend = $stmtAttend->fetch(PDO::FETCH_ASSOC);
 
                         // Calculate attendance percentage
@@ -616,27 +678,34 @@
                         // (A) Cumulative as of Previous Month
                         $stmtDroppedPrev = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS male_prev,
-                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS female_prev
+                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS male_prev,
+                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS female_prev
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.Grade_level = :grade_level
                             AND e.enrolment_status = 'dropped'
                         ");
-                        $stmtDroppedPrev->execute(['grade_level' => $gradeLevel]);
+                        $stmtDroppedPrev->execute([
+                            'grade_level' => $gradeLevel,
+                            'first_day_of_month' => $first_day_of_month
+                        ]);
                         $droppedPrev = $stmtDroppedPrev->fetch(PDO::FETCH_ASSOC);
 
                         // (B) For the Month
                         $stmtDroppedMonth = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_month,
-                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_month
+                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS male_month,
+                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS female_month
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.Grade_level = :grade_level
                             AND e.enrolment_status = 'dropped'
                         ");
-                        $stmtDroppedMonth->execute(['grade_level' => $gradeLevel]);
+                        $stmtDroppedMonth->execute([
+                            'grade_level' => $gradeLevel,
+                            'month_number' => $month_number,
+                            'current_year' => $current_year
+                        ]);
                         $droppedMonth = $stmtDroppedMonth->fetch(PDO::FETCH_ASSOC);
 
                         // Calculate (A + B) Cumulative as End of Month
@@ -648,27 +717,34 @@
                         // (A) Cumulative as of Previous Month
                         $stmtTransOutPrev = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS male_prev,
-                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS female_prev
+                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS male_prev,
+                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS female_prev
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.Grade_level = :grade_level
                             AND e.enrolment_status = 'transferred_out'
                         ");
-                        $stmtTransOutPrev->execute(['grade_level' => $gradeLevel]);
+                        $stmtTransOutPrev->execute([
+                            'grade_level' => $gradeLevel,
+                            'first_day_of_month' => $first_day_of_month
+                        ]);
                         $transOutPrev = $stmtTransOutPrev->fetch(PDO::FETCH_ASSOC);
 
                         // (B) For the Month
                         $stmtTransOutMonth = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_month,
-                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_month
+                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS male_month,
+                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS female_month
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.Grade_level = :grade_level
                             AND e.enrolment_status = 'transferred_out'
                         ");
-                        $stmtTransOutMonth->execute(['grade_level' => $gradeLevel]);
+                        $stmtTransOutMonth->execute([
+                            'grade_level' => $gradeLevel,
+                            'month_number' => $month_number,
+                            'current_year' => $current_year
+                        ]);
                         $transOutMonth = $stmtTransOutMonth->fetch(PDO::FETCH_ASSOC);
 
                         // Calculate (A + B) Cumulative as End of Month
@@ -680,27 +756,34 @@
                         // (A) Cumulative as of Previous Month
                         $stmtTransInPrev = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS male_prev,
-                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < DATE_FORMAT(CURRENT_DATE(), '%Y-%m-01') THEN 1 ELSE 0 END) AS female_prev
+                                SUM(CASE WHEN st.sex='MALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS male_prev,
+                                SUM(CASE WHEN st.sex='FEMALE' AND st.enrolled_date < :first_day_of_month THEN 1 ELSE 0 END) AS female_prev
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.Grade_level = :grade_level
                             AND e.enrolment_status = 'transferred_in'
                         ");
-                        $stmtTransInPrev->execute(['grade_level' => $gradeLevel]);
+                        $stmtTransInPrev->execute([
+                            'grade_level' => $gradeLevel,
+                            'first_day_of_month' => $first_day_of_month
+                        ]);
                         $transInPrev = $stmtTransInPrev->fetch(PDO::FETCH_ASSOC);
 
                         // (B) For the Month
                         $stmtTransInMonth = $pdo->prepare("
                             SELECT 
-                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS male_month,
-                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = MONTH(CURRENT_DATE()) AND YEAR(st.enrolled_date) = YEAR(CURRENT_DATE()) THEN 1 ELSE 0 END) AS female_month
+                                SUM(CASE WHEN st.sex='MALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS male_month,
+                                SUM(CASE WHEN st.sex='FEMALE' AND MONTH(st.enrolled_date) = :month_number AND YEAR(st.enrolled_date) = :current_year THEN 1 ELSE 0 END) AS female_month
                             FROM enrolment e
                             INNER JOIN student st ON e.student_id = st.student_id
                             WHERE e.Grade_level = :grade_level
                             AND e.enrolment_status = 'transferred_in'
                         ");
-                        $stmtTransInMonth->execute(['grade_level' => $gradeLevel]);
+                        $stmtTransInMonth->execute([
+                            'grade_level' => $gradeLevel,
+                            'month_number' => $month_number,
+                            'current_year' => $current_year
+                        ]);
                         $transInMonth = $stmtTransInMonth->fetch(PDO::FETCH_ASSOC);
 
                         // Calculate (A + B) Cumulative as End of Month
@@ -711,7 +794,6 @@
                         <tr>
                             <!-- GRADE / YEAR LEVEL & EMPTY COLUMNS -->
                             <td colspan="3"><?= $displayGrade ?></td>
-
 
                             <!-- REGISTERED LEARNERS (As of End of the Month) -->
                             <td><?= $row['male_registered'] ?></td>
@@ -776,9 +858,7 @@
                             <td><?= $femaleTransInTotal ?></td>
                             <td><?= $totalTransInTotal ?></td>
                         </tr>
-                        <?php
-                    endforeach;
-                    ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -807,6 +887,11 @@
                 </thead>
             </table>
         </div>
+        <?php else: ?>
+        <div class="alert alert-info text-center mt-3">
+            Please select a month to view the data.
+        </div>
+        <?php endif; ?>
 
     </form>
 </main>
