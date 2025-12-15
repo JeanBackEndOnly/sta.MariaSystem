@@ -605,7 +605,7 @@ class Action
 
         try {
             // Use DELETE FROM (not DELETE *) and handle errors
-            $tables = ['classes', 'enrolment', 'enrolment_subjects', 'stuEnrolmentInfo', 'attendance'];
+            $tables = ['classes', 'enrolment', 'enrolment_subjects', 'stuEnrolmentInfo', 'attendance', 'student', 'stuenrolmentinfo'];
             
             foreach ($tables as $table) {
                 $stmt = $this->db->prepare("DELETE FROM $table");
