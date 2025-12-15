@@ -592,20 +592,59 @@ class Action
     function DeactivationSY_form() {
         $school_year_id = $_POST["school_year_id"] ?? null;
 
+        // Validate input
+        if (empty($school_year_id)) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'School Year ID is required.'
+            ]);
+        }
+
+        // Start transaction
+        $this->db->beginTransaction();
+
         try {
-            $query = "UPDATE school_year SET school_year_status = 'Inactive' WHERE school_year_id = '$school_year_id'";
+            // Use DELETE FROM (not DELETE *) and handle errors
+            $tables = ['classes', 'enrolment', 'enrolment_subjects', 'stuEnrolmentInfo', 'attendance'];
+            
+            foreach ($tables as $table) {
+                $stmt = $this->db->prepare("DELETE FROM $table");
+                if (!$stmt->execute()) {
+                    throw new Exception("Failed to clear $table table");
+                }
+            }
+
+            // Deactivate the school year
+            $query = "UPDATE school_year SET school_year_status = 'Inactive' WHERE school_year_id = :school_year_id";
             $stmt = $this->db->prepare($query);
-            $stmt->execute();
+            $stmt->execute([':school_year_id' => $school_year_id]);
+
+            // Check if update was successful
+            if ($stmt->rowCount() === 0) {
+                throw new Exception("School Year not found or already inactive");
+            }
+
+            // Commit transaction
+            $this->db->commit();
+
             return json_encode([
                 'status' => 1,
-                'message' => 'School Year Deactivated successfully!'
+                'message' => 'School Year Deactivated successfully! All related data has been cleared.'
             ]);
 
         } catch (PDOException $e) {
-            error_log("Database error: " . $e->getMessage());
+            $this->db->rollBack();
+            error_log("Database error in DeactivationSY_form: " . $e->getMessage());
             return json_encode([
                 'status' => 0,
-                'message' => 'An error occurred. Please try again later.'
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Error in DeactivationSY_form: " . $e->getMessage());
+            return json_encode([
+                'status' => 0,
+                'message' => $e->getMessage()
             ]);
         }
     }
