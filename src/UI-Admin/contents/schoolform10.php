@@ -435,7 +435,7 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
   <form method="post">
     <div class="row">
       <!-- Sidebar -->
-      <div class="col-12">
+      <div class="col-md-4 col-sm-12">
         <div class="sidebar">
           <h5>Learner's Personal Information</h5>
           <label class="form-label">Last Name</label>
@@ -460,7 +460,7 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
       </div>
 
   
-      <div class="col-12">
+      <div class="col-md-4 col-sm-12">
         <div class="eligibility-container">
           <h5>Elementary School Eligibility</h5>
           <div class="form-check">
@@ -506,7 +506,7 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
       </div>
 
      
-      <div class="col-12">
+      <div class="col-md-4 col-sm-12">
         <div class="scholastic-container">
           <h5>Scholastic Records</h5>
           <ul class="nav nav-tabs mb-3" id="srTabs" role="tablist">
@@ -599,13 +599,7 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
                 </table>
             </div>
 
-            <label class="form-label">General Average</label>
-            <input type="text" class="form-control form-control-sm" name="general_average_<?=$i?>" 
-                   value="<?= htmlspecialchars($_POST['general_average_'.$i] ?? ($scholastic_data['general_average'][$i] ?? '')) ?>">
-        </div>
-
-
-</div>
+          
 
                 <label class="form-label">General Average</label>
                 <input type="text" class="form-control form-control-sm" name="general_average_<?=$i?>" value="<?= htmlspecialchars($_POST['general_average_'.$i] ?? ($scholastic_data['general_average'][$i] ?? '')) ?>">
@@ -619,12 +613,12 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
     </div>
   </form>
 </div>
-<!--  <div class="remedial-carousel-container">
+ <!-- <div class="remedial-carousel-container">
     <button type="button" class="arrow prev" onclick="prevRemedial()">&#10094;</button>
     <div class="remedial-wrapper">
         <?php for ($i = 1; $i <= 8; $i++): ?>
         <div class="remedial-slide <?php echo $i === 1 ? 'active' : ''; ?>" id="remedial-<?php echo $i; ?>">
-            <h3>Remedial Class <?php echo $i; ?></h3>  ---> 
+            <h3>Remedial Class <?php echo $i; ?></h3>  
             <table class="remedial-table">
                 <thead>
                     <tr>
@@ -669,7 +663,7 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
             </table>
         </div>
         <?php endfor; ?>
-    </div>
+    </div>  -->
     <button type="button" class="arrow next" onclick="nextRemedial()">&#10095;</button>
 </div>
 
