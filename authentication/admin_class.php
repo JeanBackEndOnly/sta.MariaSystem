@@ -175,6 +175,13 @@ class Action
 
     function classroom_form()
     {
+        $getActiveSY = $this->getActiveSY();
+        if (!$getActiveSY) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'No active school year found. Please activate/create one first.'
+            ]);
+        }
         $classroom_name = htmlspecialchars(trim($_POST["classroom_name"]));
         $classroom_type = htmlspecialchars(trim($_POST["classroom_type"]));
 
@@ -199,11 +206,11 @@ class Action
                 ]);
             }
 
-            $query = "INSERT INTO classrooms (room_name, room_type) 
-                    VALUES (?, ?)";
+            $query = "INSERT INTO classrooms (school_year_id, room_name, room_type) 
+                    VALUES (?, ?, ?)";
 
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$classroom_name, $classroom_type]);
+            $stmt->execute([$getActiveSY['school_year_id'], $classroom_name, $classroom_type]);
 
             return json_encode([
                 'status' => 1,

@@ -44,14 +44,34 @@
     <!-- Learners Table -->
     <div class="table-container-wrapper p-0">
         <?php
-            $stmt = $pdo->prepare("SELECT student.*, users.firstname AS parentFirstname, 
-            users.lastname AS parentLastname, users.middlename AS parentMiddle FROM student
-            INNER JOIN users ON users.user_id = student.guardian_id
-            WHERE student.enrolment_status != 'pending' ORDER BY fname ASC");
-            $stmt->execute();
+        // --- Get current active school year ---
+        $query = "SELECT * FROM school_year WHERE school_year_status = 'Active' LIMIT 1";
+        $stmt1 = $pdo->prepare($query);
+        $stmt1->execute();
+        $schoolYear = $stmt1->fetch(PDO::FETCH_ASSOC);
+        $activeSyId = $schoolYear['school_year_id'] ?? null;
+
+        $users = [];
+        if ($activeSyId) {
+            $stmt = $pdo->prepare("
+        SELECT student.*, 
+               users.firstname AS parentFirstname, 
+               users.lastname AS parentLastname, 
+               users.middlename AS parentMiddle
+        FROM student
+        INNER JOIN users 
+            ON users.user_id = student.guardian_id
+        WHERE student.enrolment_status != 'pending' 
+          AND users.school_year_id = ?
+        ORDER BY student.fname ASC
+    ");
+            $stmt->execute([$activeSyId]);
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $count = 1;
+        }
+
+        $count = 1;
         ?>
+
 
         <!-- Fixed Header -->
         <div class="table-responsive">
@@ -74,9 +94,9 @@
         <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
             <table class="table table-sm table-bordered table-hover mb-0" style="font-size: 0.875rem;">
                 <tbody id="learnersTableBody">
-                    <?php if($users): 
+                    <?php if ($users):
                         $count = 1;
-                        foreach($users as $user) : 
+                        foreach ($users as $user) :
                             $statusMap = [
                                 'active'          => ['success', 'Enrolled'],
                                 'pending'         => ['warning', 'Pending'],
@@ -92,94 +112,94 @@
                             $badgeClass = $statusMap[$currentStatus][0] ?? 'secondary';
                             $label = $statusMap[$currentStatus][1] ?? ucfirst($currentStatus);
                     ?>
-                    <tr class="learner-row" data-status="<?= htmlspecialchars(strtolower($currentStatus)) ?>"
-                        data-grade="<?= htmlspecialchars(strtolower($user['gradeLevel'] ?? '')) ?>"
-                        data-name="<?= htmlspecialchars(strtolower($user['lname'] . ' ' . $user['fname'] . ' ' . $user['mname'])) ?>"
-                        data-lrn="<?= htmlspecialchars(strtolower($user['lrn'] ?? '')) ?>"
-                        data-parent="<?= htmlspecialchars(strtolower($user['parentLastname'] . ' ' . $user['parentFirstname'])) ?>">
-                        <td width="5%"><?= $count++ ?></td>
-                        <td width="10%">
-                            <code class="text-dark"><?= htmlspecialchars($user["lrn"]) ?></code>
-                        </td>
-                        <td width="20%" class="learner-name">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-placeholder me-2">
-                                    <i class="fa-solid fa-user-graduate text-secondary"></i>
-                                </div>
-                                <div>
-                                    <strong><?= htmlspecialchars($user["lname"] . ", " . $user["fname"]) ?></strong>
-                                    <?php if(!empty($user["mname"])): ?>
-                                    <br><small class="text-muted"><?= htmlspecialchars($user["mname"]) ?></small>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </td>
-                        <td width="20%">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-placeholder-small me-2">
-                                    <i class="fa-solid fa-user text-secondary"></i>
-                                </div>
-                                <div>
-                                    <small>
-                                        <strong><?= htmlspecialchars($user["parentLastname"] . ", " . $user["parentFirstname"]) ?></strong>
-                                        <?php if(!empty($user["parentMiddle"])): ?>
-                                        <br><?= htmlspecialchars($user["parentMiddle"]) ?>
-                                        <?php endif; ?>
-                                    </small>
-                                </div>
-                            </div>
-                        </td>
-                        <td width="10%">
-                            <span class="badge bg-info"><?= htmlspecialchars($user["gradeLevel"]) ?></span>
-                        </td>
-                        <td width="10%">
-                            <span class="badge bg-<?= $badgeClass ?>">
-                                <i class="fa-solid fa-circle fa-xs me-1"></i>
-                                <?= $label ?>
-                            </span>
-                        </td>
-                        <td width="15%">
-                            <div class="d-flex gap-1 justify-content-center">
-                                <a href="index.php?page=contents/profile&student_id=<?= htmlspecialchars($user["student_id"]) ?>"
-                                    class="btn btn-sm btn-info" title="View Profile">
-                                    <i class="fa-solid fa-user me-1"></i> Profile
-                                </a>
-                                <form class="status-enrolment-form">
-                                    <select name="status" class="status-enrolment-select form-select">
-                                        <option value="">Change Status</option>
-                                        <option value="active" <?= ($currentStatus === "active") ? "selected" : "" ?>>
-                                            Enrolled
-                                        </option>
-                                        <option value="transferred_in"
-                                            <?= ($currentStatus === "transferred_in") ? "selected" : "" ?>>
-                                            Transferred In
-                                        </option>
-                                        <option value="transferred_out"
-                                            <?= ($currentStatus === "transferred_out") ? "selected" : "" ?>>
-                                            Transferred Out
-                                        </option>
-                                        <option value="not_active"
-                                            <?= ($currentStatus === "not_active") ? "selected" : "" ?>>
-                                            Not Active
-                                        </option>
-                                        <option value="dropped" <?= ($currentStatus === "dropped") ? "selected" : "" ?>>
-                                            Dropped
-                                        </option>
-                                        <option value="rejected"
-                                            <?= ($currentStatus === "rejected") ? "selected" : "" ?>>
-                                            Rejected
-                                        </option>
-                                    </select>
-                                    <input type="hidden" name="user_id" value="<?= $user['student_id'] ?>">
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                            <tr class="learner-row" data-status="<?= htmlspecialchars(strtolower($currentStatus)) ?>"
+                                data-grade="<?= htmlspecialchars(strtolower($user['gradeLevel'] ?? '')) ?>"
+                                data-name="<?= htmlspecialchars(strtolower($user['lname'] . ' ' . $user['fname'] . ' ' . $user['mname'])) ?>"
+                                data-lrn="<?= htmlspecialchars(strtolower($user['lrn'] ?? '')) ?>"
+                                data-parent="<?= htmlspecialchars(strtolower($user['parentLastname'] . ' ' . $user['parentFirstname'])) ?>">
+                                <td width="5%"><?= $count++ ?></td>
+                                <td width="10%">
+                                    <code class="text-dark"><?= htmlspecialchars($user["lrn"]) ?></code>
+                                </td>
+                                <td width="20%" class="learner-name">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-placeholder me-2">
+                                            <i class="fa-solid fa-user-graduate text-secondary"></i>
+                                        </div>
+                                        <div>
+                                            <strong><?= htmlspecialchars($user["lname"] . ", " . $user["fname"]) ?></strong>
+                                            <?php if (!empty($user["mname"])): ?>
+                                                <br><small class="text-muted"><?= htmlspecialchars($user["mname"]) ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td width="20%">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-placeholder-small me-2">
+                                            <i class="fa-solid fa-user text-secondary"></i>
+                                        </div>
+                                        <div>
+                                            <small>
+                                                <strong><?= htmlspecialchars($user["parentLastname"] . ", " . $user["parentFirstname"]) ?></strong>
+                                                <?php if (!empty($user["parentMiddle"])): ?>
+                                                    <br><?= htmlspecialchars($user["parentMiddle"]) ?>
+                                                <?php endif; ?>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td width="10%">
+                                    <span class="badge bg-info"><?= htmlspecialchars($user["gradeLevel"]) ?></span>
+                                </td>
+                                <td width="10%">
+                                    <span class="badge bg-<?= $badgeClass ?>">
+                                        <i class="fa-solid fa-circle fa-xs me-1"></i>
+                                        <?= $label ?>
+                                    </span>
+                                </td>
+                                <td width="15%">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a href="index.php?page=contents/profile&student_id=<?= htmlspecialchars($user["student_id"]) ?>"
+                                            class="btn btn-sm btn-info" title="View Profile">
+                                            <i class="fa-solid fa-user me-1"></i> Profile
+                                        </a>
+                                        <form class="status-enrolment-form">
+                                            <select name="status" class="status-enrolment-select form-select">
+                                                <option value="">Change Status</option>
+                                                <option value="active" <?= ($currentStatus === "active") ? "selected" : "" ?>>
+                                                    Enrolled
+                                                </option>
+                                                <option value="transferred_in"
+                                                    <?= ($currentStatus === "transferred_in") ? "selected" : "" ?>>
+                                                    Transferred In
+                                                </option>
+                                                <option value="transferred_out"
+                                                    <?= ($currentStatus === "transferred_out") ? "selected" : "" ?>>
+                                                    Transferred Out
+                                                </option>
+                                                <option value="not_active"
+                                                    <?= ($currentStatus === "not_active") ? "selected" : "" ?>>
+                                                    Not Active
+                                                </option>
+                                                <option value="dropped" <?= ($currentStatus === "dropped") ? "selected" : "" ?>>
+                                                    Dropped
+                                                </option>
+                                                <option value="rejected"
+                                                    <?= ($currentStatus === "rejected") ? "selected" : "" ?>>
+                                                    Rejected
+                                                </option>
+                                            </select>
+                                            <input type="hidden" name="user_id" value="<?= $user['student_id'] ?>">
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     <?php else: ?>
-                    <tr>
-                        <td colspan="7" class="text-center py-3">No learners found.</td>
-                    </tr>
+                        <tr>
+                            <td colspan="7" class="text-center py-3">No learners found.</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -204,8 +224,7 @@
                     <div class="row text-center">
                         <?php
                         $enrolledCount = array_filter($users, fn($u) => ($u['enrolment_status'] ?? '') == 'active');
-                        $transferredCount = array_filter($users, fn($u) => 
-                            ($u['enrolment_status'] ?? '') == 'transferred_in' || 
+                        $transferredCount = array_filter($users, fn($u) => ($u['enrolment_status'] ?? '') == 'transferred_in' ||
                             ($u['enrolment_status'] ?? '') == 'transferred_out');
                         $inactiveCount = array_filter($users, fn($u) => ($u['enrolment_status'] ?? '') == 'not_active');
                         $rejectedCount = array_filter($users, fn($u) => ($u['enrolment_status'] ?? '') == 'rejected');
@@ -248,228 +267,228 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
-    const gradeFilter = document.getElementById('gradeFilter');
-    const learnerRows = document.querySelectorAll('.learner-row');
-    const learnersTableBody = document.getElementById('learnersTableBody');
-    const noResultsDiv = document.getElementById('noResults');
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const gradeFilter = document.getElementById('gradeFilter');
+        const learnerRows = document.querySelectorAll('.learner-row');
+        const learnersTableBody = document.getElementById('learnersTableBody');
+        const noResultsDiv = document.getElementById('noResults');
 
-    // Search and filter functionality
-    function filterLearners() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const statusValue = statusFilter.value.toLowerCase();
-        const gradeValue = gradeFilter.value.toLowerCase();
+        // Search and filter functionality
+        function filterLearners() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const statusValue = statusFilter.value.toLowerCase();
+            const gradeValue = gradeFilter.value.toLowerCase();
 
-        let visibleCount = 0;
+            let visibleCount = 0;
 
-        learnerRows.forEach(row => {
-            const name = row.getAttribute('data-name');
-            const lrn = row.getAttribute('data-lrn');
-            const parent = row.getAttribute('data-parent');
-            const status = row.getAttribute('data-status');
-            const grade = row.getAttribute('data-grade');
+            learnerRows.forEach(row => {
+                const name = row.getAttribute('data-name');
+                const lrn = row.getAttribute('data-lrn');
+                const parent = row.getAttribute('data-parent');
+                const status = row.getAttribute('data-status');
+                const grade = row.getAttribute('data-grade');
 
-            let matchesSearch = true;
-            let matchesStatus = true;
-            let matchesGrade = true;
+                let matchesSearch = true;
+                let matchesStatus = true;
+                let matchesGrade = true;
 
-            // Apply search filter
-            if (searchTerm) {
-                matchesSearch = name.includes(searchTerm) ||
-                    lrn.includes(searchTerm) ||
-                    parent.includes(searchTerm);
-            }
-
-            // Apply status filter
-            if (statusValue) {
-                matchesStatus = status.includes(statusValue);
-            }
-
-            // Apply grade filter
-            if (gradeValue) {
-                matchesGrade = grade.includes(gradeValue.toLowerCase());
-            }
-
-            // Show/hide row based on filters
-            if (matchesSearch && matchesStatus && matchesGrade) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        // Show/hide no results message
-        if (visibleCount === 0) {
-            learnersTableBody.style.display = 'none';
-            noResultsDiv.classList.remove('d-none');
-        } else {
-            learnersTableBody.style.display = '';
-            noResultsDiv.classList.add('d-none');
-        }
-
-        // Update row numbers
-        updateRowNumbers();
-    }
-
-    // Function to update row numbers
-    function updateRowNumbers() {
-        let counter = 1;
-        learnerRows.forEach(row => {
-            if (row.style.display !== 'none') {
-                const firstCell = row.querySelector('td:first-child');
-                if (firstCell) {
-                    firstCell.textContent = counter++;
+                // Apply search filter
+                if (searchTerm) {
+                    matchesSearch = name.includes(searchTerm) ||
+                        lrn.includes(searchTerm) ||
+                        parent.includes(searchTerm);
                 }
+
+                // Apply status filter
+                if (statusValue) {
+                    matchesStatus = status.includes(statusValue);
+                }
+
+                // Apply grade filter
+                if (gradeValue) {
+                    matchesGrade = grade.includes(gradeValue.toLowerCase());
+                }
+
+                // Show/hide row based on filters
+                if (matchesSearch && matchesStatus && matchesGrade) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Show/hide no results message
+            if (visibleCount === 0) {
+                learnersTableBody.style.display = 'none';
+                noResultsDiv.classList.remove('d-none');
+            } else {
+                learnersTableBody.style.display = '';
+                noResultsDiv.classList.add('d-none');
+            }
+
+            // Update row numbers
+            updateRowNumbers();
+        }
+
+        // Function to update row numbers
+        function updateRowNumbers() {
+            let counter = 1;
+            learnerRows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    const firstCell = row.querySelector('td:first-child');
+                    if (firstCell) {
+                        firstCell.textContent = counter++;
+                    }
+                }
+            });
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', filterLearners);
+        statusFilter.addEventListener('change', filterLearners);
+        gradeFilter.addEventListener('change', filterLearners);
+
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            statusFilter.value = '';
+            gradeFilter.value = '';
+            filterLearners();
+            searchInput.focus();
+        });
+
+        // Add Enter key support for search
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterLearners();
             }
         });
-    }
 
-    // Event listeners
-    searchInput.addEventListener('input', filterLearners);
-    statusFilter.addEventListener('change', filterLearners);
-    gradeFilter.addEventListener('change', filterLearners);
+        // Add some styling
+        searchInput.addEventListener('focus', function() {
+            this.parentElement.classList.add('border-primary', 'border-2');
+        });
 
-    clearSearchBtn.addEventListener('click', function() {
-        searchInput.value = '';
-        statusFilter.value = '';
-        gradeFilter.value = '';
+        searchInput.addEventListener('blur', function() {
+            this.parentElement.classList.remove('border-primary', 'border-2');
+        });
+
+        statusFilter.addEventListener('focus', function() {
+            this.parentElement.classList.add('border-primary', 'border-2');
+        });
+
+        statusFilter.addEventListener('blur', function() {
+            this.parentElement.classList.remove('border-primary', 'border-2');
+        });
+
+        gradeFilter.addEventListener('focus', function() {
+            this.parentElement.classList.add('border-primary', 'border-2');
+        });
+
+        gradeFilter.addEventListener('blur', function() {
+            this.parentElement.classList.remove('border-primary', 'border-2');
+        });
+
+        // Initialize
         filterLearners();
-        searchInput.focus();
     });
-
-    // Add Enter key support for search
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            filterLearners();
-        }
-    });
-
-    // Add some styling
-    searchInput.addEventListener('focus', function() {
-        this.parentElement.classList.add('border-primary', 'border-2');
-    });
-
-    searchInput.addEventListener('blur', function() {
-        this.parentElement.classList.remove('border-primary', 'border-2');
-    });
-
-    statusFilter.addEventListener('focus', function() {
-        this.parentElement.classList.add('border-primary', 'border-2');
-    });
-
-    statusFilter.addEventListener('blur', function() {
-        this.parentElement.classList.remove('border-primary', 'border-2');
-    });
-
-    gradeFilter.addEventListener('focus', function() {
-        this.parentElement.classList.add('border-primary', 'border-2');
-    });
-
-    gradeFilter.addEventListener('blur', function() {
-        this.parentElement.classList.remove('border-primary', 'border-2');
-    });
-
-    // Initialize
-    filterLearners();
-});
 </script>
 
 <style>
-.table-container-wrapper {
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    overflow: hidden;
-}
+    .table-container-wrapper {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
 
-.table thead th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
+    .table thead th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
 
-.table tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-}
+    .table tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
 
-.avatar-placeholder {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: #f8f9fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-}
+    .avatar-placeholder {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
 
-.avatar-placeholder-small {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background-color: #f8f9fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-}
+    .avatar-placeholder-small {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
 
-.empty-state {
-    padding: 3rem 1rem;
-}
+    .empty-state {
+        padding: 3rem 1rem;
+    }
 
-.empty-state i {
-    opacity: 0.5;
-}
+    .empty-state i {
+        opacity: 0.5;
+    }
 
-.badge {
-    padding: 0.35em 0.65em;
-    font-size: 0.75em;
-    font-weight: 600;
-}
+    .badge {
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+        font-weight: 600;
+    }
 
-.btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-}
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
 
-.input-group-text {
-    border-right: none;
-}
+    .input-group-text {
+        border-right: none;
+    }
 
-#searchInput:focus {
-    box-shadow: none;
-    border-color: #86b7fe;
-}
+    #searchInput:focus {
+        box-shadow: none;
+        border-color: #86b7fe;
+    }
 
-#clearSearch:hover {
-    background-color: #e9ecef;
-}
+    #clearSearch:hover {
+        background-color: #e9ecef;
+    }
 
-.status-select-wrapper {
-    min-width: 150px;
-}
+    .status-select-wrapper {
+        min-width: 150px;
+    }
 
-.status-enrolment-select {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    height: 32px;
-}
+    .status-enrolment-select {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        height: 32px;
+    }
 
-.btn:hover {
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
-}
+    .btn:hover {
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
 
-code {
-    font-size: 0.8rem;
-    background: #f8f9fa;
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid #dee2e6;
-}
+    code {
+        font-size: 0.8rem;
+        background: #f8f9fa;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
 </style>

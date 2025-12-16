@@ -91,8 +91,11 @@ function db_connect()
                 room_status  ENUM('Unavailable', 'Available') DEFAULT 'Available',
                 room_name VARCHAR(50) NOT NULL,
                 room_type VARCHAR(50) NOT NULL,
-                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                school_year_id INT(11),
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (school_year_id) REFERENCES school_year(school_year_id) ON DELETE CASCADE
             )",
+
             "CREATE TABLE IF NOT EXISTS classes (
                 class_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 section_id INT(11) NOT NULL,

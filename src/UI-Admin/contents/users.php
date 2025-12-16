@@ -1,3 +1,10 @@
+<?php
+$currentSyStmt = $pdo->prepare("SELECT school_year_id FROM school_year WHERE school_year_status = 'Active' LIMIT 1");
+$currentSyStmt->execute();
+$currentSy = $currentSyStmt->fetch(PDO::FETCH_ASSOC);
+$activeSyId = $currentSy['school_year_id'] ?? null;
+?>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div class="mx-2">
         <h4><i class="fa-solid fa-users-gear me-2"></i>Users Management</h4>
@@ -11,21 +18,21 @@
             <div class="row input-group">
                 <div class="col-md-6">
                     <input type="text" id="searchInput" name="search" class="form-control"
-                    placeholder="Search by name, role, or status...">
+                        placeholder="Search by name, role, or status...">
                 </div>
                 <div class="col-md-5">
                     <select id="categoryFilter" name="category" class="form-select" style="max-width: 200px;">
                         <option value="">All User Roles</option>
                         <?php
-                            $catStmt = $pdo->query("SELECT DISTINCT user_role FROM users ORDER BY user_role ASC");
-                            while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)): ?>
-                        <option value="<?= htmlspecialchars($cat['user_role']) ?>">
-                            <?= htmlspecialchars($cat['user_role']) ?>
-                        </option>
+                        $catStmt = $pdo->query("SELECT DISTINCT user_role FROM users ORDER BY user_role ASC");
+                        while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)): ?>
+                            <option value="<?= htmlspecialchars($cat['user_role']) ?>">
+                                <?= htmlspecialchars($cat['user_role']) ?>
+                            </option>
                         <?php endwhile; ?>
                     </select>
                 </div>
-                
+
             </div>
         </div>
         <div class="col-md-4 text-end">
@@ -39,10 +46,10 @@
     <!-- Users Table -->
     <div class="table-container-wrapper p-0">
         <?php
-            $stmt = $pdo->prepare("SELECT * FROM users ORDER BY created_date DESC");
-            $stmt->execute();
-            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $count = 1;
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE school_year_id = ? ORDER BY created_date DESC");
+        $stmt->execute([$activeSyId]);
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $count = 1;
         ?>
 
         <!-- Fixed Header -->
@@ -65,71 +72,70 @@
         <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
             <table class="table table-sm table-bordered table-hover mb-0" style="font-size: 0.875rem;">
                 <tbody id="userTableBody">
-                    <?php if($users): 
+                    <?php if ($users):
                         $count = 1;
-                        foreach($users as $user) : ?>
-                    <tr class="user-row" 
-                        data-name="<?= htmlspecialchars(strtolower($user["firstname"] . " " . $user["lastname"])) ?>"
-                        data-role="<?= htmlspecialchars(strtolower($user["user_role"])) ?>"
-                        data-status="<?= htmlspecialchars(strtolower($user["status"])) ?>"
-                        data-date="<?= htmlspecialchars(strtolower(date('M d, Y', strtotime($user["created_date"])))) ?>">
-                        <td width="5%"><?= $count++ ?></td>
-                        <td width="20%" class="user-name">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-placeholder me-2">
-                                    <i class="fa-solid fa-user-circle text-secondary"></i>
-                                </div>
-                                <div>
-                                    <strong><?= htmlspecialchars($user["lastname"] . ", " . $user["firstname"]) ?></strong>
-                                    <?php if(!empty($user["middlename"])): ?>
-                                    <br><small class="text-muted"><?= htmlspecialchars($user["middlename"]) ?></small>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </td>
-                        <td width="15%">
-                            <span class="badge bg-<?= 
-                                ($user["user_role"] == 'TEACHER') ? 'info' : 
-                                (($user["user_role"] == 'PARENT') ? 'primary' : 'secondary') 
-                            ?>">
-                                <?= htmlspecialchars($user["user_role"]) ?>
-                            </span>
-                        </td>
-                        <td width="15%">
-                            <span class="badge bg-<?= ($user["status"] == 'Active') ? 'success' : 'secondary' ?>">
-                                <i class="fa-solid fa-circle fa-xs me-1"></i>
-                                <?= htmlspecialchars($user["status"] ?? 'Inactive') ?>
-                            </span>
-                        </td>
-                        <td width="20%">
-                            <small><?= date('M d, Y', strtotime($user["created_date"])) ?></small>
-                        </td>
-                        <td width="25%">
-                            <div class="d-flex gap-1 justify-content-center">
-                                <a href="index.php?page=contents/usersProfile&user_id=<?= $user["user_id"] ?>" 
-                                   class="btn btn-sm btn-info" title="View Profile">
-                                    <i class="fa-solid fa-eye me-1"></i> View
-                                </a>
-                                <form class="status-form">
-                                    <select name="status" class="status-select form-select form-select-sm">
-                                        <option value="">Change Status</option>
-                                        <option value="Active" <?= ($user["status"] === "Active") ? "selected" : "" ?>>
-                                            Active
-                                        </option>
-                                        <option value="Inactive" <?= ($user["status"] === "Inactive") ? "selected" : "" ?>>
-                                            Inactive
-                                        </option>
-                                    </select>
-                                    <input type="hidden" name="user_id" value="<?= $user['user_id'] ?>">
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                        foreach ($users as $user) : ?>
+                            <tr class="user-row"
+                                data-name="<?= htmlspecialchars(strtolower($user["firstname"] . " " . $user["lastname"])) ?>"
+                                data-role="<?= htmlspecialchars(strtolower($user["user_role"])) ?>"
+                                data-status="<?= htmlspecialchars(strtolower($user["status"])) ?>"
+                                data-date="<?= htmlspecialchars(strtolower(date('M d, Y', strtotime($user["created_date"])))) ?>">
+                                <td width="5%"><?= $count++ ?></td>
+                                <td width="20%" class="user-name">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-placeholder me-2">
+                                            <i class="fa-solid fa-user-circle text-secondary"></i>
+                                        </div>
+                                        <div>
+                                            <strong><?= htmlspecialchars($user["lastname"] . ", " . $user["firstname"]) ?></strong>
+                                            <?php if (!empty($user["middlename"])): ?>
+                                                <br><small class="text-muted"><?= htmlspecialchars($user["middlename"]) ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td width="15%">
+                                    <span class="badge bg-<?=
+                                                            ($user["user_role"] == 'TEACHER') ? 'info' : (($user["user_role"] == 'PARENT') ? 'primary' : 'secondary')
+                                                            ?>">
+                                        <?= htmlspecialchars($user["user_role"]) ?>
+                                    </span>
+                                </td>
+                                <td width="15%">
+                                    <span class="badge bg-<?= ($user["status"] == 'Active') ? 'success' : 'secondary' ?>">
+                                        <i class="fa-solid fa-circle fa-xs me-1"></i>
+                                        <?= htmlspecialchars($user["status"] ?? 'Inactive') ?>
+                                    </span>
+                                </td>
+                                <td width="20%">
+                                    <small><?= date('M d, Y', strtotime($user["created_date"])) ?></small>
+                                </td>
+                                <td width="25%">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a href="index.php?page=contents/usersProfile&user_id=<?= $user["user_id"] ?>"
+                                            class="btn btn-sm btn-info" title="View Profile">
+                                            <i class="fa-solid fa-eye me-1"></i> View
+                                        </a>
+                                        <form class="status-form">
+                                            <select name="status" class="status-select form-select form-select-sm">
+                                                <option value="">Change Status</option>
+                                                <option value="Active" <?= ($user["status"] === "Active") ? "selected" : "" ?>>
+                                                    Active
+                                                </option>
+                                                <option value="Inactive" <?= ($user["status"] === "Inactive") ? "selected" : "" ?>>
+                                                    Inactive
+                                                </option>
+                                            </select>
+                                            <input type="hidden" name="user_id" value="<?= $user['user_id'] ?>">
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     <?php else: ?>
-                    <tr>
-                        <td colspan="6" class="text-center py-3">No users found.</td>
-                    </tr>
+                        <tr>
+                            <td colspan="6" class="text-center py-3">No users found.</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -261,7 +267,7 @@
                         <label class="form-label">Password <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <input type="password" class="form-control" name="password" id="passwordField" required>
-                          
+
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -282,192 +288,192 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const categoryFilter = document.getElementById('categoryFilter');
-    const userRows = document.querySelectorAll('.user-row');
-    const userTableBody = document.getElementById('userTableBody');
-    const noResultsDiv = document.getElementById('noResults');
-    
-    // Search and filter functionality
-    function filterUsers() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const filterValue = categoryFilter.value.toLowerCase();
-        
-        let visibleCount = 0;
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const userRows = document.querySelectorAll('.user-row');
+        const userTableBody = document.getElementById('userTableBody');
+        const noResultsDiv = document.getElementById('noResults');
 
-        userRows.forEach(row => {
-            const name = row.getAttribute('data-name');
-            const role = row.getAttribute('data-role');
-            const status = row.getAttribute('data-status');
-            const date = row.getAttribute('data-date');
-            
-            let matchesSearch = true;
-            let matchesCategory = true;
-            
-            // Apply search filter
-            if (searchTerm) {
-                matchesSearch = name.includes(searchTerm) || 
-                               role.includes(searchTerm) || 
-                               status.includes(searchTerm) ||
-                               date.includes(searchTerm);
-            }
-            
-            // Apply category filter
-            if (filterValue) {
-                matchesCategory = role.includes(filterValue);
-            }
-            
-            // Show/hide row based on filters
-            if (matchesSearch && matchesCategory) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // Show/hide no results message
-        if (visibleCount === 0) {
-            userTableBody.style.display = 'none';
-            noResultsDiv.classList.remove('d-none');
-        } else {
-            userTableBody.style.display = '';
-            noResultsDiv.classList.add('d-none');
-        }
-        
-        // Update row numbers
-        updateRowNumbers();
-    }
-    
-    // Function to update row numbers
-    function updateRowNumbers() {
-        let counter = 1;
-        userRows.forEach(row => {
-            if (row.style.display !== 'none') {
-                const firstCell = row.querySelector('td:first-child');
-                if (firstCell) {
-                    firstCell.textContent = counter++;
+        // Search and filter functionality
+        function filterUsers() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const filterValue = categoryFilter.value.toLowerCase();
+
+            let visibleCount = 0;
+
+            userRows.forEach(row => {
+                const name = row.getAttribute('data-name');
+                const role = row.getAttribute('data-role');
+                const status = row.getAttribute('data-status');
+                const date = row.getAttribute('data-date');
+
+                let matchesSearch = true;
+                let matchesCategory = true;
+
+                // Apply search filter
+                if (searchTerm) {
+                    matchesSearch = name.includes(searchTerm) ||
+                        role.includes(searchTerm) ||
+                        status.includes(searchTerm) ||
+                        date.includes(searchTerm);
                 }
+
+                // Apply category filter
+                if (filterValue) {
+                    matchesCategory = role.includes(filterValue);
+                }
+
+                // Show/hide row based on filters
+                if (matchesSearch && matchesCategory) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Show/hide no results message
+            if (visibleCount === 0) {
+                userTableBody.style.display = 'none';
+                noResultsDiv.classList.remove('d-none');
+            } else {
+                userTableBody.style.display = '';
+                noResultsDiv.classList.add('d-none');
+            }
+
+            // Update row numbers
+            updateRowNumbers();
+        }
+
+        // Function to update row numbers
+        function updateRowNumbers() {
+            let counter = 1;
+            userRows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    const firstCell = row.querySelector('td:first-child');
+                    if (firstCell) {
+                        firstCell.textContent = counter++;
+                    }
+                }
+            });
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', filterUsers);
+        categoryFilter.addEventListener('change', filterUsers);
+
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            categoryFilter.value = '';
+            filterUsers();
+            searchInput.focus();
+        });
+
+        // Add Enter key support for search
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterUsers();
             }
         });
-    }
-    
-    // Event listeners
-    searchInput.addEventListener('input', filterUsers);
-    categoryFilter.addEventListener('change', filterUsers);
-    
-    clearSearchBtn.addEventListener('click', function() {
-        searchInput.value = '';
-        categoryFilter.value = '';
+
+        // Add some styling
+        searchInput.addEventListener('focus', function() {
+            this.parentElement.classList.add('border-primary', 'border-2');
+        });
+
+        searchInput.addEventListener('blur', function() {
+            this.parentElement.classList.remove('border-primary', 'border-2');
+        });
+
+        categoryFilter.addEventListener('focus', function() {
+            this.parentElement.classList.add('border-primary', 'border-2');
+        });
+
+        categoryFilter.addEventListener('blur', function() {
+            this.parentElement.classList.remove('border-primary', 'border-2');
+        });
+
+
+        // Initialize
         filterUsers();
-        searchInput.focus();
     });
-    
-    // Add Enter key support for search
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            filterUsers();
-        }
-    });
-    
-    // Add some styling
-    searchInput.addEventListener('focus', function() {
-        this.parentElement.classList.add('border-primary', 'border-2');
-    });
-    
-    searchInput.addEventListener('blur', function() {
-        this.parentElement.classList.remove('border-primary', 'border-2');
-    });
-    
-    categoryFilter.addEventListener('focus', function() {
-        this.parentElement.classList.add('border-primary', 'border-2');
-    });
-    
-    categoryFilter.addEventListener('blur', function() {
-        this.parentElement.classList.remove('border-primary', 'border-2');
-    });
-    
-    
-    // Initialize
-    filterUsers();
-});
 </script>
 
 <style>
-.table-container-wrapper {
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    overflow: hidden;
-}
+    .table-container-wrapper {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
 
-.table thead th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
+    .table thead th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
 
-.table tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-}
+    .table tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
 
-.avatar-placeholder {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: #f8f9fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-}
+    .avatar-placeholder {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
 
-.empty-state {
-    padding: 3rem 1rem;
-}
+    .empty-state {
+        padding: 3rem 1rem;
+    }
 
-.empty-state i {
-    opacity: 0.5;
-}
+    .empty-state i {
+        opacity: 0.5;
+    }
 
-.badge {
-    padding: 0.35em 0.65em;
-    font-size: 0.75em;
-    font-weight: 600;
-}
+    .badge {
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+        font-weight: 600;
+    }
 
-.btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-}
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
 
-.input-group-text {
-    border-right: none;
-}
+    .input-group-text {
+        border-right: none;
+    }
 
-#searchInput:focus {
-    box-shadow: none;
-    border-color: #86b7fe;
-}
+    #searchInput:focus {
+        box-shadow: none;
+        border-color: #86b7fe;
+    }
 
-#clearSearch:hover {
-    background-color: #e9ecef;
-}
+    #clearSearch:hover {
+        background-color: #e9ecef;
+    }
 
-.status-select-wrapper {
-    min-width: 150px;
-}
+    .status-select-wrapper {
+        min-width: 150px;
+    }
 
-.status-select {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    height: 32px;
-}
+    .status-select {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        height: 32px;
+    }
 
-.btn:hover {
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
-}
+    .btn:hover {
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
 </style>

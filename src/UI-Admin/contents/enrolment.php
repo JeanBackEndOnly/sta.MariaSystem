@@ -1,23 +1,34 @@
 <?php
-    $query = "SELECT classes.*, users.* FROM classes
+$query = "SELECT classes.*, users.* FROM classes
     INNER JOIN users ON classes.adviser_id = users.user_id";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute();
-    $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $query = "SELECT * FROM school_year WHERE school_year_status = 'Active'";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute();
-    $schoolYear = $stmt->fetch(PDO::FETCH_ASSOC);
+$query = "SELECT * FROM school_year WHERE school_year_status = 'Active' LIMIT 1";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$schoolYear = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Fetch all students
-    $stmt = $pdo->prepare("SELECT * FROM student ORDER BY fname ASC");
-    $stmt->execute();
+$users = [];
+$count = 1;
+
+if (!empty($schoolYear['school_year_id'])) {
+    $stmt = $pdo->prepare("
+        SELECT s.*, u.* 
+        FROM student s
+        LEFT JOIN users u 
+            ON s.guardian_id = u.user_id
+        WHERE u.school_year_id = ?
+        ORDER BY s.fname ASC
+    ");
+    $stmt->execute([$schoolYear['school_year_id']]);
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $count = 1;
-    
-    // Get subjects for JS
-    $subjects = $pdo->query("SELECT * FROM Subjects")->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+// Get subjects for JS
+$subjects = $pdo->query("SELECT * FROM Subjects")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div class="mx-2">
@@ -127,13 +138,13 @@
         <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
             <table class="table table-sm table-bordered table-hover mb-0" style="font-size: 0.875rem;">
                 <tbody id="enrollmentTableBody">
-                    <?php if($users): 
+                    <?php if ($users):
                         $count = 1;
-                        foreach($users as $user) : 
+                        foreach ($users as $user) :
                             $status = $user["enrolment_status"] ?? '';
                             $badgeClass = '';
                             $statusText = '';
-                            
+
                             if ($status == 'active') {
                                 $badgeClass = 'success';
                                 $statusText = 'Enrolled';
@@ -151,68 +162,68 @@
                                 $statusText = 'Pending';
                             }
                     ?>
-                    <tr class="student-row"
-                        data-name="<?= htmlspecialchars(strtolower($user["lname"] . " " . $user["fname"])) ?>"
-                        data-grade="<?= htmlspecialchars(strtolower($user["gradeLevel"] ?? '')) ?>"
-                        data-status="<?= htmlspecialchars(strtolower($status)) ?>">
-                        <td width="5%"><?= $count++ ?></td>
-                        <td width="20%" class="student-name">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-placeholder me-2">
-                                    <i class="fa-solid fa-user-graduate text-secondary"></i>
-                                </div>
-                                <div>
-                                    <strong><?= htmlspecialchars($user["lname"] . ", " . $user["fname"]) ?></strong>
-                                    <?php if(!empty($user["mname"])): ?>
-                                    <br><small class="text-muted"><?= htmlspecialchars($user["mname"]) ?></small>
+                            <tr class="student-row"
+                                data-name="<?= htmlspecialchars(strtolower($user["lname"] . " " . $user["fname"])) ?>"
+                                data-grade="<?= htmlspecialchars(strtolower($user["gradeLevel"] ?? '')) ?>"
+                                data-status="<?= htmlspecialchars(strtolower($status)) ?>">
+                                <td width="5%"><?= $count++ ?></td>
+                                <td width="20%" class="student-name">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-placeholder me-2">
+                                            <i class="fa-solid fa-user-graduate text-secondary"></i>
+                                        </div>
+                                        <div>
+                                            <strong><?= htmlspecialchars($user["lname"] . ", " . $user["fname"]) ?></strong>
+                                            <?php if (!empty($user["mname"])): ?>
+                                                <br><small class="text-muted"><?= htmlspecialchars($user["mname"]) ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td width="15%">
+                                    <span class="badge bg-info"><?= htmlspecialchars($user["gradeLevel"] ?? 'Not set') ?></span>
+                                </td>
+                                <td width="15%">
+                                    <span class="badge bg-<?= $badgeClass ?>">
+                                        <i class="fa-solid fa-circle fa-xs me-1"></i>
+                                        <?= $statusText ?>
+                                    </span>
+                                </td>
+                                <td width="20%">
+                                    <?php if (!empty($user["enrolled_date"])): ?>
+                                        <small><?= date('M d, Y', strtotime($user["enrolled_date"])) ?></small>
+                                    <?php else: ?>
+                                        <small class="text-muted">Not enrolled yet</small>
                                     <?php endif; ?>
-                                </div>
-                            </div>
-                        </td>
-                        <td width="15%">
-                            <span class="badge bg-info"><?= htmlspecialchars($user["gradeLevel"] ?? 'Not set') ?></span>
-                        </td>
-                        <td width="15%">
-                            <span class="badge bg-<?= $badgeClass ?>">
-                                <i class="fa-solid fa-circle fa-xs me-1"></i>
-                                <?= $statusText ?>
-                            </span>
-                        </td>
-                        <td width="20%">
-                            <?php if(!empty($user["enrolled_date"])): ?>
-                            <small><?= date('M d, Y', strtotime($user["enrolled_date"])) ?></small>
-                            <?php else: ?>
-                            <small class="text-muted">Not enrolled yet</small>
-                            <?php endif; ?>
-                        </td>
-                        <td width="25%">
-                            <div class="d-flex gap-1 justify-content-center">
-                                <a href="index.php?page=contents/form&student_id=<?= htmlspecialchars($user["student_id"]) ?>"
-                                    class="btn btn-sm btn-info" title="View Enrollment Form">
-                                    <i class="fa-solid fa-file-lines me-1"></i> Form
-                                </a>
-                                <?php if($status != 'active' && $status != 'rejected'): ?>
-                                <button type="button" class="btn btn-success btn-sm open-enrolment"
-                                    data-id="<?= htmlspecialchars($user["student_id"]) ?>"
-                                    data-gradelevel="<?= htmlspecialchars($user["gradeLevel"]) ?>"
-                                    title="Approve Enrollment">
-                                    <i class="fa-solid fa-check me-1"></i> Approve
-                                </button>
-                                <?php endif; ?>
-                                <?php if($status != 'rejected' && $status != 'active'): ?>
-                                <button type="button" class="btn btn-danger btn-sm open-rejection"
-                                    data-id="<?= htmlspecialchars($user["student_id"]) ?>" title="Reject Enrollment">
-                                    <i class="fa-solid fa-xmark me-1"></i> Reject
-                                </button>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                                </td>
+                                <td width="25%">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a href="index.php?page=contents/form&student_id=<?= htmlspecialchars($user["student_id"]) ?>"
+                                            class="btn btn-sm btn-info" title="View Enrollment Form">
+                                            <i class="fa-solid fa-file-lines me-1"></i> Form
+                                        </a>
+                                        <?php if ($status != 'active' && $status != 'rejected'): ?>
+                                            <button type="button" class="btn btn-success btn-sm open-enrolment"
+                                                data-id="<?= htmlspecialchars($user["student_id"]) ?>"
+                                                data-gradelevel="<?= htmlspecialchars($user["gradeLevel"]) ?>"
+                                                title="Approve Enrollment">
+                                                <i class="fa-solid fa-check me-1"></i> Approve
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if ($status != 'rejected' && $status != 'active'): ?>
+                                            <button type="button" class="btn btn-danger btn-sm open-rejection"
+                                                data-id="<?= htmlspecialchars($user["student_id"]) ?>" title="Reject Enrollment">
+                                                <i class="fa-solid fa-xmark me-1"></i> Reject
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     <?php else: ?>
-                    <tr>
-                        <td colspan="6" class="text-center py-3">No students found.</td>
-                    </tr>
+                        <tr>
+                            <td colspan="6" class="text-center py-3">No students found.</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -248,11 +259,11 @@
                         <label class="form-label">Class Adviser <span class="text-danger">*</span></label>
                         <select name="adviser_id" id="adviserSelect" class="form-select" required>
                             <option value="">Select Adviser</option>
-                            <?php foreach($classes as $class): ?>
-                            <option value="<?= $class["adviser_id"] ?>"
-                                data-section="<?= htmlspecialchars($class["section_name"]) ?>">
-                                <?= htmlspecialchars($class["lastname"]) . ", " . htmlspecialchars($class["firstname"]) ?>
-                            </option>
+                            <?php foreach ($classes as $class): ?>
+                                <option value="<?= $class["adviser_id"] ?>"
+                                    data-section="<?= htmlspecialchars($class["section_name"]) ?>">
+                                    <?= htmlspecialchars($class["lastname"]) . ", " . htmlspecialchars($class["firstname"]) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -335,203 +346,203 @@
 </div>
 
 <script>
-// Pass subjects from PHP to JS
-const allSubjects = <?= json_encode($subjects) ?>;
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
-    const gradeFilter = document.getElementById('gradeFilter');
-    const studentRows = document.querySelectorAll('.student-row');
-    const enrollmentTableBody = document.getElementById('enrollmentTableBody');
-    const noResultsDiv = document.getElementById('noResults');
+    // Pass subjects from PHP to JS
+    const allSubjects = <?= json_encode($subjects) ?>;
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const gradeFilter = document.getElementById('gradeFilter');
+        const studentRows = document.querySelectorAll('.student-row');
+        const enrollmentTableBody = document.getElementById('enrollmentTableBody');
+        const noResultsDiv = document.getElementById('noResults');
 
-    // Adviser select handler
-    const adviserSelect = document.getElementById('adviserSelect');
-    const sectionNameDiv = document.getElementById('section_name');
-    const sectionNameHidden = document.getElementById('section_name_hidden');
+        // Adviser select handler
+        const adviserSelect = document.getElementById('adviserSelect');
+        const sectionNameDiv = document.getElementById('section_name');
+        const sectionNameHidden = document.getElementById('section_name_hidden');
 
-    if (adviserSelect && sectionNameDiv) {
-        adviserSelect.addEventListener('change', function() {
-            const selectedOption = this.selectedOptions[0];
-            const section = selectedOption.dataset.section || '';
-            sectionNameDiv.textContent = section;
-            sectionNameHidden.value = section;
-        });
-    }
-
-    // Search and filter functionality
-    function filterStudents() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const statusValue = statusFilter.value.toLowerCase();
-        const gradeValue = gradeFilter.value.toLowerCase();
-
-        let visibleCount = 0;
-
-        studentRows.forEach(row => {
-            const name = row.getAttribute('data-name');
-            const grade = row.getAttribute('data-grade');
-            const status = row.getAttribute('data-status');
-
-            let matchesSearch = true;
-            let matchesStatus = true;
-            let matchesGrade = true;
-
-            // Apply search filter
-            if (searchTerm) {
-                matchesSearch = name.includes(searchTerm);
-            }
-
-            // Apply status filter
-            if (statusValue) {
-                matchesStatus = status.includes(statusValue);
-            }
-
-            // Apply grade filter
-            if (gradeValue) {
-                matchesGrade = grade.includes(gradeValue.toLowerCase());
-            }
-
-            // Show/hide row based on filters
-            if (matchesSearch && matchesStatus && matchesGrade) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        // Show/hide no results message
-        if (visibleCount === 0) {
-            enrollmentTableBody.style.display = 'none';
-            noResultsDiv.classList.remove('d-none');
-        } else {
-            enrollmentTableBody.style.display = '';
-            noResultsDiv.classList.add('d-none');
+        if (adviserSelect && sectionNameDiv) {
+            adviserSelect.addEventListener('change', function() {
+                const selectedOption = this.selectedOptions[0];
+                const section = selectedOption.dataset.section || '';
+                sectionNameDiv.textContent = section;
+                sectionNameHidden.value = section;
+            });
         }
 
-        // Update row numbers
-        updateRowNumbers();
-    }
+        // Search and filter functionality
+        function filterStudents() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const statusValue = statusFilter.value.toLowerCase();
+            const gradeValue = gradeFilter.value.toLowerCase();
 
-    // Function to update row numbers
-    function updateRowNumbers() {
-        let counter = 1;
-        studentRows.forEach(row => {
-            if (row.style.display !== 'none') {
-                const firstCell = row.querySelector('td:first-child');
-                if (firstCell) {
-                    firstCell.textContent = counter++;
+            let visibleCount = 0;
+
+            studentRows.forEach(row => {
+                const name = row.getAttribute('data-name');
+                const grade = row.getAttribute('data-grade');
+                const status = row.getAttribute('data-status');
+
+                let matchesSearch = true;
+                let matchesStatus = true;
+                let matchesGrade = true;
+
+                // Apply search filter
+                if (searchTerm) {
+                    matchesSearch = name.includes(searchTerm);
                 }
+
+                // Apply status filter
+                if (statusValue) {
+                    matchesStatus = status.includes(statusValue);
+                }
+
+                // Apply grade filter
+                if (gradeValue) {
+                    matchesGrade = grade.includes(gradeValue.toLowerCase());
+                }
+
+                // Show/hide row based on filters
+                if (matchesSearch && matchesStatus && matchesGrade) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Show/hide no results message
+            if (visibleCount === 0) {
+                enrollmentTableBody.style.display = 'none';
+                noResultsDiv.classList.remove('d-none');
+            } else {
+                enrollmentTableBody.style.display = '';
+                noResultsDiv.classList.add('d-none');
+            }
+
+            // Update row numbers
+            updateRowNumbers();
+        }
+
+        // Function to update row numbers
+        function updateRowNumbers() {
+            let counter = 1;
+            studentRows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    const firstCell = row.querySelector('td:first-child');
+                    if (firstCell) {
+                        firstCell.textContent = counter++;
+                    }
+                }
+            });
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', filterStudents);
+        statusFilter.addEventListener('change', filterStudents);
+        gradeFilter.addEventListener('change', filterStudents);
+
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            statusFilter.value = '';
+            gradeFilter.value = '';
+            filterStudents();
+            searchInput.focus();
+        });
+
+        // Add Enter key support for search
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterStudents();
             }
         });
-    }
 
-    // Event listeners
-    searchInput.addEventListener('input', filterStudents);
-    statusFilter.addEventListener('change', filterStudents);
-    gradeFilter.addEventListener('change', filterStudents);
-
-    clearSearchBtn.addEventListener('click', function() {
-        searchInput.value = '';
-        statusFilter.value = '';
-        gradeFilter.value = '';
-        filterStudents();
-        searchInput.focus();
-    });
-
-    // Add Enter key support for search
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            filterStudents();
-        }
-    });
-
-    // Add some styling
-    searchInput.addEventListener('focus', function() {
-        this.parentElement.classList.add('border-primary', 'border-2');
-    });
-
-    searchInput.addEventListener('blur', function() {
-        this.parentElement.classList.remove('border-primary', 'border-2');
-    });
-
-    statusFilter.addEventListener('focus', function() {
-        this.parentElement.classList.add('border-primary', 'border-2');
-    });
-
-    statusFilter.addEventListener('blur', function() {
-        this.parentElement.classList.remove('border-primary', 'border-2');
-    });
-
-    gradeFilter.addEventListener('focus', function() {
-        this.parentElement.classList.add('border-primary', 'border-2');
-    });
-
-    gradeFilter.addEventListener('blur', function() {
-        this.parentElement.classList.remove('border-primary', 'border-2');
-    });
-
-    // Initialize
-    filterStudents();
-});
-
-// Enrollment modal functionality
-document.addEventListener('DOMContentLoaded', () => {
-    // Open enrolment modal
-    const openEnrolmentButtons = document.querySelectorAll('.open-enrolment');
-    const openRejectionButtons = document.querySelectorAll('.open-rejection');
-    const studentIdInput = document.getElementById('student_id');
-    const gradeLevelDisplay = document.getElementById('gradeLevelDisplay');
-    const gradeLevelValue = document.getElementById('gradeLevelValue');
-    const subjectListContainer = document.getElementById('subjectListContainer');
-    const studentIDInput = document.getElementById('studentID');
-
-    openEnrolmentButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const studentId = button.getAttribute('data-id');
-            const gradeLevel = button.getAttribute('data-gradelevel');
-
-            // Set values in the form
-            studentIdInput.value = studentId;
-            gradeLevelDisplay.textContent = gradeLevel;
-            gradeLevelValue.value = gradeLevel;
-
-            // Display subjects for this grade level
-            displaySubjectsForGradeLevel(gradeLevel);
-
-            // Show the modal
-            const modal = new bootstrap.Modal(document.getElementById('AddNewAccount'));
-            modal.show();
+        // Add some styling
+        searchInput.addEventListener('focus', function() {
+            this.parentElement.classList.add('border-primary', 'border-2');
         });
+
+        searchInput.addEventListener('blur', function() {
+            this.parentElement.classList.remove('border-primary', 'border-2');
+        });
+
+        statusFilter.addEventListener('focus', function() {
+            this.parentElement.classList.add('border-primary', 'border-2');
+        });
+
+        statusFilter.addEventListener('blur', function() {
+            this.parentElement.classList.remove('border-primary', 'border-2');
+        });
+
+        gradeFilter.addEventListener('focus', function() {
+            this.parentElement.classList.add('border-primary', 'border-2');
+        });
+
+        gradeFilter.addEventListener('blur', function() {
+            this.parentElement.classList.remove('border-primary', 'border-2');
+        });
+
+        // Initialize
+        filterStudents();
     });
 
-    function displaySubjectsForGradeLevel(gradeLevel) {
-        // Clear previous content
-        subjectListContainer.innerHTML = '';
+    // Enrollment modal functionality
+    document.addEventListener('DOMContentLoaded', () => {
+        // Open enrolment modal
+        const openEnrolmentButtons = document.querySelectorAll('.open-enrolment');
+        const openRejectionButtons = document.querySelectorAll('.open-rejection');
+        const studentIdInput = document.getElementById('student_id');
+        const gradeLevelDisplay = document.getElementById('gradeLevelDisplay');
+        const gradeLevelValue = document.getElementById('gradeLevelValue');
+        const subjectListContainer = document.getElementById('subjectListContainer');
+        const studentIDInput = document.getElementById('studentID');
 
-        // Filter subjects by grade level
-        const filteredSubjects = allSubjects.filter(s => s.grade_level === gradeLevel);
+        openEnrolmentButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const studentId = button.getAttribute('data-id');
+                const gradeLevel = button.getAttribute('data-gradelevel');
 
-        if (filteredSubjects.length === 0) {
-            subjectListContainer.innerHTML = `
+                // Set values in the form
+                studentIdInput.value = studentId;
+                gradeLevelDisplay.textContent = gradeLevel;
+                gradeLevelValue.value = gradeLevel;
+
+                // Display subjects for this grade level
+                displaySubjectsForGradeLevel(gradeLevel);
+
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('AddNewAccount'));
+                modal.show();
+            });
+        });
+
+        function displaySubjectsForGradeLevel(gradeLevel) {
+            // Clear previous content
+            subjectListContainer.innerHTML = '';
+
+            // Filter subjects by grade level
+            const filteredSubjects = allSubjects.filter(s => s.grade_level === gradeLevel);
+
+            if (filteredSubjects.length === 0) {
+                subjectListContainer.innerHTML = `
                 <div class="col-12">
                     <div class="alert alert-warning"><i class="fa-solid fa-exclamation-triangle me-2"></i>No subjects available for ${gradeLevel}.</div>
                 </div>
             `;
-            return;
-        }
+                return;
+            }
 
-        // Create a list of subjects
-        const listGroup = document.createElement('div');
-        listGroup.classList.add('list-group');
+            // Create a list of subjects
+            const listGroup = document.createElement('div');
+            listGroup.classList.add('list-group');
 
-        filteredSubjects.forEach(subject => {
-            const listItem = document.createElement('div');
-            listItem.classList.add('list-group-item');
+            filteredSubjects.forEach(subject => {
+                const listItem = document.createElement('div');
+                listItem.classList.add('list-group-item');
 
-            const subjectInfo = document.createElement('div');
-            subjectInfo.classList.add('d-flex', 'justify-content-between', 'align-items-center');
-            subjectInfo.innerHTML = `
+                const subjectInfo = document.createElement('div');
+                subjectInfo.classList.add('d-flex', 'justify-content-between', 'align-items-center');
+                subjectInfo.innerHTML = `
                 <div>
                     <strong class="d-block">${subject.subject_code}</strong>
                     <small class="text-muted">${subject.subject_name}</small>
@@ -539,119 +550,120 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="hidden" name="subjects[]" value="${subject.subject_id}">
             `;
 
-            listItem.appendChild(subjectInfo);
-            listGroup.appendChild(listItem);
-        });
+                listItem.appendChild(subjectInfo);
+                listGroup.appendChild(listItem);
+            });
 
-        subjectListContainer.innerHTML = '';
-        subjectListContainer.appendChild(listGroup);
-    }
+            subjectListContainer.innerHTML = '';
+            subjectListContainer.appendChild(listGroup);
+        }
 
-    // Rejection modal
-    openRejectionButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const studentId = button.getAttribute('data-id');
-            studentIDInput.value = studentId;
+        // Rejection modal
+        openRejectionButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const studentId = button.getAttribute('data-id');
+                studentIDInput.value = studentId;
 
-            const modal = new bootstrap.Modal(document.getElementById('rejectEnrolment'));
-            modal.show();
+                const modal = new bootstrap.Modal(document.getElementById('rejectEnrolment'));
+                modal.show();
+            });
         });
     });
-});
 </script>
 
 <style>
-.scroll-classes{
-    height: 80vh;
-    overflow-y: scroll;
-    overflow-x: hidden;
-}
-.table-container-wrapper {
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    overflow: hidden;
-}
+    .scroll-classes {
+        height: 80vh;
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
 
-.table thead th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
+    .table-container-wrapper {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
 
-.table tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-}
+    .table thead th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
 
-.avatar-placeholder {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: #f8f9fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-}
+    .table tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
 
-.empty-state {
-    padding: 3rem 1rem;
-}
+    .avatar-placeholder {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
 
-.empty-state i {
-    opacity: 0.5;
-}
+    .empty-state {
+        padding: 3rem 1rem;
+    }
 
-.badge {
-    padding: 0.35em 0.65em;
-    font-size: 0.75em;
-    font-weight: 600;
-}
+    .empty-state i {
+        opacity: 0.5;
+    }
 
-.btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-}
+    .badge {
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+        font-weight: 600;
+    }
 
-.input-group-text {
-    border-right: none;
-}
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
 
-#searchInput:focus {
-    box-shadow: none;
-    border-color: #86b7fe;
-}
+    .input-group-text {
+        border-right: none;
+    }
 
-#clearSearch:hover {
-    background-color: #e9ecef;
-}
+    #searchInput:focus {
+        box-shadow: none;
+        border-color: #86b7fe;
+    }
 
-.form-control.bg-light {
-    background-color: #f8f9fa !important;
-    border: 1px solid #dee2e6;
-    color: #495057;
-}
+    #clearSearch:hover {
+        background-color: #e9ecef;
+    }
 
-.card {
-    border: 1px solid rgba(0, 0, 0, 0.125);
-}
+    .form-control.bg-light {
+        background-color: #f8f9fa !important;
+        border: 1px solid #dee2e6;
+        color: #495057;
+    }
 
-.list-group-item {
-    border-left: 0;
-    border-right: 0;
-}
+    .card {
+        border: 1px solid rgba(0, 0, 0, 0.125);
+    }
 
-.list-group-item:first-child {
-    border-top: 0;
-}
+    .list-group-item {
+        border-left: 0;
+        border-right: 0;
+    }
 
-.list-group-item:last-child {
-    border-bottom: 0;
-}
+    .list-group-item:first-child {
+        border-top: 0;
+    }
 
-.btn:hover {
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
-}
+    .list-group-item:last-child {
+        border-bottom: 0;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
 </style>
