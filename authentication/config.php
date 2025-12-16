@@ -36,6 +36,12 @@ function db_connect()
                 logout_time DATETIME DEFAULT NULL,
                 FOREIGN KEY (admin_id) REFERENCES admin(admin_id) ON DELETE CASCADE
             )",
+            "CREATE TABLE IF NOT EXISTS school_year (
+                school_year_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                school_year_status ENUM('Active', 'Inactive'),
+                school_year_name VARCHAR(50) NOT NULL,
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )",
             "CREATE TABLE IF NOT EXISTS users (
                 user_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 firstname VARCHAR(50) NOT NULL,
@@ -51,7 +57,9 @@ function db_connect()
                 user_role ENUM('PARENT', 'TEACHER'),
                 relationship ENUM('Father', 'Mother', 'Guardian'),
                 student_profile VARCHAR(255),
-                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                school_year_id INT(11),
+                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (school_year_id) REFERENCES school_year(school_year_id) ON DELETE CASCADE
             )",
             "CREATE TABLE IF NOT EXISTS users_history (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -77,12 +85,7 @@ function db_connect()
                 created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 
             )",
-            "CREATE TABLE IF NOT EXISTS school_year (
-                school_year_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                school_year_status ENUM('Active', 'Inactive'),
-                school_year_name VARCHAR(50) NOT NULL,
-                created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )",
+
             "CREATE TABLE IF NOT EXISTS classrooms (
                 room_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 room_status  ENUM('Unavailable', 'Available') DEFAULT 'Available',
