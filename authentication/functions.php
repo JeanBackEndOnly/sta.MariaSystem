@@ -43,15 +43,11 @@ function base_url()
 {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'];
+    $project = '/sta.MariaSystem/'; // your project folder
 
-    $isLocal = in_array($_SERVER['REMOTE_ADDR'], ['127.0.0.1', '::1']);
-
-    if ($isLocal) {
-        return $protocol . '://' . $host . '/sta.MariaSystem/';
-    } else {
-        return $protocol . '://' . $host . '/';
-    }
+    return $protocol . '://' . $host . $project;
 }
+
 
 function get_current_page()
 {
