@@ -65,9 +65,24 @@
      <!-- Classrooms Table -->
      <div class="table-container-wrapper p-0">
          <?php
-            $stmt = $pdo->prepare("SELECT * FROM classrooms LEFT JOIN school_year ON classrooms.school_year_id = school_year.school_year_id ORDER BY classrooms.created_date DESC");
-            $stmt->execute();
-            $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            try {
+                $stmt = $pdo->prepare("SELECT * FROM classrooms LEFT JOIN school_year ON classrooms.school_year_id = school_year.school_year_id ORDER BY classrooms.created_date DESC");
+                $stmt->execute();
+                $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (PDOException $e) {
+                error_log('Classrooms query failed: ' . $e->getMessage());
+                // Fallback to a simpler query if the joined column is missing
+                $stmt = $pdo->prepare("SELECT * FROM classrooms ORDER BY created_date DESC");
+                $stmt->execute();
+                $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                // Ensure school_year_name key exists to avoid undefined index when rendering
+                foreach ($classrooms as &$c) {
+                    if (!isset($c['school_year_name'])) {
+                        $c['school_year_name'] = '';
+                    }
+                }
+                unset($c);
+            }
             $count = 1;
             ?>
 
@@ -278,6 +293,7 @@
          const noResultsDiv = document.getElementById('noResults');
          const editButtons = document.querySelectorAll('.editClassroomsBtn');
          const deleteButtons = document.querySelectorAll('.deleteClassroomBtn');
+         const clearSearchBtn = document.getElementById('clearSearch');
 
          // Classroom data for edit form (you would typically fetch this via AJAX)
          const classroomsData = <?= json_encode($classrooms); ?>;
@@ -363,11 +379,13 @@
          // Event listeners
          searchInput.addEventListener('input', filterClassrooms);
 
-         clearSearchBtn.addEventListener('click', function() {
-             searchInput.value = '';
-             filterClassrooms();
-             searchInput.focus();
-         });
+         if (clearSearchBtn) {
+             clearSearchBtn.addEventListener('click', function() {
+                 searchInput.value = '';
+                 filterClassrooms();
+                 searchInput.focus();
+             });
+         }
 
          // Add Enter key support for search
          searchInput.addEventListener('keypress', function(e) {

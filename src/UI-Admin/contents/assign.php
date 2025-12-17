@@ -27,16 +27,27 @@ if ($currentSy) {
         LEFT JOIN users u
             ON u.user_id = cl.adviser_id
 
-        WHERE c.school_year_id = ?
         ORDER BY c.room_name ASC
     ");
 
-    $stmt->execute([
-        $currentSy['school_year_id'], // for classes.sy_id
-        $currentSy['school_year_id']  // for classrooms.school_year_id
-    ]);
-
-    $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $stmt->execute([
+            $currentSy['school_year_id'] // for classes.sy_id (the LEFT JOIN condition)
+        ]);
+        $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('Assign page classrooms query failed: ' . $e->getMessage());
+        // Fallback: fetch classrooms without filtering by sy_id in the JOIN
+        $fallback = $pdo->prepare("SELECT 
+            c.room_id, c.room_name, c.room_type, c.room_status,
+            u.user_id AS adviser_id, u.firstname AS adviser_firstname, u.lastname AS adviser_lastname
+            FROM classrooms c
+            LEFT JOIN classes cl ON cl.classroom_id = c.room_id
+            LEFT JOIN users u ON u.user_id = cl.adviser_id
+            ORDER BY c.room_name ASC");
+        $fallback->execute();
+        $classrooms = $fallback->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 
 
@@ -388,6 +399,7 @@ $schoolYears = $currentSy ?? [];
         const classroomIdInput = document.getElementById('classroomIdInput');
         const gradeSelect = document.getElementById('grade_level');
         const sectionSelect = document.getElementById('section_id');
+        const clearSearchBtn = document.getElementById('clearSearch');
 
         // PHP data passed to JavaScript
         const sectionsByGrade = <?php echo json_encode($sectionsByGrade); ?>;
@@ -491,11 +503,13 @@ $schoolYears = $currentSy ?? [];
         // Event listeners
         searchInput.addEventListener('input', filterClassrooms);
 
-        clearSearchBtn.addEventListener('click', function() {
-            searchInput.value = '';
-            filterClassrooms();
-            searchInput.focus();
-        });
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', function() {
+                searchInput.value = '';
+                filterClassrooms();
+                searchInput.focus();
+            });
+        }
 
         // Add Enter key support for search
         searchInput.addEventListener('keypress', function(e) {
