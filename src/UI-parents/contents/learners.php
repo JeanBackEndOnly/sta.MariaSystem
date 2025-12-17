@@ -538,12 +538,14 @@
         if (searchInput) {
             searchInput.addEventListener('keyup', function() {
                 const searchTerm = this.value.toLowerCase();
+                console.log(searchTerm);
+                
 
                 studentCards.forEach(card => {
                     const text = card.textContent.toLowerCase();
                     if (text.includes(searchTerm)) {
                         card.style.display = 'block';
-                        card.style.animation = 'fadeInUp 0.3s ease-out';
+                        // card.style.animation = 'fadeInUp 0.3s ease-out';
                     } else {
                         card.style.display = 'none';
                     }
