@@ -8,7 +8,7 @@
                 </h2>
                 <p class="text-muted mb-0">Manage your profile and security settings</p>
             </div>
-            <button class="btn btn-outline-primary d-flex align-items-center text-dark"
+            <button type="button" class="btn btn-outline-primary d-flex align-items-center text-dark"
                     data-bs-toggle="modal" 
                     data-bs-target="#changePassword">
                 <i class="fas fa-key me-2"></i>Change Password
@@ -17,11 +17,16 @@
     </div>
 
     <?php
-    $query = "SELECT * FROM users WHERE user_id = :user_id";
+    $query = "SELECT firstname, middlename, lastname, suffix, email, student_profile FROM users WHERE user_id = :user_id";
     $stmt = $pdo->prepare($query);
     $stmt->bindParam(':user_id', $user_id);
     $stmt->execute();
-    $LibrarianInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+    $userInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$userInfo) {
+        echo "<div class='alert alert-danger'>User not found.</div>";
+        return;
+    }
     ?>
 
     <!-- Profile Form -->
@@ -36,12 +41,11 @@
                 <!-- Profile Picture Section -->
                 <div class="col-lg-4 col-md-5 mb-4 mb-md-0">
                     <div class="profile-picture-section text-center p-4 rounded-3 border bg-light">
-                        <div class="profile-image-container mb-3 position-relative mx-auto" 
-                             style="width: 180px; height: 180px;">
+                        <div class="profile-image-container mb-3 position-relative mx-auto">
                             <?php 
-                            if($LibrarianInfo["student_profile"] !== null) { ?>
-                               <img src="../../authentication/uploads/<?= htmlspecialchars($LibrarianInfo["student_profile"]);?>" 
-                                         class="img-fluid" style="width:180px; height: auto; border-radius: 50%;" alt="Profile Picture">
+                            if($userInfo["student_profile"] !== null) { ?>
+                               <img id="settingsProfile" src="../../authentication/uploads/<?= htmlspecialchars($userInfo["student_profile"]);?>" 
+                                         class="img-fluid profile-img" alt="Profile Picture">
                             <?php } else { ?>
                                 <div class="rounded-circle w-100 h-100 bg-primary d-flex align-items-center justify-content-center border shadow-sm">
                                     <i class="fas fa-user text-white fa-4x"></i>
@@ -50,17 +54,17 @@
                             
                             <label for="student_profile" 
                                    class="btn btn-sm btn-outline-primary position-absolute bottom-0 end-0 rounded-circle"
-                                   style="width: 40px; height: 40px; cursor: pointer;">
+                                   id="upload-icon-label">
                                 <i class="fas fa-camera"></i>
                             </label>
                         </div>
                         
                         <div>
-                            <h5 class="mb-2"><?= htmlspecialchars($LibrarianInfo["firstname"] . ' ' . $LibrarianInfo["lastname"]) ?></h5>
+                            <h5 class="mb-2"><?= htmlspecialchars($userInfo["firstname"] . ' ' . $userInfo["lastname"]) ?></h5>
                             <p class="text-muted small mb-0">Administrator</p>
                         </div>
                         
-                        <input type="hidden" name="current_profile_image" value="<?= $LibrarianInfo["student_profile"] ?>">
+                        <input type="hidden" name="current_profile_image" value="<?= $userInfo["student_profile"] ?>">
                         <input type="file" name="student_profile" id="student_profile" 
                                class="form-control d-none" 
                                accept="image/*"
@@ -79,7 +83,7 @@
                                 <i class="fas fa-user me-1 text-muted"></i> First Name
                             </label>
                             <input type="text" name="firstname" 
-                                   value="<?= $LibrarianInfo["firstname"] ?>"
+                                   value="<?= $userInfo["firstname"] ?>"
                                    class="form-control form-control-lg" 
                                    placeholder="Enter first name">
                         </div>
@@ -89,7 +93,7 @@
                                 <i class="fas fa-user me-1 text-muted"></i> Last Name
                             </label>
                             <input type="text" name="lastname" 
-                                   value="<?= $LibrarianInfo["lastname"] ?>"
+                                   value="<?= $userInfo["lastname"] ?>"
                                    class="form-control form-control-lg" 
                                    placeholder="Enter last name">
                         </div>
@@ -99,7 +103,7 @@
                                 <i class="fas fa-user me-1 text-muted"></i> Middle Name
                             </label>
                             <input type="text" name="middlename" 
-                                   value="<?= $LibrarianInfo["middlename"] ?>"
+                                   value="<?= $userInfo["middlename"] ?>"
                                    class="form-control form-control-lg" 
                                    placeholder="Enter middle name">
                         </div>
@@ -108,13 +112,15 @@
                             <label class="form-label fw-semibold">
                                 <i class="fas fa-tag me-1 text-muted"></i> Name Suffix
                             </label>
+                            <?php
+                                $suffixes = ["Jr.", "Sr.", "II", "III", "IV"];
+                                $currentSuffix = $userInfo["suffix"];
+                            ?>
                             <select name="suffix" class="form-select form-select-lg">
-                                <option value="" <?= empty($LibrarianInfo["suffix"]) ? 'selected' : '' ?>>None</option>
-                                <option value="Jr." <?= $LibrarianInfo["suffix"] == "Jr." ? 'selected' : '' ?>>Jr.</option>
-                                <option value="Sr." <?= $LibrarianInfo["suffix"] == "Sr." ? 'selected' : '' ?>>Sr.</option>
-                                <option value="II" <?= $LibrarianInfo["suffix"] == "II" ? 'selected' : '' ?>>II</option>
-                                <option value="III" <?= $LibrarianInfo["suffix"] == "III" ? 'selected' : '' ?>>III</option>
-                                <option value="IV" <?= $LibrarianInfo["suffix"] == "IV" ? 'selected' : '' ?>>IV</option>
+                                <option value="" <?= empty($currentSuffix) ? 'selected' : '' ?>>None</option>
+                                <?php foreach ($suffixes as $suffix): ?>
+                                    <option value="<?= $suffix ?>" <?= $currentSuffix == $suffix ? 'selected' : '' ?>><?= $suffix ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         
@@ -124,7 +130,7 @@
                             </label>
                             <input type="email" class="form-control form-control-lg" 
                                    name="email"
-                                   value="<?= $LibrarianInfo["email"] ?>"
+                                   value="<?= $userInfo["email"] ?>"
                                    placeholder="Enter email address">
                         </div>
                     </div>
@@ -173,7 +179,7 @@
     <div class="modal fade" id="changePassword" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form method="POST" action="../../authentication/auth.php" class="modal-content border-0 shadow">
-                <input type="hidden" name="usersForgottenPassAdmin" value="true">
+                <input type="hidden" name="usersForgottenPass" value="true">
                 <input type="hidden" name="Users_id" value="<?= $user_id ?>">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION["csrf_token"]; ?>">
                 
@@ -242,7 +248,7 @@
 </section>
 
 <!-- Success/Error Messages Script -->
-<?php if (isset($_GET['update']) || isset($_GET['passwordChange']) || isset($_GET['NewPassword']) || isset($_GET['CurrentPasswoed'])): ?>
+<?php if (isset($_GET['update']) || isset($_GET['passwordChange']) || isset($_GET['NewPassword']) || isset($_GET['CurrentPassword'])): ?>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const messages = {
@@ -264,7 +270,7 @@ document.addEventListener("DOMContentLoaded", function() {
             text: 'New passwords do not match.',
             color: '#dc3545'
         },
-        CurrentPasswoed: {
+        CurrentPassword: {
             icon: 'error',
             title: 'Error!',
             text: 'Current password is incorrect.',
@@ -372,6 +378,28 @@ document.addEventListener("DOMContentLoaded", function() {
 #settingsProfile:hover {
     transform: scale(1.05);
 }
+
+.profile-image-container {
+    width: 180px;
+    height: 180px;
+}
+
+.profile-img {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+#upload-icon-label {
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 </style>
 
 <script>
@@ -396,8 +424,7 @@ function previewImage(event) {
         
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById("settingsProfile").src = e.target.result;
-            document.getElementById("settingsProfile").style.objectFit = 'cover';
+            document.getElementById("settingsProfile").src = e.target.result; 
         };
         reader.readAsDataURL(file);
     }
