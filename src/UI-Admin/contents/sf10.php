@@ -88,7 +88,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1 && isset($_GET['search'])) {
 </div>
 
 <script>
-    const BASE_URL = "<?= base_url(); ?>";
 document.getElementById('searchInput').addEventListener('keyup', function() {
     const search = this.value.trim();
     const xhr = new XMLHttpRequest();
@@ -108,7 +107,7 @@ function attachRowClickEvents() {
         row.addEventListener('click', function() {
             const studentId = this.getAttribute('data-id');
             if (studentId) {
-                window.location.href = BASE_PATH + '/src/UI-Admin/contents/schoolform10.php?student_id=' + studentId;
+                    window.location.href = '<?php echo BASE_FR; ?>/src/UI-Admin/contents/schoolform10.php?student_id=' + studentId;
             }
         });
     });

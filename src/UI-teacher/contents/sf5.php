@@ -240,7 +240,6 @@ body {
 </div>
 
 <script>
-    const BASE_URL = "<?= base_url(); ?>";
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const sectionTable = document.getElementById('sectionTable');
@@ -304,11 +303,11 @@ function attachRowClickEvents() {
             const gradeLevel = this.dataset.grade;
             const sectionName = this.dataset.section;
             if (sectionId && gradeLevel && sectionName) {
-               window.location.href = BASE_PATH + `/src/UI-Admin/contents/schoolform5.php`
-
+               const url = `<?php echo BASE_FR; ?>/src/UI-teacher/contents/schoolform5.php`
                     + `?section_id=${encodeURIComponent(sectionId)}`
                     + `&grade=${encodeURIComponent(gradeLevel)}`
                     + `&section=${encodeURIComponent(sectionName)}`;
+                window.location.href = url;
             }
         });
     });
