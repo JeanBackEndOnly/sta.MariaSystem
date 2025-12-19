@@ -575,6 +575,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
 
+.table-grades input {
+  width: 100px;
+}
+
+.table-grades td:first-child input {
+  width: 180px;
+  text-align: left;
+}
+
+
+.table-grades td:last-child input {
+  width: 120px;
+}
+      
     @media (max-width: 767px) {
       .sidebar img {
         width: 86px;
@@ -1039,5 +1053,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </script>
 
 </body>
+
 
 </html>
