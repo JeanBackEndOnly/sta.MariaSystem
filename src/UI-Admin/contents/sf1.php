@@ -667,6 +667,9 @@ $availableSections = $stmtSections->fetchAll(PDO::FETCH_ASSOC);
                 <!DOCTYPE html>
                 <html>
                 <head>
+<?= 
+                '<link rel="icon" href="' . base_url() . '/assets/image/logo2.png" type="image/x-icon">'
+                ?>
                     <title>School Form 1 (SF1) - School Register</title>
                     <style>
                         body { 

@@ -1,11 +1,16 @@
 <?php
-echo '
+require_once __DIR__ . '/../tupperware.php';
+
+?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="<?php echo base_url() ?>/assets/image/logo2.png" type="image/x-icon">
     <title>Unauthorized Access</title>
 </head>
+
 <body class="bg-light">
     <div class="d-flex justify-content-center align-items-center vh-100">
         <div class="text-center border p-4 rounded shadow bg-white">
@@ -17,6 +22,10 @@ echo '
         </div>
     </div>
 </body>
+
 </html>';
+
+<?php
+header('location: ../src/index.php');
 exit;
 ?>
