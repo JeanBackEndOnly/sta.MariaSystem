@@ -432,7 +432,7 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
 <body>
 <div class="d-flex align-items-center justify-content-between col-12 m-0 p-0 header-brand">
   <div class="d-flex align-items-center ps-4">
-    <img src="../../../assets/image/logo2.png" alt="Logo">
+    <img src="/<?= BASE_FR ?>/assets/image/logo2.png" alt="Logo">
     <h4>STA.MARIA WEB SYSTEM</h4>
   </div>
 </div>

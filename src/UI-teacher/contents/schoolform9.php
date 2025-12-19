@@ -511,7 +511,7 @@ $backSheet->setCellValue("A{$row}", $subjects[$i] ?? '');
 
 <div class="text-white d-flex align-items-center justify-content-between col-12 m-0 p-0 header-brand">
   <div class="d-flex align-items-center ps-4">
-    <img src="../../../assets/image/logo2.png" alt="Logo"
+    <img src="/<?= BASE_FR ?>/assets/image/logo2.png" alt="Logo"
          style="width: 65px; height: 65px; border-radius: 50%; margin-right: 15px; object-fit: cover;">
     <h4 class="card-title text-white m-0 fw-bold" style="font-size: 1.3rem;">STA.MARIA WEB SYSTEM</h4>
   </div>
