@@ -10,6 +10,7 @@ if ($result['res']) {
 ?>
 
 <?php include 'nav-head.php'; ?>
+<link rel="icon" href="<?php echo base_url() ?>/assets/image/logo2.png" type="image/x-icon">
 
 <title><?php echo get_option('system_title'); ?></title>
 <div class="d-flex d-justify-between">

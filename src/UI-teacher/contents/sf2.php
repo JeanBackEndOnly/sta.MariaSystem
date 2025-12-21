@@ -36,17 +36,18 @@ $selected_month = $_POST['month'] ?? '';
 $selected_year = date('Y'); // Current year or get from school year
 
 // Function to get all school days for a month
-function getSchoolDaysForMonth($month, $year) {
+function getSchoolDaysForMonth($month, $year)
+{
     $month_num = date('m', strtotime($month . " 1, $year"));
     $days_in_month = cal_days_in_month(CAL_GREGORIAN, $month_num, $year);
-    
+
     $school_days = [];
     $weekday_count = 0;
-    
+
     for ($day = 1; $day <= $days_in_month; $day++) {
         $date = "$year-$month_num-" . str_pad($day, 2, '0', STR_PAD_LEFT);
         $weekday = date('w', strtotime($date)); // 0 = Sunday, 1 = Monday, etc.
-        
+
         // Only Monday to Friday are school days
         if ($weekday >= 1 && $weekday <= 5) {
             $weekday_count++;
@@ -58,7 +59,7 @@ function getSchoolDaysForMonth($month, $year) {
             ];
         }
     }
-    
+
     return $school_days;
 }
 
@@ -83,11 +84,11 @@ $stmt->execute([
 $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Separate male and female students
-$male_students = array_filter($students, function($student) {
+$male_students = array_filter($students, function ($student) {
     return strtoupper($student['sex'] ?? '') === 'MALE';
 });
 
-$female_students = array_filter($students, function($student) {
+$female_students = array_filter($students, function ($student) {
     return strtoupper($student['sex'] ?? '') === 'FEMALE';
 });
 
@@ -98,10 +99,10 @@ $student_absent_counts = [];
 if ($selected_month && !empty($students)) {
     $student_ids = array_column($students, 'student_id');
     $placeholders = str_repeat('?,', count($student_ids) - 1) . '?';
-    
+
     // Convert month name to number
     $month_num = date('m', strtotime($selected_month . " 1, $selected_year"));
-    
+
     // Get attendance records for the selected month
     $stmt = $pdo->prepare("SELECT a.*, s.student_id 
         FROM attendance a 
@@ -109,30 +110,30 @@ if ($selected_month && !empty($students)) {
         WHERE s.student_id IN ($placeholders) 
         AND MONTH(a.morning_attendance) = ? 
         AND YEAR(a.morning_attendance) = ?");
-    
+
     $params = array_merge($student_ids, [$month_num, $selected_year]);
     $stmt->execute($params);
     $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Organize attendance by student and date
     foreach ($attendance_records as $record) {
         $student_id = $record['student_id'];
         $date = date('Y-m-d', strtotime($record['morning_attendance']));
         $day = date('j', strtotime($record['morning_attendance']));
         $attendance_type = $record['attendance_summary'] ?? $record['attendance_type'];
-        
+
         if (!isset($student_attendance[$student_id])) {
             $student_attendance[$student_id] = [];
         }
-        
+
         $student_attendance[$student_id][$day] = $attendance_type;
-        
+
         // Initialize counts if not set
         if (!isset($student_present_counts[$student_id])) {
             $student_present_counts[$student_id] = 0;
             $student_absent_counts[$student_id] = 0;
         }
-        
+
         // Count present days (including tardy/late as present)
         if (in_array(strtoupper($attendance_type), ['PRESENT', 'LATE', 'HALF-DAY', 'HALF-DAY-LATE'])) {
             $student_present_counts[$student_id]++;
@@ -156,7 +157,7 @@ if ($selected_month && !empty($school_days)) {
         $daily_female_present[$day] = 0;
         $daily_male_absent[$day] = 0;
         $daily_female_absent[$day] = 0;
-        
+
         // Count male attendance per day
         foreach ($male_students as $student) {
             $student_id = $student['student_id'];
@@ -169,7 +170,7 @@ if ($selected_month && !empty($school_days)) {
                 }
             }
         }
-        
+
         // Count female attendance per day
         foreach ($female_students as $student) {
             $student_id = $student['student_id'];
@@ -182,7 +183,7 @@ if ($selected_month && !empty($school_days)) {
                 }
             }
         }
-        
+
         // Combined totals per day
         $daily_combined_present[$day] = $daily_male_present[$day] + $daily_female_present[$day];
         $daily_combined_absent[$day] = $daily_male_absent[$day] + $daily_female_absent[$day];
@@ -284,7 +285,7 @@ $count = 1;
                     </div>
                 </div>
             </div>
-            
+
             <div class="table-responsive" style="max-height: 1800px; overflow: auto;">
                 <table class="table table-bordered table-sm table-hover" style="text-align:center; min-width: 1800px; font-size: 11px;">
                     <thead>
@@ -329,65 +330,65 @@ $count = 1;
                             <th width="7.5">PRESENT</th>
                         </tr>
                     </thead>
-                    
+
                     <tbody style="font-size: 0.85rem;">
                         <!-- all male -->
-                        <?php 
+                        <?php
                         $male_count = 1;
                         if (!empty($male_students)) {
-                            foreach($male_students as $student) : 
+                            foreach ($male_students as $student) :
                                 $student_id = $student['student_id'];
-                                
+
                                 // Calculate absent count and get present count
                                 $absent_count = $student_absent_counts[$student_id] ?? 0;
                                 $present_count = $student_present_counts[$student_id] ?? 0;
                         ?>
-                        <tr>
-                            <td><?= $male_count++ ?></td>
-                            <td style="text-align: left; padding-left: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars(strtoupper($student["lname"] . ', ' . $student["fname"] . ' ' . $student["mname"])) ?>">
-                                <?= htmlspecialchars(strtoupper($student["lname"] . ', ' . $student["fname"] . ' ' . $student["mname"])) ?>
-                            </td>
-                            
-                            <?php
-                            // Display attendance cells for each school day
-                            if ($selected_month && !empty($school_days)) {
-                                foreach ($school_days as $day => $day_info) {
-                                    $attendance_status = $student_attendance[$student_id][$day] ?? '';
-                                    $is_absent = (strtoupper($attendance_status) === 'ABSENT');
-                                    
-                                    echo '<td>';
-                                    if ($is_absent) {
-                                        echo 'X';
+                                <tr>
+                                    <td><?= $male_count++ ?></td>
+                                    <td style="text-align: left; padding-left: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars(strtoupper($student["lname"] . ', ' . $student["fname"] . ' ' . $student["mname"])) ?>">
+                                        <?= htmlspecialchars(strtoupper($student["lname"] . ', ' . $student["fname"] . ' ' . $student["mname"])) ?>
+                                    </td>
+
+                                    <?php
+                                    // Display attendance cells for each school day
+                                    if ($selected_month && !empty($school_days)) {
+                                        foreach ($school_days as $day => $day_info) {
+                                            $attendance_status = $student_attendance[$student_id][$day] ?? '';
+                                            $is_absent = (strtoupper($attendance_status) === 'ABSENT');
+
+                                            echo '<td>';
+                                            if ($is_absent) {
+                                                echo 'X';
+                                            }
+                                            echo '</td>';
+                                        }
+                                    } else {
+                                        // Display empty cells if no month selected
+                                        for ($i = 1; $i <= 25; $i++) {
+                                            echo '<td></td>';
+                                        }
                                     }
-                                    echo '</td>';
-                                }
-                            } else {
-                                // Display empty cells if no month selected
-                                for ($i = 1; $i <= 25; $i++) {
-                                    echo '<td></td>';
-                                }
-                            }
-                            ?>
-                            
-                            <td><strong><?= $absent_count ?></strong></td>
-                            <td><strong><?= $present_count ?></strong></td>
-                            <td>
-                                <?php
-                                // Display remarks based on enrolment status
-                                $status = $student['enrolment_status'] ?? '';
-                                if ($status == 'dropped') {
-                                    echo 'DROPPED OUT';
-                                } elseif ($status == 'transferred_out') {
-                                    echo 'TRANSFERRED OUT';
-                                } elseif ($status == 'transferred_in') {
-                                    echo 'TRANSFERRED IN';
-                                }
-                                ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; 
+                                    ?>
+
+                                    <td><strong><?= $absent_count ?></strong></td>
+                                    <td><strong><?= $present_count ?></strong></td>
+                                    <td>
+                                        <?php
+                                        // Display remarks based on enrolment status
+                                        $status = $student['enrolment_status'] ?? '';
+                                        if ($status == 'dropped') {
+                                            echo 'DROPPED OUT';
+                                        } elseif ($status == 'transferred_out') {
+                                            echo 'TRANSFERRED OUT';
+                                        } elseif ($status == 'transferred_in') {
+                                            echo 'TRANSFERRED IN';
+                                        }
+                                        ?>
+                                    </td>
+                                </tr>
+                        <?php endforeach;
                         } ?>
-                        
+
                         <!-- MONTHLY TOTAL FOR MALE -->
                         <tr>
                             <th colspan="2">MONTHLY TOTAL (Male)</th>
@@ -408,64 +409,64 @@ $count = 1;
                             <td><strong><?= $monthly_male_present_total ?></strong></td>
                             <td></td>
                         </tr>
-                        
+
                         <!-- all female -->
-                        <?php 
+                        <?php
                         $female_count = 1;
                         if (!empty($female_students)) {
-                            foreach($female_students as $student) : 
+                            foreach ($female_students as $student) :
                                 $student_id = $student['student_id'];
-                                
+
                                 // Calculate absent count and get present count
                                 $absent_count = $student_absent_counts[$student_id] ?? 0;
                                 $present_count = $student_present_counts[$student_id] ?? 0;
                         ?>
-                        <tr>
-                            <td><?= $female_count++ ?></td>
-                            <td style="text-align: left; padding-left: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                <?= htmlspecialchars(strtoupper($student["lname"] . ', ' . $student["fname"] . ' ' . $student["mname"])) ?>
-                            </td>
-                            
-                            <?php
-                            // Display attendance cells for each school day
-                            if ($selected_month && !empty($school_days)) {
-                                foreach ($school_days as $day => $day_info) {
-                                    $attendance_status = $student_attendance[$student_id][$day] ?? '';
-                                    $is_absent = (strtoupper($attendance_status) === 'ABSENT');
-                                    
-                                    echo '<td>';
-                                    if ($is_absent) {
-                                        echo 'X';
+                                <tr>
+                                    <td><?= $female_count++ ?></td>
+                                    <td style="text-align: left; padding-left: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        <?= htmlspecialchars(strtoupper($student["lname"] . ', ' . $student["fname"] . ' ' . $student["mname"])) ?>
+                                    </td>
+
+                                    <?php
+                                    // Display attendance cells for each school day
+                                    if ($selected_month && !empty($school_days)) {
+                                        foreach ($school_days as $day => $day_info) {
+                                            $attendance_status = $student_attendance[$student_id][$day] ?? '';
+                                            $is_absent = (strtoupper($attendance_status) === 'ABSENT');
+
+                                            echo '<td>';
+                                            if ($is_absent) {
+                                                echo 'X';
+                                            }
+                                            echo '</td>';
+                                        }
+                                    } else {
+                                        // Display empty cells if no month selected
+                                        for ($i = 1; $i <= 25; $i++) {
+                                            echo '<td></td>';
+                                        }
                                     }
-                                    echo '</td>';
-                                }
-                            } else {
-                                // Display empty cells if no month selected
-                                for ($i = 1; $i <= 25; $i++) {
-                                    echo '<td></td>';
-                                }
-                            }
-                            ?>
-                            
-                            <td><strong><?= $absent_count ?></strong></td>
-                            <td><strong><?= $present_count ?></strong></td>
-                            <td>
-                                <?php
-                                // Display remarks based on enrolment status
-                                $status = $student['enrolment_status'] ?? '';
-                                if ($status == 'dropped') {
-                                    echo 'DROPPED OUT';
-                                } elseif ($status == 'transferred_out') {
-                                    echo 'TRANSFERRED OUT';
-                                } elseif ($status == 'transferred_in') {
-                                    echo 'TRANSFERRED IN';
-                                }
-                                ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; 
+                                    ?>
+
+                                    <td><strong><?= $absent_count ?></strong></td>
+                                    <td><strong><?= $present_count ?></strong></td>
+                                    <td>
+                                        <?php
+                                        // Display remarks based on enrolment status
+                                        $status = $student['enrolment_status'] ?? '';
+                                        if ($status == 'dropped') {
+                                            echo 'DROPPED OUT';
+                                        } elseif ($status == 'transferred_out') {
+                                            echo 'TRANSFERRED OUT';
+                                        } elseif ($status == 'transferred_in') {
+                                            echo 'TRANSFERRED IN';
+                                        }
+                                        ?>
+                                    </td>
+                                </tr>
+                        <?php endforeach;
                         } ?>
-                        
+
                         <!-- MONTHLY TOTAL FOR FEMALE -->
                         <tr>
                             <th colspan="2">MONTHLY TOTAL (Female)</th>
@@ -486,7 +487,7 @@ $count = 1;
                             <td><strong><?= $monthly_female_present_total ?></strong></td>
                             <td></td>
                         </tr>
-                        
+
                         <!-- COMBINED MONTHLY TOTAL -->
                         <tr>
                             <th colspan="2">MONTHLY TOTAL (Combined)</th>
@@ -507,15 +508,15 @@ $count = 1;
                             <td><strong><?= $monthly_combined_present_total ?></strong></td>
                             <td></td>
                         </tr>
-                        
-                        <?php 
+
+                        <?php
                         // Show message if no students found
                         if (empty($students)) { ?>
-                        <tr>
-                            <td colspan="<?= count($school_days) + 5 ?>">No students found for this section.</td>
-                        </tr>
+                            <tr>
+                                <td colspan="<?= count($school_days) + 5 ?>">No students found for this section.</td>
+                            </tr>
                         <?php } ?>
-                        
+
                         <!-- SUMMARY ROWS -->
                         <tr>
                             <th colspan="2" style="text-align: right;">Legend:</th>
@@ -526,7 +527,7 @@ $count = 1;
                                 Daily totals show: Absent/Present
                             </td>
                         </tr>
-                        
+
                         <!-- ADVISER SIGNATURE -->
                         <tr>
                             <th colspan="<?= count($school_days) + 2 ?>" style="text-align: right; padding-right: 50px;">
@@ -540,7 +541,7 @@ $count = 1;
                                 </div>
                             </td>
                         </tr>
-                        
+
                         <!-- CERTIFICATION -->
                         <tr>
                             <th colspan="<?= count($school_days) + 2 ?>" style="text-align: right; padding-right: 50px;">
@@ -699,42 +700,45 @@ $count = 1;
 </style>
 
 <script>
-function generateReport() {
-    // Show loading indicator
-    const button = document.querySelector('.btn-secondary');
-    const originalText = button.innerHTML;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Preparing...';
-    button.disabled = true;
-    
-    // Check if month is selected
-    const month = document.getElementById('month_attendance').value;
-    if (!month) {
-        alert('Please select a month first!');
-        button.innerHTML = originalText;
-        button.disabled = false;
-        return;
-    }
-    
-    // Store original styles
-    const originalContainerWidth = document.querySelector('.main-container').style.width;
-    const originalTableWidth = document.querySelector('table').style.minWidth;
-    
-    // Adjust for printing
-    document.querySelector('.main-container').style.width = '100%';
-    document.querySelector('table').style.minWidth = '100%';
-    
-    // Hide buttons for print
-    const printButtons = document.querySelector('.mt-3.text-start');
-    if (printButtons) {
-        printButtons.style.display = 'none';
-    }
-    
-    // Create a custom print window
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
+    function generateReport() {
+        // Show loading indicator
+        const button = document.querySelector('.btn-secondary');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Preparing...';
+        button.disabled = true;
+
+        // Check if month is selected
+        const month = document.getElementById('month_attendance').value;
+        if (!month) {
+            alert('Please select a month first!');
+            button.innerHTML = originalText;
+            button.disabled = false;
+            return;
+        }
+
+        // Store original styles
+        const originalContainerWidth = document.querySelector('.main-container').style.width;
+        const originalTableWidth = document.querySelector('table').style.minWidth;
+
+        // Adjust for printing
+        document.querySelector('.main-container').style.width = '100%';
+        document.querySelector('table').style.minWidth = '100%';
+
+        // Hide buttons for print
+        const printButtons = document.querySelector('.mt-3.text-start');
+        if (printButtons) {
+            printButtons.style.display = 'none';
+        }
+
+        // Create a custom print window
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
+                        <?=
+                        '<link rel="icon" href="' . base_url() . '/assets/image/logo2.png" type="image/x-icon">'
+                        ?>
             <title>Attendance Report - ${month}</title>
             <style>
                 body {
@@ -813,53 +817,43 @@ function generateReport() {
     const schoolYear = document.querySelector('input[name="school_year_name"]').value;
     const schoolName = document.querySelector('input[name="school_name"]').value;
     const schoolId = document.querySelector('input[name="school_id"]').value;
-
-    // Get logo sources from the existing page so the print window shows the same images
-    const logoLeftEl = document.getElementById('school_logo');
-    const logoRightEl = document.getElementById('deped_logo');
-    const logoLeftSrc = logoLeftEl ? new URL(logoLeftEl.src, window.location.href).href : (Array.from(document.querySelectorAll('img')).find(img => img.src && img.src.includes('logo.png'))?.src || '');
-    const logoRightSrc = logoRightEl ? new URL(logoRightEl.src, window.location.href).href : (Array.from(document.querySelectorAll('img')).find(img => img.src && img.src.includes('deped.png'))?.src || '');
     
-    // Add header (including logos)
+    // Add header
     printWindow.document.write(`
-        <div class="report-header" style="display:flex; align-items:center; justify-content:space-between;">
-            <div style="flex:1; text-align:left;"><img src="${logoLeftSrc}" alt="School Logo" style="height:120px; object-fit:contain;"></div>
-            <div style="flex:2; text-align:center;">
-                <h1>DEPARTMENT OF EDUCATION</h1>
-                <h2>School Form 2 - Daily Attendance Report of Learners</h2>
-                <div class="report-info" style="display:flex; justify-content:space-between; margin-top:10px; font-size:14px;">
-                    <div style="text-align:left;">
-                        <strong>School:</strong> ${schoolName}<br>
-                        <strong>School ID:</strong> ${schoolId}<br>
-                        <strong>Month:</strong> ${month}
-                    </div>
-                    <div style="text-align:center;">
-                        <strong>School Year:</strong> ${schoolYear}<br>
-                        <strong>Grade Level:</strong> ${gradeLevel}<br>
-                        <strong>Section:</strong> ${sectionName}
-                    </div>
-                    <div style="text-align:right;">
-                        <strong>Generated:</strong> ${new Date().toLocaleDateString()}<br>
-                        <strong>Time:</strong> ${new Date().toLocaleTimeString()}
-                    </div>
+        <div class="report-header">
+            <h1>DEPARTMENT OF EDUCATION</h1>
+            <h2>School Form 2 - Daily Attendance Report of Learners</h2>
+            <div class="report-info">
+                <div>
+                    <strong>School:</strong> ${schoolName}<br>
+                    <strong>School ID:</strong> ${schoolId}<br>
+                    <strong>Month:</strong> ${month}
+                </div>
+                <div>
+                    <strong>School Year:</strong> ${schoolYear}<br>
+                    <strong>Grade Level:</strong> ${gradeLevel}<br>
+                    <strong>Section:</strong> ${sectionName}
+                </div>
+                <div>
+                    <strong>Generated:</strong> ${new Date().toLocaleDateString()}<br>
+                    <strong>Time:</strong> ${new Date().toLocaleTimeString()}
                 </div>
             </div>
-            <div style="flex:1; text-align:right;"><img src="${logoRightSrc}" alt="DepEd Logo" style="height:120px; object-fit:contain;"></div>
         </div>
     `);
-    
-    // Add the table
-    const tableHTML = document.querySelector('.table-responsive').innerHTML;
-    printWindow.document.write(`
+
+        // Add the table
+        const tableHTML = document.querySelector('.table-responsive').innerHTML;
+        printWindow.document.write(`
         <div class="summary">
             <strong>Legend:</strong> X = Absent, Blank = Present (including Late/Tardy) | 
             <strong>Daily Totals:</strong> Absent/Present
         </div>
         ${tableHTML}
     `);
-    
-    // Add footer
-    printWindow.document.write(`
+
+        // Add footer
+        printWindow.document.write(`
         <div class="footer">
             <div style="margin-bottom: 10px;">
                 <strong>Department of Education - Official Attendance Report</strong><br>
@@ -879,47 +873,47 @@ function generateReport() {
             </button>
         </div>
     `);
-    
-    printWindow.document.write('</body></html>');
-    printWindow.document.close();
-    
-    // Restore original styles
-    document.querySelector('.main-container').style.width = originalContainerWidth;
-    document.querySelector('table').style.minWidth = originalTableWidth;
-    
-    // Show buttons again
-    if (printButtons) {
-        printButtons.style.display = '';
-    }
-    
-    // Restore button
-    button.innerHTML = originalText;
-    button.disabled = false;
-    
-    // Focus on the print window
-    printWindow.focus();
-}
 
-// Add print button to the page
-// document.addEventListener('DOMContentLoaded', function() {
-//     const buttonContainer = document.querySelector('.mt-3.text-start');
-//     if (buttonContainer) {
-//         const printButton = document.createElement('button');
-//         printButton.type = 'button';
-//         printButton.className = 'btn btn-info ms-2';
-//         printButton.innerHTML = '<i class="bi bi-printer d-none"></i> Print Report';
-//         printButton.onclick = function() {
-//             // Simple print function
-//             const month = document.getElementById('month_attendance').value;
-//             if (!month) {
-//                 alert('Please select a month first!');
-//                 return;
-//             }
-            
-//             // Show print dialog
-//             window.print();
-//         };
-//         buttonContainer.appendChild(printButton);
-//     }
-// });
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+
+        // Restore original styles
+        document.querySelector('.main-container').style.width = originalContainerWidth;
+        document.querySelector('table').style.minWidth = originalTableWidth;
+
+        // Show buttons again
+        if (printButtons) {
+            printButtons.style.display = '';
+        }
+
+        // Restore button
+        button.innerHTML = originalText;
+        button.disabled = false;
+
+        // Focus on the print window
+        printWindow.focus();
+    }
+
+    // Add print button to the page
+    // document.addEventListener('DOMContentLoaded', function() {
+    //     const buttonContainer = document.querySelector('.mt-3.text-start');
+    //     if (buttonContainer) {
+    //         const printButton = document.createElement('button');
+    //         printButton.type = 'button';
+    //         printButton.className = 'btn btn-info ms-2';
+    //         printButton.innerHTML = '<i class="bi bi-printer d-none"></i> Print Report';
+    //         printButton.onclick = function() {
+    //             // Simple print function
+    //             const month = document.getElementById('month_attendance').value;
+    //             if (!month) {
+    //                 alert('Please select a month first!');
+    //                 return;
+    //             }
+
+    //             // Show print dialog
+    //             window.print();
+    //         };
+    //         buttonContainer.appendChild(printButton);
+    //     }
+    // });
 </script>
