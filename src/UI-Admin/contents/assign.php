@@ -15,7 +15,6 @@ $activeSyId = $currentSy['school_year_id'] ?? null;
 
 $classrooms = [];
 
-if ($currentSy) {
     $stmt = $pdo->prepare("
         SELECT 
             c.room_id,
@@ -30,9 +29,9 @@ if ($currentSy) {
         FROM classrooms c
         LEFT JOIN classes cl
             ON cl.classroom_id = c.room_id
-            AND cl.sy_id = ?
         LEFT JOIN users u
             ON u.user_id = cl.adviser_id
+<<<<<<< HEAD
 
         ORDER BY c.room_name ASC
     ");
@@ -56,6 +55,14 @@ if ($currentSy) {
         $classrooms = $fallback->fetchAll(PDO::FETCH_ASSOC);
     }
 }
+=======
+        ORDER BY c.room_name ASC
+    ");
+
+    $stmt->execute();
+
+    $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+>>>>>>> main
 
 
 // Fetch sections
@@ -71,22 +78,15 @@ foreach ($sections as $section) {
 
 // Fetch available teachers
 $teachers = [];
-if ($activeSyId) {
-    $stmt = $pdo->prepare("
+$stmt = $pdo->prepare("
         SELECT u.* 
         FROM users u
         WHERE u.user_role = 'TEACHER'
-        AND u.user_id NOT IN (
-            SELECT adviser_id 
-            FROM classes
-            WHERE sy_id = ?
-        )
-        AND u.school_year_id = ?
         ORDER BY u.lastname ASC
     ");
-    $stmt->execute([$activeSyId, $activeSyId]);
-    $teachers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+$stmt->execute();
+$teachers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 // Current school year info
 $schoolYears = $currentSy ?? [];
@@ -510,6 +510,7 @@ $schoolYears = $currentSy ?? [];
         // Event listeners
         searchInput.addEventListener('input', filterClassrooms);
 
+<<<<<<< HEAD
         if (clearSearchBtn) {
             clearSearchBtn.addEventListener('click', function() {
                 searchInput.value = '';
@@ -517,6 +518,13 @@ $schoolYears = $currentSy ?? [];
                 searchInput.focus();
             });
         }
+=======
+        // clearSearchBtn.addEventListener('click', function() {
+        //     searchInput.value = '';
+        //     filterClassrooms();
+        //     searchInput.focus();
+        // });
+>>>>>>> main
 
         // Add Enter key support for search
         searchInput.addEventListener('keypress', function(e) {

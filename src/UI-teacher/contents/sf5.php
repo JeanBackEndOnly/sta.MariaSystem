@@ -304,10 +304,12 @@ function attachRowClickEvents() {
             const sectionId = this.dataset.id;
             const gradeLevel = this.dataset.grade;
             const sectionName = this.dataset.section;
+            const curriculumName = this.dataset.curriculum;
             if (sectionId && gradeLevel && sectionName) {
                const url = `<?php echo BASE_FR; ?>/src/UI-teacher/contents/schoolform5.php`
                     + `?section_id=${encodeURIComponent(sectionId)}`
                     + `&grade=${encodeURIComponent(gradeLevel)}`
+                    + `&curriculum=${encodeURIComponent(curriculumName)}`
                     + `&section=${encodeURIComponent(sectionName)}`;
                 window.location.href = url;
             }

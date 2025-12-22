@@ -100,7 +100,7 @@ $gradesData = [];
                 <nav aria-label="breadcrumb" class="breadcrumb-nav">
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item">
-                            <a href="index.php?page=contents/learners" class="text-decoration-none">
+                            <a href="<?= BASE_FR ?>/src/UI-teacher/index.php?page=contents/student" class="text-decoration-none">
                                 <i class="fas fa-users me-1"></i>Learners
                             </a>
                         </li>

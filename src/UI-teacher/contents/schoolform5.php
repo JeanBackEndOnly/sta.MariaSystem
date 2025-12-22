@@ -26,11 +26,14 @@ $downloadLink = $_SESSION['sf5_download'] ?? '';
 $sectionId = $_GET['section_id'] ?? '';
 $gradeLevel = $_GET['grade'] ?? '';
 $sectionName = $_GET['section'] ?? '';
+$curriculum = $_GET['curriculum'] ?? '';
 
 if ($sectionId) {
     $formData['grade_level'] = $gradeLevel;
     $formData['section'] = $sectionName;
+    $formData['curriculum'] = $curriculum;
 }
+
 
 
 $formData['male_total'] = 0;
@@ -55,7 +58,7 @@ if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName)) {
     $sectionName = trim($sectionName);
 
     $stmt = $mysqli->prepare("
-        SELECT sf9.lrn, sf9.student_name, sf9.general_average, s.sex
+        SELECT sf9.lrn, sf9.student_name, sf9.general_average, s.sex,sf9.school_year
         FROM sf9_data sf9
         JOIN student s ON s.lrn = sf9.lrn
         WHERE sf9.grade = ? AND LOWER(sf9.section) = LOWER(?)
@@ -71,6 +74,7 @@ if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName)) {
         $formData['lrn'][$rowNum] = $student['lrn'];
         $formData['name'][$rowNum] = $student['student_name'];
         $formData['average'][$rowNum] = $student['general_average'];
+        $formData['school_year'] = $student['school_year'];
 
         $formData['action'][$rowNum] = $formData['action'][$rowNum] ?? '';
 
@@ -133,7 +137,6 @@ if (isset($_GET['download'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['school_year'] = $_POST['school_year'] ?? '';
-    $formData['curriculum'] = $_POST['curriculum'] ?? '';
     $formData['grade_level'] = $_POST['grade_level'] ?? '';
     $formData['section'] = $_POST['section'] ?? '';
 
