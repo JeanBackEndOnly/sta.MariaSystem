@@ -599,58 +599,6 @@ BEGIN
 END
 ");
 
-        /* ---- DELETE ---- */
-        $pdo->exec("
-CREATE TRIGGER trg_sf9_attendance_delete
-AFTER DELETE ON attendance
-FOR EACH ROW
-BEGIN
-    DECLARE attend_date DATE;
-    DECLARE attend_month INT;
-
-    IF OLD.morning_attendance IS NOT NULL THEN
-        SET attend_date = OLD.morning_attendance;
-    ELSE
-        SET attend_date = OLD.afternoon_attendance;
-    END IF;
-
-    -- Skip Sundays and non-school months
-    IF DAYOFWEEK(attend_date) <> 1 THEN
-        SET attend_month = MONTH(attend_date);
-
-        IF attend_month >= 7 OR attend_month <= 4 THEN
-            IF OLD.attendance_type IN ('Present','Late') THEN
-                CASE attend_month
-                    WHEN 7 THEN UPDATE sf9_data SET days_present_july = GREATEST(days_present_july - 1,0), days_school_july = GREATEST(days_school_july - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 8 THEN UPDATE sf9_data SET days_present_aug = GREATEST(days_present_aug - 1,0), days_school_aug = GREATEST(days_school_aug - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 9 THEN UPDATE sf9_data SET days_present_sep = GREATEST(days_present_sep - 1,0), days_school_sep = GREATEST(days_school_sep - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 10 THEN UPDATE sf9_data SET days_present_oct = GREATEST(days_present_oct - 1,0), days_school_oct = GREATEST(days_school_oct - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 11 THEN UPDATE sf9_data SET days_present_nov = GREATEST(days_present_nov - 1,0), days_school_nov = GREATEST(days_school_nov - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 12 THEN UPDATE sf9_data SET days_present_dec = GREATEST(days_present_dec - 1,0), days_school_dec = GREATEST(days_school_dec - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 1 THEN UPDATE sf9_data SET days_present_jan = GREATEST(days_present_jan - 1,0), days_school_jan = GREATEST(days_school_jan - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 2 THEN UPDATE sf9_data SET days_present_feb = GREATEST(days_present_feb - 1,0), days_school_feb = GREATEST(days_school_feb - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 3 THEN UPDATE sf9_data SET days_present_mar = GREATEST(days_present_mar - 1,0), days_school_mar = GREATEST(days_school_mar - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 4 THEN UPDATE sf9_data SET days_present_apr = GREATEST(days_present_apr - 1,0), days_school_apr = GREATEST(days_school_apr - 1,0) WHERE student_id = OLD.student_id;
-                END CASE;
-            ELSE
-                CASE attend_month
-                    WHEN 7 THEN UPDATE sf9_data SET days_absent_july = GREATEST(days_absent_july - 1,0), days_school_july = GREATEST(days_school_july - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 8 THEN UPDATE sf9_data SET days_absent_aug = GREATEST(days_absent_aug - 1,0), days_school_aug = GREATEST(days_school_aug - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 9 THEN UPDATE sf9_data SET days_absent_sep = GREATEST(days_absent_sep - 1,0), days_school_sep = GREATEST(days_school_sep - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 10 THEN UPDATE sf9_data SET days_absent_oct = GREATEST(days_absent_oct - 1,0), days_school_oct = GREATEST(days_school_oct - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 11 THEN UPDATE sf9_data SET days_absent_nov = GREATEST(days_absent_nov - 1,0), days_school_nov = GREATEST(days_school_nov - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 12 THEN UPDATE sf9_data SET days_absent_dec = GREATEST(days_absent_dec - 1,0), days_school_dec = GREATEST(days_school_dec - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 1 THEN UPDATE sf9_data SET days_absent_jan = GREATEST(days_absent_jan - 1,0), days_school_jan = GREATEST(days_school_jan - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 2 THEN UPDATE sf9_data SET days_absent_feb = GREATEST(days_absent_feb - 1,0), days_school_feb = GREATEST(days_school_feb - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 3 THEN UPDATE sf9_data SET days_absent_mar = GREATEST(days_absent_mar - 1,0), days_school_mar = GREATEST(days_school_mar - 1,0) WHERE student_id = OLD.student_id;
-                    WHEN 4 THEN UPDATE sf9_data SET days_absent_apr = GREATEST(days_absent_apr - 1,0), days_school_apr = GREATEST(days_school_apr - 1,0) WHERE student_id = OLD.student_id;
-                END CASE;
-            END IF;
-        END IF;
-    END IF;
-END
-");
-
 
         $count = $pdo->query("SELECT COUNT(*) FROM admin")->fetchColumn();
         if ($count == 0) {
