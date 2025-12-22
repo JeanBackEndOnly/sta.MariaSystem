@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../tupperware.php';
 $result = checkURI('teacher', 2);
+
 if ($result['res']) {
     header($result['uri']);
     exit;
@@ -28,7 +29,7 @@ if ($student_id) {
     $stmt->execute([$student_id]);
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
 }
-$saveDir = BASE_PATH . '/sf10_files';
+$saveDir = BASE_PATH .  '/sf10_files';
 if (!is_dir($saveDir)) mkdir($saveDir, 0777, true);
 
 $grades = $sections = $school_years = $advisers = [];
@@ -57,6 +58,27 @@ if (isset($_GET['student_id'])) {
     } else {
         $scholastic_data = [];
     }
+
+    $remedial_loaded = [];
+
+if (!empty($sf10_data)) {
+    for ($i = 1; $i <= 8; $i++) {
+        $remedial_loaded[$i] = [
+            'area'       => !empty($sf10_data["rem{$i}_area"])
+                            ? explode('|', $sf10_data["rem{$i}_area"]) : [],
+            'final'      => !empty($sf10_data["rem{$i}_final"])
+                            ? explode('|', $sf10_data["rem{$i}_final"]) : [],
+            'class_mark' => !empty($sf10_data["rem{$i}_class_mark"])
+                            ? explode('|', $sf10_data["rem{$i}_class_mark"]) : [],
+            'recomputed' => !empty($sf10_data["rem{$i}_recomputed"])
+                            ? explode('|', $sf10_data["rem{$i}_recomputed"]) : [],
+            'remarks'    => !empty($sf10_data["rem{$i}_remarks"])
+                            ? explode('|', $sf10_data["rem{$i}_remarks"]) : [],
+        ];
+    }
+}
+
+
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -133,6 +155,25 @@ for ($i = 1; $i <= 8; $i++) {
     ];
 }
 
+for ($i = 1; $i <= 8; $i++) {
+    $areas = $_POST["rem{$i}_area"] ?? [];
+    $recomputed = $_POST["rem{$i}_recomputed"] ?? [];
+
+    // Initialize arrays
+    $learning_areas_all[$i]['remedial_subject'] = [];
+    $final_ratings_all[$i]['remedial'] = [];
+
+    for ($c = 0; $c < 5; $c++) {
+        // First row of each subject
+        $learning_areas_all[$i]['remedial_subject'][$c*2] = $areas[$c*2] ?? '';
+        $final_ratings_all[$i]['remedial'][$c*2] = $recomputed[$c*2] ?? '';
+
+        // Second row of each subject
+        $learning_areas_all[$i]['remedial_subject'][$c*2+1] = $areas[$c*2+1] ?? '';
+        $final_ratings_all[$i]['remedial'][$c*2+1] = $recomputed[$c*2+1] ?? '';
+    }
+}
+
 
     $personal_data = [
         'student_id' => $student_id,
@@ -191,7 +232,7 @@ $stmt->execute(array_values($personal_data));
 
    
     try {
-        $template_path = BASE_PATH . '/src/UI-Admin/contents/sf10/sf10.xlsx';
+        $template_path = BASE_PATH .  '/src/UI-Admin/contents/sf10/sf10.xlsx';
         $spreadsheet = IOFactory::load($template_path);
         $sheet = $spreadsheet->getSheet(0);
         $sheet_back = $spreadsheet->getSheet(1);
@@ -294,19 +335,39 @@ $remedial_positions_back = [
 for ($i = 1; $i <= 4; $i++) {
     $pos = $remedial_positions_front[$i];
     for ($c = 0; $c < 5; $c++) {
-        $sheet->setCellValue($pos['subject'][$c], $learning_areas_all[$i]['remedial_subject'][$c] ?? '');
-        $sheet->setCellValue($pos['grade'][$c], $final_ratings_all[$i]['remedial'][$c] ?? '');
+        // First row
+        $sheet->setCellValue($pos['subject'][$c], $learning_areas_all[$i]['remedial_subject'][$c*2] ?? '');
+        $sheet->setCellValue($pos['grade'][$c], $final_ratings_all[$i]['remedial'][$c*2] ?? '');
+        // Second row: move 1 row down
+        $sheet->setCellValue(
+            preg_replace_callback('/\d+/', function($m){ return $m[0]+1; }, $pos['subject'][$c]),
+            $learning_areas_all[$i]['remedial_subject'][$c*2+1] ?? ''
+        );
+        $sheet->setCellValue(
+            preg_replace_callback('/\d+/', function($m){ return $m[0]+1; }, $pos['grade'][$c]),
+            $final_ratings_all[$i]['remedial'][$c*2+1] ?? ''
+        );
     }
 }
-
 
 for ($i = 5; $i <= 8; $i++) {
     $pos = $remedial_positions_back[$i];
     for ($c = 0; $c < 5; $c++) {
-        $sheet_back->setCellValue($pos['subject'][$c], $learning_areas_all[$i]['remedial_subject'][$c] ?? '');
-        $sheet_back->setCellValue($pos['grade'][$c], $final_ratings_all[$i]['remedial'][$c] ?? '');
+        // First row
+        $sheet_back->setCellValue($pos['subject'][$c], $learning_areas_all[$i]['remedial_subject'][$c*2] ?? '');
+        $sheet_back->setCellValue($pos['grade'][$c], $final_ratings_all[$i]['remedial'][$c*2] ?? '');
+        // Second row: move 1 row down
+        $sheet_back->setCellValue(
+            preg_replace_callback('/\d+/', function($m){ return $m[0]+1; }, $pos['subject'][$c]),
+            $learning_areas_all[$i]['remedial_subject'][$c*2+1] ?? ''
+        );
+        $sheet_back->setCellValue(
+            preg_replace_callback('/\d+/', function($m){ return $m[0]+1; }, $pos['grade'][$c]),
+            $final_ratings_all[$i]['remedial'][$c*2+1] ?? ''
+        );
     }
 }
+
 
 $full_name = trim($last_name . ', ' . $first_name . ' ' . $middle_name . ' ' . $suffix);
 
@@ -323,7 +384,7 @@ foreach ($certifications as $cert) {
         $drawing = new Drawing();
         $drawing->setName('DepEd Logo');
         $drawing->setDescription('DepEd Logo');
-        $drawing->setPath(BASE_PATH . '/assets/image/deped.png');
+        $drawing->setPath('C:/xampp/htdocs<?= BASE_FR ?>/assets/image/deped.png');
         $drawing->setCoordinates('A1');
         $drawing->setWidth(80);
         $drawing->setHeight(80);
@@ -357,70 +418,151 @@ foreach ($certifications as $cert) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" href="<?php echo base_url() ?>/assets/image/logo2.png" type="image/x-icon">
 <title>SF10 Fill</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; padding:0; }
-.header-brand { border-bottom:1px solid rgba(0,0,0,.2); height:75px; background:#f5365c; }
-.header-brand img { width:65px; height:65px; border-radius:50%; margin-right:15px; object-fit:cover; }
-.header-brand h4 { font-size:1.3rem; font-weight:700; color:#fff; margin:0; }
-.sidebar, .eligibility-container, .scholastic-container { background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.08); margin-bottom:20px; }
-.sidebar h5, .eligibility-container h5, .scholastic-container h5 { font-weight:700; font-size:1.2rem; color:#333; margin-bottom:15px; text-align:center; }
-.form-label { font-weight:600; margin-top:10px; }
-.form-control.form-control-sm { font-weight:500; padding:8px 10px; border-radius:6px; border:1px solid #ccc; }
-.btn-lg { padding:10px 18px; font-size:16px; border-radius:6px; }
-.table input { width:100%; }
+body {
+  font-family: 'Poppins', Arial, sans-serif;
+  background: #f4f5f7;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header */
+.header-brand {
+  border-bottom: 1px solid rgba(0,0,0,.2);
+  height: 75px;
+  background: #f5365c;
+}
+.header-brand img {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  margin-right: 15px;
+  object-fit: cover;
+}
+.header-brand h4 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+/* Containers */
+.sidebar,
+.eligibility-container,
+.scholastic-container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+}
+
+.sidebar h5,
+.eligibility-container h5,
+.scholastic-container h5 {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+/* Sidebar behavior */
+.sidebar {
+  position: sticky;
+  top: 90px;
+  height: fit-content;
+}
+
+/* Main content centering */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.main-content > .eligibility-container,
+.main-content > .scholastic-container {
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* Forms */
+.form-label {
+  font-weight: 600;
+  margin-top: 10px;
+}
+.form-control.form-control-sm {
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+.btn-lg {
+  padding: 10px 18px;
+  font-size: 16px;
+  border-radius: 6px;
+}
+.table input {
+  width: 100%;
+}
+
+/* Remedial carousel */
 .remedial-carousel-container {
-    position: relative;
-    width: 100%;
-    max-width: 1000px;
-    margin: 20px auto;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 15px;
-    background: #f9f9f9;
-    transform: translate(-3in, -4in);
+  width: 100%;
+  background: #fff; /* same as other containers */
+  padding: 20px; /* match other containers */
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  margin: 30px auto 20px; /* space from Scholastic and below */
+  position: relative;
+  overflow: hidden;
 }
 
+/* Wrapper inside carousel */
 .remedial-wrapper {
-    overflow: hidden;
-    position: relative;
+  position: relative;
 }
 
+/* Individual slides */
 .remedial-slide {
-    display: none;
-    width: 100%;
+  display: none;
+  width: 100%;
 }
 
 .remedial-slide.active {
-    display: block;
+  display: block;
 }
 
+/* Table inside slides */
 .remedial-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
 }
 
-.remedial-table th, .remedial-table td {
-    border: 1px solid #ccc;
-    padding: 5px;
-    text-align: center;
+.remedial-table th,
+.remedial-table td {
+  border: 1px solid #ccc;
+  padding: 5px;
+  text-align: center;
 }
 
+/* Arrows remain the same */
 .arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #8c2b2b;
-    color: white;
-    border: none;
-    font-size: 24px;
-    padding: 8px 12px;
-    cursor: pointer;
-    border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #8c2b2b;
+  color: white;
+  border: none;
+  font-size: 24px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 50%;
 }
 
 .arrow.prev { left: -40px; }
@@ -428,12 +570,33 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
 
 .arrow:hover { background: #b03a3a; }
 
+/* Arrows */
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #8c2b2b;
+  color: white;
+  border: none;
+  font-size: 24px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.arrow.prev { left: -40px; }
+.arrow.next { right: -40px; }
+
+.arrow:hover {
+  background: #b03a3a;
+}
 </style>
+
 </head>
 <body>
 <div class="d-flex align-items-center justify-content-between col-12 m-0 p-0 header-brand">
   <div class="d-flex align-items-center ps-4">
-    <img src="/<?= BASE_FR ?>/assets/image/logo2.png" alt="Logo">
+    <img src="<?= BASE_FR ?>/assets/image/logo2.png" alt="Logo">
     <h4>STA.MARIA WEB SYSTEM</h4>
   </div>
 </div>
@@ -441,7 +604,7 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
   <form method="post">
     <div class="row">
       <!-- Sidebar -->
-      <div class="col-md-4 col-sm-12">
+      <div class="col-lg-3 col-md-4">
         <div class="sidebar">
           <h5>Learner's Personal Information</h5>
           <label class="form-label">Last Name</label>
@@ -466,7 +629,7 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
       </div>
 
   
-      <div class="col-md-4 col-sm-12">
+      <div class="col-lg-9 col-md-8">
         <div class="eligibility-container">
           <h5>Elementary School Eligibility</h5>
           <div class="form-check">
@@ -512,7 +675,7 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
       </div>
 
      
-      <div class="col-md-4 col-sm-12">
+      <div class="col-lg-9 col-md-8">
         <div class="scholastic-container">
           <h5>Scholastic Records</h5>
           <ul class="nav nav-tabs mb-3" id="srTabs" role="tablist">
@@ -609,7 +772,57 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
 
                 <label class="form-label">General Average</label>
                 <input type="text" class="form-control form-control-sm" name="general_average_<?=$i?>" value="<?= htmlspecialchars($_POST['general_average_'.$i] ?? ($scholastic_data['general_average'][$i] ?? '')) ?>">
-              </div>
+      <h6 class="mt-3">Remedial Class <?=$i?></h6>
+<div class="table-responsive">
+  <table class="table table-bordered table-sm">
+    <thead>
+      <tr>
+        <th>Learning Areas</th>
+        <th>Final Rating</th>
+        <th>Remedial Class Mark</th>
+        <th>Recomputed Final Grade</th>
+        <th>Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php for ($c = 0; $c < 2; $c++): ?>
+
+      <tr>
+        <td>
+          <input type="text" class="form-control form-control-sm"
+                 name="rem<?=$i?>_area[]"
+                 value="<?= htmlspecialchars($remedial_loaded[$i]['area'][$c] ?? '') ?>">
+        </td>
+        <td>
+          <input type="text" class="form-control form-control-sm"
+                 name="rem<?=$i?>_final[]"
+                 value="<?= htmlspecialchars($remedial_loaded[$i]['final'][$c] ?? '') ?>">
+        </td>
+        <td>
+          <input type="text" class="form-control form-control-sm"
+                 name="rem<?=$i?>_class_mark[]"
+                 value="<?= htmlspecialchars($remedial_loaded[$i]['class_mark'][$c] ?? '') ?>">
+        </td>
+        <td>
+          <input type="text" class="form-control form-control-sm"
+                 name="rem<?=$i?>_recomputed[]"
+                 value="<?= htmlspecialchars($remedial_loaded[$i]['recomputed'][$c] ?? '') ?>">
+        </td>
+        <td>
+          <input type="text" class="form-control form-control-sm"
+                 name="rem<?=$i?>_remarks[]"
+                 value="<?= htmlspecialchars($remedial_loaded[$i]['remarks'][$c] ?? '') ?>">
+        </td>
+      </tr>
+      <?php endfor; ?>
+    </tbody>
+  </table>
+</div>
+
+
+  
+            
+            </div>
               
             <?php endfor; ?>
           </div>
@@ -619,7 +832,9 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
     </div>
   </form>
 </div>
- <!-- <div class="remedial-carousel-container">
+  
+
+<?php /*<div class="remedial-carousel-container">
     <button type="button" class="arrow prev" onclick="prevRemedial()">&#10094;</button>
     <div class="remedial-wrapper">
         <?php for ($i = 1; $i <= 8; $i++): ?>
@@ -669,9 +884,10 @@ body { font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; margin:0; 
             </table>
         </div>
         <?php endfor; ?>
-    </div>  -->
+    </div>  
     <button type="button" class="arrow next" onclick="nextRemedial()">&#10095;</button>
-</div>
+</div> */ ?>
+
 
 <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
