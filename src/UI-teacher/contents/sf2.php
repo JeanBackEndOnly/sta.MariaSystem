@@ -226,7 +226,7 @@ $count = 1;
         <input type="hidden" name="id" value="<?= htmlspecialchars($data_sf_eight["sf_add_data_id"] ?? '') ?>">
         <div class="col-md-12 d-flex justify-content-between">
             <div class="col-md-3 d-flex align-items-center justify-content-start">
-                <img src="../../assets/image/logo.png" alt="No Image" style="width: auto; height: 150px;">
+                <img id="school_logo" src="../../assets/image/logo.png" alt="No Image" style="width: auto; height: 150px;">
             </div>
             <div class="col-md-6">
                 <div class="form-title text-center w-100">
@@ -235,7 +235,7 @@ $count = 1;
                 </div>
             </div>
             <div class="col-md-3 d-flex align-items-center justify-content-end">
-                <img src="../../assets/image/deped.png" alt="No Image" style="width: 200px; height: auto; transform: translateX(-30px);">
+                <img id="deped_logo" src="../../assets/image/deped.png" alt="No Image" style="width: 200px; height: auto; transform: translateX(-30px);">
             </div>
         </div>
 
@@ -810,16 +810,16 @@ $count = 1;
         </head>
         <body>
     `);
-
-        // Get form data
-        const gradeLevel = document.querySelector('input[name="grade_level"]').value;
-        const sectionName = document.getElementById('section_name').value;
-        const schoolYear = document.querySelector('input[name="school_year_name"]').value;
-        const schoolName = document.querySelector('input[name="school_name"]').value;
-        const schoolId = document.querySelector('input[name="school_id"]').value;
-
-        // Add header
-        printWindow.document.write(`
+    
+    // Get form data
+    const gradeLevel = document.querySelector('input[name="grade_level"]').value;
+    const sectionName = document.getElementById('section_name').value;
+    const schoolYear = document.querySelector('input[name="school_year_name"]').value;
+    const schoolName = document.querySelector('input[name="school_name"]').value;
+    const schoolId = document.querySelector('input[name="school_id"]').value;
+    
+    // Add header
+    printWindow.document.write(`
         <div class="report-header">
             <h1>DEPARTMENT OF EDUCATION</h1>
             <h2>School Form 2 - Daily Attendance Report of Learners</h2>

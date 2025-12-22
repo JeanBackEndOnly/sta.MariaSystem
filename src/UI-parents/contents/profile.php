@@ -100,7 +100,7 @@ $gradesData = [];
                 <nav aria-label="breadcrumb" class="breadcrumb-nav">
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item">
-                            <a href="index.php?page=contents/learners" class="text-decoration-none">
+                            <a href="<?= BASE_FR ?>/src/UI-parents/index.php?page=contents/student" class="text-decoration-none">
                                 <i class="fas fa-users me-1"></i>Learners
                             </a>
                         </li>
@@ -109,7 +109,7 @@ $gradesData = [];
                 </nav>
             </div>
             <div>
-                <a href="index.php?page=contents/learners" 
+                <a href="index.php?page=contents/student" 
                    class="btn btn-outline-secondary d-flex align-items-center">
                     <i class="fas fa-arrow-left me-2"></i>Back
                 </a>
