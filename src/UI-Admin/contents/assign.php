@@ -15,7 +15,7 @@ $activeSyId = $currentSy['school_year_id'] ?? null;
 
 $classrooms = [];
 
-    $stmt = $pdo->prepare("
+$stmt = $pdo->prepare("
         SELECT 
             c.room_id,
             c.room_name,
@@ -31,12 +31,13 @@ $classrooms = [];
             ON cl.classroom_id = c.room_id
         LEFT JOIN users u
             ON u.user_id = cl.adviser_id
+        WHERE C.school_year_id = ?
         ORDER BY c.room_name ASC
     ");
 
-    $stmt->execute();
+$stmt->execute([$activeSyId]);
 
-    $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 
 // Fetch sections
