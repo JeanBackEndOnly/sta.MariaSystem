@@ -47,19 +47,19 @@
                             ?>
                          <div class="col-md-4 col-6 mb-3">
                              <div class="p-3 bg-primary bg-opacity-10 rounded">
-                                 <h3 class="text-white mb-1"><?= count($classrooms) ?></h3>
+                                 <h3 id="tc" class="text-white mb-1"><?= count($classrooms) ?></h3>
                                  <small class="text-white">Total Classrooms</small>
                              </div>
                          </div>
                          <div class="col-md-4 col-6 mb-3">
                              <div class="p-3 bg-success bg-opacity-10 rounded">
-                                 <h3 class="text-white mb-1"><?= count($availableCount) ?></h3>
+                                 <h3 id="av" class="text-white mb-1"><?= count($availableCount) ?></h3>
                                  <small class="text-white">Available</small>
                              </div>
                          </div>
                          <div class="col-md-4 col-6 mb-3">
                              <div class="p-3 bg-danger bg-opacity-10 rounded">
-                                 <h3 class="text-white mb-1"><?= count($unavailableCount) ?></h3>
+                                 <h3 id="uv" class="text-white mb-1"><?= count($unavailableCount) ?></h3>
                                  <small class="text-white">Unavailable</small>
                              </div>
                          </div>
@@ -67,6 +67,21 @@
                  </div>
              </div>
          </div>
+     </div>
+
+
+     <div style="display: flex; gap: 1rem; align-items: center; border: none;">
+         <h5>Filter by:</h5>
+         <select id="syFilter" name="school_year" class="form-select" style="max-width: 200px;">
+             <option value="">All Year</option>
+             <?php
+                $catStmt = $pdo->query("SELECT school_year_id, school_year_name FROM school_year ORDER BY school_year_name ASC");
+                while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)): ?>
+                 <option value="<?= htmlspecialchars($cat['school_year_id']) ?>">
+                     <?= htmlspecialchars($cat['school_year_name']) ?>
+                 </option>
+             <?php endwhile; ?>
+         </select>
      </div>
 
      <!-- Classrooms Table -->
@@ -79,21 +94,19 @@
             } catch (PDOException $e) {
                 error_log('Classrooms query failed: ' . $e->getMessage());
                 // Fallback to a simpler query if the joined column is missing
-                $stmt = $pdo->prepare("SELECT * FROM classrooms ORDER BY created_date DESC");
-                $stmt->execute();
-                $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                // Ensure school_year_name key exists to avoid undefined index when rendering
-                foreach ($classrooms as &$c) {
-                    if (!isset($c['school_year_name'])) {
-                        $c['school_year_name'] = '';
-                    }
-                }
-                unset($c);
+                // $stmt = $pdo->prepare("SELECT * FROM classrooms ORDER BY created_date DESC");
+                // $stmt->execute();
+                // $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                // // Ensure school_year_name key exists to avoid undefined index when rendering
+                // foreach ($classrooms as &$c) {
+                //     if (!isset($c['school_year_name'])) {
+                //         $c['school_year_name'] = '';
+                //     }
+                // }
+                // unset($c);
             }
             $count = 1;
             ?>
-
-
 
          <!-- Scrollable Body -->
          <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
@@ -287,8 +300,89 @@
          </div>
      </div>
  </div>
-
  <script>
+     document.addEventListener('DOMContentLoaded', function() {
+         const searchInput = document.getElementById('searchInput');
+         const syFilter = document.getElementById('syFilter');
+         const classroomsTableBody = document.getElementById('classroomsTableBody');
+         const noResultsDiv = document.getElementById('noResults');
+         const editButtons = document.querySelectorAll('.editClassroomsBtn');
+         const deleteButtons = document.querySelectorAll('.deleteClassroomBtn');
+
+         function filterClassrooms() {
+             const formData = new FormData();
+             formData.append('action', 'fetch_classrooms');
+             formData.append('search', searchInput.value.trim());
+             formData.append('school_year', syFilter.value);
+
+             fetch('contents/fetch.php', {
+                     method: 'POST',
+                     body: formData
+                 })
+                 .then(res => res.json())
+                 .then(data => {
+                     classroomsTableBody.innerHTML = data.rows;
+                     document.getElementById('tc').textContent = data.totalCount;
+                     document.getElementById('av').textContent = data.availableCount;
+                     document.getElementById('uv').textContent = data.unavailableCount;
+
+                     if (!data.hasData) {
+                         classroomsTableBody.style.display = 'none';
+                         noResultsDiv.classList.remove('d-none');
+                     } else {
+                         classroomsTableBody.style.display = '';
+                         noResultsDiv.classList.add('d-none');
+                     }
+                 })
+                 .catch(err => {
+                     console.error(err);
+                     classroomsTableBody.innerHTML = `
+        <tr>
+            <td colspan="10" class="text-center text-danger py-4">
+                Failed to load data
+            </td>
+        </tr>`;
+                 });
+
+         }
+         editButtons.forEach(button => {
+             button.addEventListener('click', function() {
+                 const classroomId = this.getAttribute('data-id');
+                 const classroom = classroomsData.find(c => c.room_id == classroomId);
+
+                 if (classroom) {
+                     document.getElementById('classroom_ids').value = classroom.room_id;
+                     document.getElementById('room_status').value = classroom.room_status;
+                     document.getElementById('classroom_name').value = classroom.room_name;
+                     document.getElementById('classroom_type').value = classroom.room_type;
+
+                     const modal = new bootstrap.Modal(document.getElementById('editClassroom'));
+                     modal.show();
+                 }
+             });
+         });
+
+         deleteButtons.forEach(button => {
+             button.addEventListener('click', function() {
+                 const classroomId = this.getAttribute('data-id');
+                 document.getElementById('classroom_id').value = classroomId;
+
+                 const modal = new bootstrap.Modal(document.getElementById('deleteClassroom'));
+                 modal.show();
+             });
+         });
+         // Events
+         searchInput.addEventListener('input', filterClassrooms);
+         syFilter.addEventListener('change', filterClassrooms);
+
+         searchInput.addEventListener('keypress', e => {
+             if (e.key === 'Enter') filterClassrooms();
+         });
+
+     });
+ </script>
+
+ <!-- <script>
      document.addEventListener('DOMContentLoaded', function() {
          const searchInput = document.getElementById('searchInput');
          const classroomRows = document.querySelectorAll('.classroom-row');
@@ -350,34 +444,7 @@
              });
          }
 
-         // Edit button click handler
-         editButtons.forEach(button => {
-             button.addEventListener('click', function() {
-                 const classroomId = this.getAttribute('data-id');
-                 const classroom = classroomsData.find(c => c.room_id == classroomId);
 
-                 if (classroom) {
-                     document.getElementById('classroom_ids').value = classroom.room_id;
-                     document.getElementById('room_status').value = classroom.room_status;
-                     document.getElementById('classroom_name').value = classroom.room_name;
-                     document.getElementById('classroom_type').value = classroom.room_type;
-
-                     const modal = new bootstrap.Modal(document.getElementById('editClassroom'));
-                     modal.show();
-                 }
-             });
-         });
-
-         // Delete button click handler
-         deleteButtons.forEach(button => {
-             button.addEventListener('click', function() {
-                 const classroomId = this.getAttribute('data-id');
-                 document.getElementById('classroom_id').value = classroomId;
-
-                 const modal = new bootstrap.Modal(document.getElementById('deleteClassroom'));
-                 modal.show();
-             });
-         });
 
          // Event listeners
          searchInput.addEventListener('input', filterClassrooms);
@@ -407,7 +474,7 @@
          // Initialize
          filterClassrooms();
      });
- </script>
+ </script> -->
 
  <style>
      .scroll-classes {
