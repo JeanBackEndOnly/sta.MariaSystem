@@ -419,13 +419,11 @@ function db_connect()
             $pdo->exec($sql);
         }
         // Drop old triggers
-        $pdo->exec("DROP TRIGGER IF EXISTS trg_sf9_attendance_insert");
-        $pdo->exec("DROP TRIGGER IF EXISTS trg_sf9_attendance_update");
-        $pdo->exec("DROP TRIGGER IF EXISTS trg_sf9_attendance_delete");
+
 
         /* ---- INSERT ---- */
         $pdo->exec("
-CREATE TRIGGER trg_sf9_attendance_insert
+CREATE TRIGGER IF NOT EXISTS  trg_sf9_attendance_insert
 AFTER INSERT ON attendance
 FOR EACH ROW
 BEGIN
@@ -506,7 +504,7 @@ END
 
         /* ---- UPDATE ---- */
         $pdo->exec("
-CREATE TRIGGER trg_sf9_attendance_update
+CREATE TRIGGER IF NOT EXISTS trg_sf9_attendance_update
 AFTER UPDATE ON attendance
 FOR EACH ROW
 BEGIN
@@ -658,12 +656,10 @@ END
         }
 
         try {
-            // Drop trigger if it already exists
-            $pdo->exec("DROP TRIGGER IF EXISTS after_enrolment_insert");
 
             // Create trigger
             $pdo->exec("
-        CREATE TRIGGER after_enrolment_insert
+        CREATE TRIGGER IF NOT EXISTS after_enrolment_insert
         AFTER INSERT ON enrolment
         FOR EACH ROW
         BEGIN
@@ -746,7 +742,7 @@ END
     ");
             // echo "Trigger 'after_enrolment_insert' created successfully.";
         } catch (PDOException $e) {
-            echo "Error creating trigger: " . $e->getMessage();
+            echo "Error creating trigger er: " . $e->getMessage();
         }
         try {
 
@@ -822,7 +818,7 @@ END
     ");
             // echo "Trigger 'after_student_activation' created successfully.";
         } catch (PDOException $e) {
-            echo "Error creating trigger: " . $e->getMessage();
+            echo "Error creating trigger stud: " . $e->getMessage();
         }
 
 
