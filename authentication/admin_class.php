@@ -235,6 +235,13 @@ class Action
         $section_status = htmlspecialchars(trim($_POST["section_status"]));
 
         // Validate inputs
+        if (!isset($_SESSION['active_sy_id'])) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'No active school year found. Please activate/create one first.'
+            ]);
+        }
+        $school_year_id = $_SESSION['active_sy_id'];
         if (empty($section_name) || empty($grade_level) || empty($section_status)) {
             return json_encode([
                 'status' => 0,
@@ -244,9 +251,10 @@ class Action
 
         try {
             // Check if classroom already exists
-            $checkStmt = $this->db->prepare("SELECT section_name FROM sections WHERE section_name = ?");
-            $checkStmt->execute([$section_name]);
+            $checkStmt = $this->db->prepare("SELECT section_name FROM sections WHERE section_name = ? AND school_year_id = ?");
+            $checkStmt->execute([$section_name, $school_year_id]);
             $existingSection = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
 
             if ($existingSection) {
                 return json_encode([
@@ -255,11 +263,11 @@ class Action
                 ]);
             }
 
-            $query = "INSERT INTO sections (section_name, section_grade_level, section_status) 
-                    VALUES (?, ?, ?)";
+            $query = "INSERT INTO sections (school_year_id,section_name, section_grade_level, section_status) 
+                    VALUES (?, ?, ?, ?)";
 
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$section_name, $grade_level, $section_status]);
+            $stmt->execute([$school_year_id, $section_name, $grade_level, $section_status]);
 
             return json_encode([
                 'status' => 1,
@@ -298,6 +306,9 @@ class Action
                     'message' => 'School Year: "' . $schoolYear_name . '" already exists!'
                 ]);
             }
+            if ($status === 'Active') {
+                # code...
+            }
 
             $query = "INSERT INTO school_year (school_year_status, school_year_name) 
                     VALUES (?, ?)";
@@ -325,6 +336,13 @@ class Action
         $subject_units = htmlspecialchars(trim($_POST["subject_units"]));
         $subjects_status = htmlspecialchars(trim($_POST["subjects_status"]));
 
+        if (!isset($_SESSION['active_sy_id'])) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'No active school year found. Please activate/create one first.'
+            ]);
+        }
+        $school_year_id = $_SESSION['active_sy_id'];
         if (empty($subject_name) || empty($subject_code) || empty($grade_level) || empty($subject_units) || empty($subjects_status)) {
             return json_encode([
                 'status' => 0,
@@ -333,21 +351,21 @@ class Action
         }
 
         try {
-            // $checkStmt = $this->db->prepare(
-            //     "SELECT subject_name FROM subjects WHERE subject_name = ? OR subject_code = ?"
-            // );
-            // $checkStmt->execute([$subject_name, $subject_code]);
-            // if ($checkStmt->fetch(PDO::FETCH_ASSOC)) {
-            //     return json_encode([
-            //         'status' => 0,
-            //         'message' => 'Subject already exists!'
-            //     ]);
-            // }
+            $checkStmt = $this->db->prepare(
+                "SELECT subject_name FROM subjects WHERE subject_name = ? OR subject_code = ? AND school_year_id = ?"
+            );
+            $checkStmt->execute([$subject_name, $subject_code, $school_year_id]);
+            if ($checkStmt->fetch(PDO::FETCH_ASSOC)) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Subject already exists!'
+                ]);
+            }
 
-            $query = "INSERT INTO subjects (subject_name, subject_code, grade_level, subject_units, subjects_status)
-                    VALUES (?, ?, ?, ?, ?)";
+            $query = "INSERT INTO subjects (subject_name, subject_code, grade_level, subject_units, subjects_status, school_year_id)
+                    VALUES (?, ?, ?, ?, ?, ?)";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$subject_name, $subject_code, $grade_level, $subject_units, $subjects_status]);
+            $stmt->execute([$subject_name, $subject_code, $grade_level, $subject_units, $subjects_status, $school_year_id]);
 
             return json_encode([
                 'status' => 1,
@@ -621,9 +639,13 @@ class Action
         $school_year_id = $_POST["school_year_id"] ?? null;
 
         try {
-            $query = "UPDATE school_year SET school_year_status = 'Active' WHERE school_year_id = '$school_year_id'";
+            $query = "UPDATE school_year SET school_year_status = 'Inactive'";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
+            $query = "UPDATE school_year SET school_year_status = 'Active' WHERE school_year_id = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$school_year_id]);
+            $_SESSION['active_sy_id'] = $school_year_id;
             return json_encode([
                 'status' => 1,
                 'message' => 'School Year Activated successfully!'
@@ -1555,10 +1577,10 @@ class Action
             $tz = new DateTimeZone('Asia/Manila'); // change if needed
             // $now = new DateTime($this->nao, $tz);
             $now = new DateTime($this->nao, $tz);
-            $currentTime = $now->format('H:i:s');       
-            $today = $now->format('Y-m-d');              
-            $nowDatetime = $now->format('Y-m-d H:i:s');  
-            
+            $currentTime = $now->format('H:i:s');
+            $today = $now->format('Y-m-d');
+            $nowDatetime = $now->format('Y-m-d H:i:s');
+
             // $currentTime = $now->format('H:i:s');       
             // $today = $now->format('Y-m-d');              
             // $nowDatetime = $now->format('Y-m-d H:i:s');  
