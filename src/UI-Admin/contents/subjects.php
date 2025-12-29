@@ -55,25 +55,25 @@ $count = 1;
                         ?>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-primary bg-opacity-10 rounded">
-                                <h3 class="text-white mb-1"><?= count($subjects) ?></h3>
+                                <h3 id="tc" class="text-white mb-1"><?= count($subjects) ?></h3>
                                 <small class="text-white">Total Subjects</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-success bg-opacity-10 rounded">
-                                <h3 class="text-white mb-1"><?= count($availableCount) ?></h3>
+                                <h3 id="av" class="text-white mb-1"><?= count($availableCount) ?></h3>
                                 <small class="text-white">Available</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-secondary bg-opacity-10 rounded">
-                                <h3 class="text-white mb-1"><?= count($unavailableCount) ?></h3>
+                                <h3 id="uv" class="text-white mb-1"><?= count($unavailableCount) ?></h3>
                                 <small class="text-white">Unavailable</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-info bg-opacity-10 rounded">
-                                <h3 class="text-white mb-1"><?= array_sum(array_column($subjects, 'subject_units')) ?></h3>
+                                <h3 id="tu" class="text-white mb-1"><?= array_sum(array_column($subjects, 'subject_units')) ?></h3>
                                 <small class="text-white">Total Units</small>
                             </div>
                         </div>
@@ -84,37 +84,37 @@ $count = 1;
                         <h6 class="text-muted mb-3">Grade Level Distribution</h6>
                         <div class="col-2 text-center">
                             <div class="p-2 bg-light rounded">
-                                <h5 class="mb-1"><?= count($grade1Count) ?></h5>
+                                <h5 id="gg1" class="mb-1"><?= count($grade1Count) ?></h5>
                                 <small class="text-muted">Grade 1</small>
                             </div>
                         </div>
                         <div class="col-2 text-center">
                             <div class="p-2 bg-light rounded">
-                                <h5 class="mb-1"><?= count($grade2Count) ?></h5>
+                                <h5 id="gg2" class="mb-1"><?= count($grade2Count) ?></h5>
                                 <small class="text-muted">Grade 2</small>
                             </div>
                         </div>
                         <div class="col-2 text-center">
                             <div class="p-2 bg-light rounded">
-                                <h5 class="mb-1"><?= count($grade3Count) ?></h5>
+                                <h5 id="gg3" class="mb-1"><?= count($grade3Count) ?></h5>
                                 <small class="text-muted">Grade 3</small>
                             </div>
                         </div>
                         <div class="col-2 text-center">
                             <div class="p-2 bg-light rounded">
-                                <h5 class="mb-1"><?= count($grade4Count) ?></h5>
+                                <h5 id="gg4" class="mb-1"><?= count($grade4Count) ?></h5>
                                 <small class="text-muted">Grade 4</small>
                             </div>
                         </div>
                         <div class="col-2 text-center">
                             <div class="p-2 bg-light rounded">
-                                <h5 class="mb-1"><?= count($grade5Count) ?></h5>
+                                <h5 id="gg5" class="mb-1"><?= count($grade5Count) ?></h5>
                                 <small class="text-muted">Grade 5</small>
                             </div>
                         </div>
                         <div class="col-2 text-center">
                             <div class="p-2 bg-light rounded">
-                                <h5 class="mb-1"><?= count($grade6Count) ?></h5>
+                                <h5 id="gg6" class="mb-1"><?= count($grade6Count) ?></h5>
                                 <small class="text-muted">Grade 6</small>
                             </div>
                         </div>
@@ -123,7 +123,19 @@ $count = 1;
             </div>
         </div>
     </div>
-
+    <div style="display: flex; gap: 1rem; align-items: center; border: none;">
+        <h5>Filter by:</h5>
+        <select id="syFilter" name="school_year" class="form-select" style="max-width: 200px;">
+            <option value="">All Year</option>
+            <?php
+            $catStmt = $pdo->query("SELECT school_year_id, school_year_name FROM school_year ORDER BY school_year_name ASC");
+            while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)): ?>
+                <option value="<?= htmlspecialchars($cat['school_year_id']) ?>">
+                    <?= htmlspecialchars($cat['school_year_name']) ?>
+                </option>
+            <?php endwhile; ?>
+        </select>
+    </div>
     <!-- Subjects Table -->
     <div class="table-container-wrapper p-0">
         <?php
@@ -134,25 +146,25 @@ $count = 1;
         ?>
 
         <!-- Fixed Header -->
-        <div class="table-responsive">
-            <table class="table table-sm table-bordered table-hover" style="font-size: 0.875rem;">
-                <thead class="table-light">
-                    <tr>
-                        <th width="5%">#</th>
-                        <th width="20%">Subject</th>
-                        <th width="10%">Code</th>
-                        <th width="10%">Units</th>
-                        <th width="15%">Grade Level</th>
-                        <th width="15%">Status</th>
-                        <th width="15%">Created at</th>
-                        <th width="20%">Action</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
 
         <!-- Scrollable Body -->
         <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+            <div class="">
+                <table class="table table-sm table-bordered table-hover" style="font-size: 0.875rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="20%">Subject</th>
+                            <th width="10%">Code</th>
+                            <th width="10%">Units</th>
+                            <th width="15%">Grade Level</th>
+                            <th width="15%">Status</th>
+                            <th width="15%">Created at</th>
+                            <th width="20%">Action</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
             <table class="table table-sm table-bordered table-hover mb-0" style="font-size: 0.875rem;">
                 <tbody id="subjectsTableBody">
                     <?php if ($subjects):
@@ -167,7 +179,7 @@ $count = 1;
                                 <td width="20%" class="subject-name">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-placeholder me-2">
-                                            <i class="fa-solid fa-book text-primary"></i>
+                                            <i class="fa-solid fa-book"></i>
                                         </div>
                                         <div>
                                             <strong><?= htmlspecialchars($subject["subject_name"]) ?></strong>
@@ -380,97 +392,100 @@ $count = 1;
         const subjectRows = document.querySelectorAll('.subject-row');
         const subjectsTableBody = document.getElementById('subjectsTableBody');
         const noResultsDiv = document.getElementById('noResults');
-        const editButtons = document.querySelectorAll('.editSubjectBtn');
-        const deleteButtons = document.querySelectorAll('.deleteSubjectBtn');
+        // const editButtons = document.querySelectorAll('.editSubjectBtn');
+        // const deleteButtons = document.querySelectorAll('.deleteSubjectBtn');
+        const syFilter = document.getElementById('syFilter');
 
         // Subject data for edit form
         const subjectsData = <?= json_encode($subjects); ?>;
 
         // Search functionality
+        function gr(e, v) {
+            document.getElementById(e).textContent = v;
+        }
+
         function filterSubjects() {
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            let visibleCount = 0;
+            const formData = new FormData();
+            formData.append('action', 'fetch_subjects');
+            formData.append('search', searchInput.value.trim());
+            formData.append('school_year', syFilter.value);
 
-            subjectRows.forEach(row => {
-                const name = row.getAttribute('data-name');
-                const code = row.getAttribute('data-code');
-                const grade = row.getAttribute('data-grade');
-                const status = row.getAttribute('data-status');
+            fetch('contents/fetch.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    subjectsTableBody.innerHTML = data.rows;
+                    // document.getElementById('av').textContent = data.availableCount;
+                    // document.getElementById('uv').textContent = data.unavailableCount;
+                    gr('tc',data.totalCount)
+                    gr('gg1',data.grades['Grade 1'])
+                    gr('gg2',data.grades['Grade 2'])
+                    gr('gg3',data.grades['Grade 3'])
+                    gr('gg4',data.grades['Grade 4'])
+                    gr('gg5',data.grades['Grade 5'])
+                    gr('gg6',data.grades['Grade 6'])
+                    gr('av',data.availableCount)
+                    gr('uv',data.unavailableCount)
+                    gr('tu',data.tuCount)
+                    const ggr = data.grades;
 
-                let matchesSearch = true;
 
-                if (searchTerm) {
-                    matchesSearch = name.includes(searchTerm) ||
-                        code.includes(searchTerm) ||
-                        grade.includes(searchTerm) ||
-                        status.includes(searchTerm);
-                }
-
-                if (matchesSearch) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            if (visibleCount === 0) {
-                subjectsTableBody.style.display = 'none';
-                noResultsDiv.classList.remove('d-none');
-            } else {
-                subjectsTableBody.style.display = '';
-                noResultsDiv.classList.add('d-none');
-            }
-
-            updateRowNumbers();
-        }
-
-        function updateRowNumbers() {
-            let counter = 1;
-            subjectRows.forEach(row => {
-                if (row.style.display !== 'none') {
-                    const firstCell = row.querySelector('td:first-child');
-                    if (firstCell) {
-                        firstCell.textContent = counter++;
+                    if (!data.hasData) {
+                        subjectsTableBody.style.display = 'none';
+                        noResultsDiv.classList.remove('d-none');
+                    } else {
+                        subjectsTableBody.style.display = '';
+                        noResultsDiv.classList.add('d-none');
                     }
-                }
-            });
+                })
+                .catch(err => {
+                    console.error(err);
+                    subjectsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="text-center text-danger py-4">
+                            Failed to load data
+                        </td>
+                    </tr>`;
+                });
         }
 
-        // Edit button click handler
-        editButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const subjectId = this.getAttribute('data-id');
-                const subject = subjectsData.find(s => s.subject_id == subjectId);
 
-                if (subject) {
-                    document.getElementById('subject_id_edit').value = subject.subject_id;
-                    document.getElementById('subject_name').value = subject.subject_name;
-                    document.getElementById('subject_code').value = subject.subject_code;
-                    document.getElementById('grade_level').value = subject.grade_level;
-                    document.getElementById('subject_units').value = subject.subject_units;
-                    document.getElementById('subjects_status').value = subject.subjects_status;
+        // // Edit button click handler
+        // editButtons.forEach(button => {
+        //     button.addEventListener('click', function() {
+        //         const subjectId = this.getAttribute('data-id');
+        //         const subject = subjectsData.find(s => s.subject_id == subjectId);
 
-                    const modal = new bootstrap.Modal(document.getElementById('editSubjects'));
-                    modal.show();
-                }
-            });
-        });
+        //         if (subject) {
+        //             document.getElementById('subject_id_edit').value = subject.subject_id;
+        //             document.getElementById('subject_name').value = subject.subject_name;
+        //             document.getElementById('subject_code').value = subject.subject_code;
+        //             document.getElementById('grade_level').value = subject.grade_level;
+        //             document.getElementById('subject_units').value = subject.subject_units;
+        //             document.getElementById('subjects_status').value = subject.subjects_status;
 
-        // Delete button click handler
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const subjectId = this.getAttribute('data-id');
-                const subject = subjectsData.find(s => s.subject_id == subjectId);
+        //             const modal = new bootstrap.Modal(document.getElementById('editSubjects'));
+        //             modal.show();
+        //         }
+        //     });
+        // });
 
-                if (subject) {
-                    document.getElementById('subject_id_delete').value = subject.subject_id;
+        // // Delete button click handler
+        // deleteButtons.forEach(button => {
+        //     button.addEventListener('click', function() {
+        //         const subjectId = this.getAttribute('data-id');
+        //         const subject = subjectsData.find(s => s.subject_id == subjectId);
 
-                    const modal = new bootstrap.Modal(document.getElementById('deleteSubject'));
-                    modal.show();
-                }
-            });
-        });
+        //         if (subject) {
+        //             document.getElementById('subject_id_delete').value = subject.subject_id;
+
+        //             const modal = new bootstrap.Modal(document.getElementById('deleteSubject'));
+        //             modal.show();
+        //         }
+        //     });
+        // });
 
         // Event listeners
         searchInput.addEventListener('input', filterSubjects);
@@ -492,13 +507,13 @@ $count = 1;
         searchInput.addEventListener('focus', function() {
             this.parentElement.classList.add('border-primary', 'border-2');
         });
+        syFilter.addEventListener('change', filterSubjects);
 
         searchInput.addEventListener('blur', function() {
             this.parentElement.classList.remove('border-primary', 'border-2');
         });
 
         // Initialize
-        filterSubjects();
     });
 </script>
 
