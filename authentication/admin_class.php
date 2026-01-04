@@ -104,18 +104,18 @@ class Action
         // Validation code remains the same...
 
         try {
-            $getActiveSY = $this->getActiveSY();
-            if (!$getActiveSY) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'No active school year found. Please activate/create one first.'
-                ]);
-            }
+
             // Check if username exists using prepared statement
-            $stmt = $this->db->prepare("SELECT username FROM users WHERE username = ?");
-            $stmt->execute([$username]);
+            $stmt = $this->db->prepare("SELECT username FROM users WHERE username = ? OR username IN(SELECT admin_username FROM admin WHERE admin_username = ?)");
+            $stmt->execute([$username, $username]);
             $usernameTaken = $stmt->fetch(PDO::FETCH_ASSOC);
 
+            if ($cpassword != $password) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Mismatch password'
+                ]);
+            }
             if ($usernameTaken) {
                 return json_encode([
                     'status' => 0,
@@ -135,16 +135,21 @@ class Action
                     'message' => 'Email address already registered'
                 ]);
             }
+            if ($emailTaken) {
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Email address already registered'
+                ]);
+            }
 
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
 
             // FIXED: Use $this->db instead of $pdo
-            $query = "INSERT INTO users (school_year_id, firstname, middlename, lastname, suffix, email, contact, gender, username, password, user_role, status) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')";
+            $query = "INSERT INTO users (firstname, middlename, lastname, suffix, email, contact, gender, username, password, user_role, status) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')";
 
             $stmt = $this->db->prepare($query); // CHANGED: $pdo to $this->db
             $stmt->execute([
-                $getActiveSY['school_year_id'],
                 $firstName,
                 $middleName,
                 $lastName,
@@ -179,13 +184,6 @@ class Action
 
     function classroom_form()
     {
-        $getActiveSY = $this->getActiveSY();
-        if (!$getActiveSY) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'No active school year found. Please activate/create one first.'
-            ]);
-        }
         $classroom_name = htmlspecialchars(trim($_POST["classroom_name"]));
         $classroom_type = htmlspecialchars(trim($_POST["classroom_type"]));
 
@@ -210,11 +208,11 @@ class Action
                 ]);
             }
 
-            $query = "INSERT INTO classrooms (school_year_id, room_name, room_type) 
-                    VALUES (?, ?, ?)";
+            $query = "INSERT INTO classrooms (room_name, room_type) 
+                    VALUES (?, ?)";
 
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$getActiveSY['school_year_id'], $classroom_name, $classroom_type]);
+            $stmt->execute([$classroom_name, $classroom_type]);
 
             return json_encode([
                 'status' => 1,
@@ -234,14 +232,7 @@ class Action
         $grade_level = htmlspecialchars(trim($_POST["grade_level"]));
         $section_status = htmlspecialchars(trim($_POST["section_status"]));
 
-        // Validate inputs
-        if (!isset($_SESSION['active_sy_id'])) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'No active school year found. Please activate/create one first.'
-            ]);
-        }
-        $school_year_id = $_SESSION['active_sy_id'];
+
         if (empty($section_name) || empty($grade_level) || empty($section_status)) {
             return json_encode([
                 'status' => 0,
@@ -251,8 +242,8 @@ class Action
 
         try {
             // Check if classroom already exists
-            $checkStmt = $this->db->prepare("SELECT section_name FROM sections WHERE section_name = ? AND school_year_id = ?");
-            $checkStmt->execute([$section_name, $school_year_id]);
+            $checkStmt = $this->db->prepare("SELECT section_name FROM sections WHERE section_name = ?");
+            $checkStmt->execute([$section_name]);
             $existingSection = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
 
@@ -263,11 +254,11 @@ class Action
                 ]);
             }
 
-            $query = "INSERT INTO sections (school_year_id,section_name, section_grade_level, section_status) 
-                    VALUES (?, ?, ?, ?)";
+            $query = "INSERT INTO sections (section_name, section_grade_level, section_status) 
+                    VALUES (?, ?, ?)";
 
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$school_year_id, $section_name, $grade_level, $section_status]);
+            $stmt->execute([$section_name, $grade_level, $section_status]);
 
             return json_encode([
                 'status' => 1,
@@ -277,6 +268,7 @@ class Action
             error_log("Database error: " . $e->getMessage());
             return json_encode([
                 'status' => 0,
+                'msg' => $e->getMessage(),
                 'message' => 'An error occurred. Please try again later.'
             ]);
         }
@@ -284,13 +276,16 @@ class Action
     function schoolYear_form()
     {
         $status = htmlspecialchars(trim($_POST["status"]));
-        $schoolYear_name = htmlspecialchars(trim($_POST["schoolYear_name"]));
+        $currentYear = (new DateTime($this->nao))->format('Y');
+        // $schoolYear_name = htmlspecialchars(trim($_POST["schoolYear_name"]));
+        $nextYear = $currentYear + 1;
 
+        $schoolYear_name = $currentYear . '-' . $nextYear;
         // Validate inputs
-        if (empty($status) || empty($schoolYear_name)) {
+        if (empty($status)) {
             return json_encode([
                 'status' => 0,
-                'message' => 'Please fill in all required fields'
+                'message' => 'Please fill in all required field'
             ]);
         }
 
@@ -337,13 +332,6 @@ class Action
         $subject_units = htmlspecialchars(trim($_POST["subject_units"]));
         $subjects_status = htmlspecialchars(trim($_POST["subjects_status"]));
 
-        if (!isset($_SESSION['active_sy_id'])) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'No active school year found. Please activate/create one first.'
-            ]);
-        }
-        $school_year_id = $_SESSION['active_sy_id'];
         if (empty($subject_name) || empty($subject_code) || empty($grade_level) || empty($subject_units) || empty($subjects_status)) {
             return json_encode([
                 'status' => 0,
@@ -353,9 +341,9 @@ class Action
 
         try {
             $checkStmt = $this->db->prepare(
-                "SELECT subject_name FROM subjects WHERE subject_name = ? OR subject_code = ? AND school_year_id = ?"
+                "SELECT subject_name FROM subjects WHERE subject_name = ? OR subject_code = ?"
             );
-            $checkStmt->execute([$subject_name, $subject_code, $school_year_id]);
+            $checkStmt->execute([$subject_name, $subject_code]);
             if ($checkStmt->fetch(PDO::FETCH_ASSOC)) {
                 return json_encode([
                     'status' => 0,
@@ -363,10 +351,10 @@ class Action
                 ]);
             }
 
-            $query = "INSERT INTO subjects (subject_name, subject_code, grade_level, subject_units, subjects_status, school_year_id)
-                    VALUES (?, ?, ?, ?, ?, ?)";
+            $query = "INSERT INTO subjects (subject_name, subject_code, grade_level, subject_units, subjects_status)
+                    VALUES (?, ?, ?, ?, ?)";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$subject_name, $subject_code, $grade_level, $subject_units, $subjects_status, $school_year_id]);
+            $stmt->execute([$subject_name, $subject_code, $grade_level, $subject_units, $subjects_status]);
 
             return json_encode([
                 'status' => 1,

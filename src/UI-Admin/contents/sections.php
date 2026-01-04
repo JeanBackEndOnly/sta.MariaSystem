@@ -6,10 +6,177 @@ if ($result['res']) {
     header($result['uri']);
     exit;
 }
-$stmt = $pdo->prepare("SELECT * FROM sections LEFT JOIN school_year ON sections.school_year_id = school_year.school_year_id ORDER BY sections.created_date DESC");
-$stmt->execute();
-$sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$count = 1;
+$search = trim($_POST['search'] ?? '');
+$sy     = trim($_POST['school_year'] ?? '');
+
+$limit  = 25;
+$page   = max(1, (int)($_POST['page'] ?? 1));
+$offset = ($page - 1) * $limit;
+
+$where  = [];
+$params = [];
+
+if ($search !== '') {
+    $where[]  = "s.section_name LIKE ?";
+    $params[] = "%$search%";
+}
+
+if ($sy !== '') {
+    $where[] = "
+        EXISTS (
+            SELECT 1
+            FROM enrolment e
+            WHERE e.section_name = s.section_name
+              AND e.school_year_id = ?
+              AND e.enrolment_Status = 'Approved'
+        )
+    ";
+    $params[] = $sy;
+}
+
+$whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+$countSql = "
+    SELECT COUNT(*)
+    FROM sections s
+    $whereSql
+";
+
+$countStmt = $pdo->prepare($countSql);
+$countStmt->execute($params);
+$totalRows  = (int)$countStmt->fetchColumn();
+$totalPages = max(1, ceil($totalRows / $limit));
+
+
+$dataSql = "
+    SELECT s.*
+    FROM sections s
+    $whereSql
+    ORDER BY s.created_date DESC
+    LIMIT $limit OFFSET $offset
+";
+
+$dataStmt = $pdo->prepare($dataSql);
+$dataStmt->execute($params);
+$sections = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
+$html = '';
+$count = 0;
+if (isset($_POST['ajax'])):
+    if (!empty($sections)):
+        foreach ($sections as $section) :
+            $count += 1;
+            $html .= '<tr class="section-row"
+                data-name="' . htmlspecialchars(strtolower($section["section_name"])) . '"
+                data-grade="' . htmlspecialchars(strtolower($section["section_grade_level"])) . '"
+                data-status="' . htmlspecialchars(strtolower($section["section_status"])) . '">
+                <td style="white-space: wrap; width:5rem">' . $count++ . '</td>
+                <td style="white-space: wrap; max-width:9rem" class="section-name">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-placeholder me-2">
+                            <i class="fa-solid fa-layer-group text-secondary"></i>
+                        </div>
+                        <div>
+                            <strong>' . htmlspecialchars($section["section_name"]) . '</strong>
+                        </div>
+                    </div>
+                </td>
+                <td style="white-space: wrap; max-width:9rem">
+                    <span class="badge bg-info">' . htmlspecialchars($section["section_grade_level"]) . '</span>
+                </td>
+                <td style="white-space: wrap; max-width:9rem">
+                    <span class="badge bg-' . (($section["section_status"] === "Available") ? "success" : "secondary") . '">
+                        <i class="fa-solid fa-circle fa-xs me-1"></i></span>
+                </td>
+                <td style="white-space: wrap; max-width:9rem">
+                    <small>' . date("M d, Y", strtotime($section["created_date"])) . '</small>
+                </td>
+                <td style="white-space: wrap;">
+                    <div class="d-flex gap-1 justify-content-center">
+                        <button type="button" data-id="' . $section["section_id"] . '"
+                            class="btn btn-sm btn-info editSectionBtn"
+                            title="Edit Section">
+                            <i class="fa-solid fa-pen me-1"></i> Edit
+                        </button>
+                        <button type="button" data-id="' . $section["section_id"] . '"
+                            class="btn btn-sm btn-danger deleteSectionBtn"
+                            title="Delete Section">
+                            <i class="fa-solid fa-trash me-1"></i> Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>';
+        endforeach;
+        $bt = "";
+        if ($page > 1) {
+            $bt = '<button class="btn btn-sm btn-secondary"
+                                onclick="fetchSections(' . $page - 1 . ')">
+                                Prev
+                            </button>';
+        }
+        if ($page < $totalPages) {
+            $bt .= '<button class="btn btn-sm btn-secondary"
+                                onclick="fetchSections(' . $page + 1 . ')">
+                                Next
+                            </button>';
+        }
+        $html .= '<tr>
+            <td colspan="6">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Page ' . $page . ' of ' . $totalPages . '</span>
+                    <div>
+                        ' . $bt . '
+                    </div>
+                </div>
+            </td>
+        </tr>';
+    else:
+        $html = '<tr>
+            <td colspan="6" class="text-center py-3">No sections found.</td>
+        </tr>';
+    endif;
+    $statsSql = "
+    SELECT
+        COUNT(*) AS total_sections,
+        SUM(CASE WHEN s.section_status = 'Available' THEN 1 ELSE 0 END) AS available_sections,
+        SUM(CASE WHEN s.section_status = 'Unavailable' THEN 1 ELSE 0 END) AS unavailable_sections,
+        COUNT(DISTINCT s.section_grade_level) AS grade_levels
+    FROM sections s
+    WHERE 1=1
+";
+
+    $paramsStats = [];
+
+    if ($search !== '') {
+        $statsSql .= " AND s.section_name LIKE ?";
+        $paramsStats[] = "%$search%";
+    }
+
+    if ($sy !== '') {
+        $statsSql .= "
+        AND EXISTS (
+            SELECT 1
+            FROM enrolment e
+            WHERE e.section_name = s.section_name
+              AND e.school_year_id = ?
+              AND e.enrolment_Status = 'Approved'
+        )
+    ";
+        $paramsStats[] = $sy;
+    }
+
+    $statsStmt = $pdo->prepare($statsSql);
+    $statsStmt->execute($paramsStats);
+    $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+
+
+    echo json_encode([
+        'rows' => $html,
+        'hasData' => !empty($sections),
+        'stats' => $stats,
+    ]);
+    exit;
+endif;
+
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div class="mx-2">
@@ -18,7 +185,6 @@ $count = 1;
 </div>
 
 <div class="row g-3">
-    <!-- Search and Action Section -->
     <div class="row mb-3 justify-content-between align-items-center">
         <div class="col-md-8">
             <div class="input-group">
@@ -33,7 +199,6 @@ $count = 1;
         </div>
     </div>
 
-    <!-- Statistics Summary -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card border-0 shadow-sm">
@@ -78,9 +243,8 @@ $count = 1;
     </div>
 
     <div style="display: flex; gap: 1rem; align-items: center; border: none;">
-        <h5>Filter by:</h5>
         <select id="syFilter" name="school_year" class="form-select" style="max-width: 200px;">
-            <option value="">All Year</option>
+            <option value="">-- active at ---</option>
             <?php
             $catStmt = $pdo->query("SELECT school_year_id, school_year_name FROM school_year ORDER BY school_year_name ASC");
             while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)): ?>
@@ -90,7 +254,18 @@ $count = 1;
             <?php endwhile; ?>
         </select>
     </div>
-
+    <div class="fsfs">
+        <li>
+            <span class="badge bg-success">
+                <i class="fa-solid fa-circle fa-xs me-1"></i>
+            </span> - Available
+        </li>
+        <li>
+            <span class="badge bg-secondary">
+                <i class="fa-solid fa-circle fa-xs me-1"></i>
+            </span> - Unavailable
+        </li>
+    </div>
     <!-- Sections Table -->
     <div class="table-container-wrapper p-0">
         <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
@@ -103,7 +278,6 @@ $count = 1;
                             <th style='white-space: wrap; max-width:9rem'>Section Name</th>
                             <th style='white-space: wrap; max-width:9rem'>Grade Level</th>
                             <th style='white-space: wrap; max-width:9rem'>Section Status</th>
-                            <th style='white-space: wrap; max-width:9rem'>School Year</th>
                             <th style='white-space: wrap; max-width:9rem'>Created at</th>
                             <th style='white-space: wrap; '>Action</th>
                         </tr>
@@ -113,60 +287,6 @@ $count = 1;
 
             <table class="table table-sm table-bordered table-hover mb-0" style="font-size: 0.875rem;">
                 <tbody id="sectionsTableBody">
-                    <?php if (!empty($sections)):
-                        $count = 1;
-                        foreach ($sections as $section) : ?>
-                            <tr class="section-row"
-                                data-name="<?= htmlspecialchars(strtolower($section["section_name"])) ?>"
-                                data-grade="<?= htmlspecialchars(strtolower($section["section_grade_level"])) ?>"
-                                data-status="<?= htmlspecialchars(strtolower($section["section_status"])) ?>">
-                                <td style='white-space: wrap; width:5rem'><?= $count++ ?></td>
-                                <td style='white-space: wrap; max-width:9rem' class="section-name">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar-placeholder me-2">
-                                            <i class="fa-solid fa-layer-group text-secondary"></i>
-                                        </div>
-                                        <div>
-                                            <strong><?= htmlspecialchars($section["section_name"]) ?></strong>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td style='white-space: wrap; max-width:9rem'>
-                                    <span class="badge bg-info"><?= htmlspecialchars($section["section_grade_level"]) ?></span>
-                                </td>
-                                <td style='white-space: wrap; max-width:9rem'>
-                                    <span class="badge bg-<?= ($section["section_status"] == 'Available') ? 'success' : 'secondary' ?>">
-                                        <i class="fa-solid fa-circle fa-xs me-1"></i>
-                                        <?= htmlspecialchars($section["section_status"] ?? 'Unavailable') ?>
-                                    </span>
-                                </td>
-                                <td style='white-space: wrap; max-width:9rem'>
-                                    <small><?= $section["school_year_name"] ?></small>
-                                </td>
-                                <td style='white-space: wrap; max-width:9rem'>
-                                    <small><?= date('M d, Y', strtotime($section["created_date"])) ?></small>
-                                </td>
-                                <td style='white-space: wrap;'>
-                                    <div class="d-flex gap-1 justify-content-center">
-                                        <button type="button" data-id="<?= $section["section_id"] ?>"
-                                            class="btn btn-sm btn-info editSectionBtn"
-                                            title="Edit Section">
-                                            <i class="fa-solid fa-pen me-1"></i> Edit
-                                        </button>
-                                        <button type="button" data-id="<?= $section["section_id"] ?>"
-                                            class="btn btn-sm btn-danger deleteSectionBtn"
-                                            title="Delete Section">
-                                            <i class="fa-solid fa-trash me-1"></i> Delete
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="6" class="text-center py-3">No sections found.</td>
-                        </tr>
-                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -305,110 +425,62 @@ $count = 1;
         </div>
     </div>
 </div>
-
 <script>
+    let currentPage = 1;
+
+    const searchInput = document.getElementById('searchInput');
+    const syFilter = document.getElementById('syFilter');
+    const sectionsTableBody = document.getElementById('sectionsTableBody');
+    const noResultsDiv = document.getElementById('noResults');
+    //  const editButtons = document.querySelectorAll('.editClassroomsBtn');
+    //  const deleteButtons = document.querySelectorAll('.deleteClassroomBtn');
+
+    function fetchSections(page = 1) {
+        sectionsTableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+        <div>Loading students...</div>
+    </td></tr>`;
+        const formData = new FormData();
+        formData.append('ajax', 1);
+        formData.append('search', searchInput.value.trim());
+        formData.append('school_year', syFilter.value);
+        formData.append('page', page);
+
+        fetch('contents/sections.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                sectionsTableBody.innerHTML = data.rows;
+                document.getElementById('tc').textContent = data.stats.total_sections ?? 0;
+                document.getElementById('av').textContent = data.stats.available_sections ?? 0;
+                document.getElementById('uv').textContent = data.stats.unavailable_sections ?? 0;
+                document.getElementById('gt').textContent = data.stats.grade_levels ?? 0;
+
+                if (!data.hasData) {
+                    sectionsTableBody.style.display = 'none';
+                    noResultsDiv.classList.remove('d-none');
+                } else {
+                    sectionsTableBody.style.display = '';
+                    noResultsDiv.classList.add('d-none');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                sectionsTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Failed to load data</td></tr>`;
+            });
+
+    }
     document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.getElementById('searchInput');
-        const sectionsTableBody = document.getElementById('sectionsTableBody');
-        const noResultsDiv = document.getElementById('noResults');
-        // const editButtons = document.querySelectorAll('.editSectionBtn');
-        // const deleteButtons = document.querySelectorAll('.deleteSectionBtn');
-        const syFilter = document.getElementById('syFilter');
+        searchInput.addEventListener('input', () => fetchSections(1));
+        syFilter.addEventListener('change', () => fetchSections(1));
 
-        // Sections data for edit form
-        // const sectionsData = <?= json_encode($sections); ?>;
-
-        // Search functionality
-        function filterSections() {
-            const formData = new FormData();
-            formData.append('action', 'fetch_sections');
-            formData.append('search', searchInput.value.trim());
-            formData.append('school_year', syFilter.value);
-
-            fetch('contents/fetch.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-                    sectionsTableBody.innerHTML = data.rows;
-                    document.getElementById('tc').textContent = data.totalCount;
-                    document.getElementById('av').textContent = data.availableCount;
-                    document.getElementById('uv').textContent = data.unavailableCount;
-                    document.getElementById('gt').textContent = data.gradeTypeCount;
-
-                    if (!data.hasData) {
-                        sectionsTableBody.style.display = 'none';
-                        noResultsDiv.classList.remove('d-none');
-                    } else {
-                        sectionsTableBody.style.display = '';
-                        noResultsDiv.classList.add('d-none');
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    sectionsTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="10" class="text-center text-danger py-4">
-                            Failed to load data
-                        </td>
-                    </tr>`;
-                });
-        }
-        // Edit button click handler
-        // editButtons.forEach(button => {
-        //     button.addEventListener('click', function() {
-        //         // const sectionId = this.getAttribute('data-id');
-        //         // const section = sectionsData.find(s => s.section_id == sectionId);
-
-        //         // if (section) {
-        //         //     document.getElementById('section_ids').value = section.section_id;
-        //         //     document.getElementById('section_status').value = section.section_status;
-        //         //     document.getElementById('section_name').value = section.section_name;
-        //         //     document.getElementById('section_grade_level').value = section.section_grade_level;
-
-        //             const modal = new bootstrap.Modal(document.getElementById('editSections'));
-        //             modal.show();
-        //         // }
-        //     });
-        // });
-
-        // Delete button click handler
-        // deleteButtons.forEach(button => {
-        //     button.addEventListener('click', function() {
-        //         const sectionId = this.getAttribute('data-id');
-        //         document.getElementById('section_id').value = sectionId;
-
-        //         const modal = new bootstrap.Modal(document.getElementById('deleteSection'));
-        //         modal.show();
-        //     });
-        // });
-
-        // Event listeners
-        searchInput.addEventListener('input', filterSections);
-
-        // clearSearchBtn.addEventListener('click', function() {
-        //     searchInput.value = '';
-        //     filterSections();
-        //     searchInput.focus();
-        // });
-
-        // Add Enter key support for search
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                filterSections();
-            }
+        searchInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') fetchSections(1);
         });
-        syFilter.addEventListener('change', filterSections);
+        fetchSections(currentPage);
 
-        // Add some styling
-        searchInput.addEventListener('focus', function() {
-            this.parentElement.classList.add('border-primary', 'border-2');
-        });
-
-        searchInput.addEventListener('blur', function() {
-            this.parentElement.classList.remove('border-primary', 'border-2');
-        });
     });
 </script>
 
@@ -425,6 +497,19 @@ $count = 1;
         position: sticky;
         top: 0;
         z-index: 10;
+    }
+
+    .me-1 {
+        margin-right: 0 !important;
+    }
+
+    .fsfs li {
+        list-style: none;
+    }
+
+    .fsfs {
+        display: flex;
+        gap: 1rem;
     }
 
     .table tbody tr:hover {
