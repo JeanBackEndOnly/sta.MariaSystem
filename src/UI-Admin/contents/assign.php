@@ -1,71 +1,237 @@
 <?php
 require_once __DIR__ . '/../../../tupperware.php';
-$result = checkURI('admin', 2);
 
+// Redirect if not authorized
+$result = checkURI('admin', 2);
 if ($result['res']) {
     header($result['uri']);
     exit;
 }
+
+// Filters
+$search = trim($_POST['search'] ?? '');
+$syFilter = trim($_POST['school_year'] ?? '');
+
+// Pagination
+$limit = 1;
+$page = isset($_POST['page']) ? max(1, (int)$_POST['page']) : 1;
+$offset = ($page - 1) * $limit;
+
 // Get current active school year
-$currentSyStmt = $pdo->prepare("SELECT school_year_id, school_year_name FROM school_year WHERE school_year_status = 'Active' LIMIT 1");
+$currentSyStmt = $pdo->prepare("
+    SELECT school_year_id, school_year_name 
+    FROM school_year 
+    WHERE school_year_status = 'Active' 
+    LIMIT 1
+");
 $currentSyStmt->execute();
 $currentSy = $currentSyStmt->fetch(PDO::FETCH_ASSOC);
 $activeSyId = $currentSy['school_year_id'] ?? null;
 
+// Base SQL: classrooms with or without assigned classes
+$sql = "
+SELECT c.room_id, c.room_name, c.room_type, c.room_status,
+       cl.class_id, cl.sy_id, u.user_id AS adviser_id,
+       u.firstname AS adviser_firstname, u.lastname AS adviser_lastname,
+       sy.school_year_name
+FROM classrooms c
+LEFT JOIN classes cl ON cl.classroom_id = c.room_id
+    AND cl.sy_id = :activeSyId
+LEFT JOIN users u ON u.user_id = cl.adviser_id
+LEFT JOIN school_year sy ON sy.school_year_id = cl.sy_id
+WHERE 1
+";
 
-$classrooms = [];
+$params = [':activeSyId' => $activeSyId];
 
-$stmt = $pdo->prepare("
-        SELECT 
-            c.room_id,
-            c.room_name,
-            c.room_type,
-            c.room_status,
-
-            u.user_id AS adviser_id,
-            u.firstname AS adviser_firstname,
-            u.lastname  AS adviser_lastname
-
-        FROM classrooms c
-        LEFT JOIN classes cl
-            ON cl.classroom_id = c.room_id
-        LEFT JOIN users u
-            ON u.user_id = cl.adviser_id
-        WHERE C.school_year_id = ?
-        ORDER BY c.room_name ASC
-    ");
-
-$stmt->execute([$activeSyId]);
-
-$classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-
-// Fetch sections
-$stmt = $pdo->prepare("SELECT * FROM sections ORDER BY section_grade_level ASC, section_name ASC");
-$stmt->execute();
-$sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Group sections by grade level
-$sectionsByGrade = [];
-foreach ($sections as $section) {
-    $sectionsByGrade[$section['section_grade_level']][] = $section;
+// Search filter
+if ($search) {
+    $sql .= " AND (c.room_name LIKE :search OR c.room_type LIKE :search OR CONCAT(COALESCE(u.firstname,''),' ',COALESCE(u.lastname,'')) LIKE :search)";
+    $params[':search'] = "%$search%";
 }
 
-// Fetch available teachers
-$teachers = [];
-$stmt = $pdo->prepare("
-        SELECT u.* 
-        FROM users u
-        WHERE u.user_role = 'TEACHER'
-        ORDER BY u.lastname ASC
-    ");
-$stmt->execute();
-$teachers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// School year filter
+if ($syFilter) {
+    $sql .= " AND cl.sy_id = :syFilter";
+    $params[':syFilter'] = $syFilter;
+}
 
+// Order: NULL advisers first
+$sql .= " ORDER BY CASE WHEN u.user_id IS NULL THEN 0 ELSE 1 END, c.room_name ASC";
+
+// Get total rows for pagination
+$countSql = "SELECT COUNT(*) FROM ($sql) AS total_count";
+$countStmt = $pdo->prepare($countSql);
+$countStmt->execute($params);
+$totalRows = (int)$countStmt->fetchColumn();
+$totalPages = max(1, ceil($totalRows / $limit));
+
+$sql .= " LIMIT :limit OFFSET :offset";
+$params[':limit'] = $limit;
+$params[':offset'] = $offset;
+$statsStmt = $pdo->prepare("
+    SELECT 
+        COUNT(*) AS total_classrooms,
+        SUM(CASE WHEN c.room_id NOT IN (SELECT classroom_id FROM classes WHERE sy_id = :activeSyId) THEN 1 ELSE 0 END) AS available,
+        SUM(CASE WHEN c.room_id IN (SELECT classroom_id FROM classes WHERE sy_id = :activeSyId) THEN 1 ELSE 0 END) AS occupied,
+        SUM(CASE WHEN c.room_status != 'Active' THEN 1 ELSE 0 END) AS unavailable
+    FROM classrooms c
+");
+$statsStmt->execute([':activeSyId' => $activeSyId]);
+$classroomStats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+// Execute main query
+$stmt = $pdo->prepare($sql);
+foreach ($params as $key => $val) {
+    $type = is_int($val) ? PDO::PARAM_INT : PDO::PARAM_STR;
+    $stmt->bindValue($key, $val, $type);
+}
+$stmt->execute();
+$classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch available teachers
+$teachersStmt = $pdo->prepare("
+    SELECT * 
+    FROM users 
+    WHERE user_role = 'TEACHER' 
+    AND user_id NOT IN (SELECT adviser_id FROM classes WHERE sy_id = ?) 
+    ORDER BY lastname ASC
+");
+$teachersStmt->execute([$activeSyId]);
+$teachers = $teachersStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Current school year info
 $schoolYears = $currentSy ?? [];
+
+if (isset($_POST['getsections'])) {
+    $grade = trim($_POST['grade'] ?? '');
+    if (empty($grade)) {
+        echo json_encode(['sections' => []]);
+        exit;
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT * FROM sections 
+        WHERE section_grade_level = ? 
+        AND section_status = 'Available' 
+        ORDER BY section_grade_level ASC, section_name ASC
+    ");
+    $stmt->execute([$grade]);
+    $sections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    echo json_encode(['sections' => $sections]);
+    exit;
+}
+
+if (isset($_POST['ajax'])):
+    ob_start();
+    if ($classrooms): ?>
+        <div class="row">
+            <?php foreach ($classrooms as $classroom):
+                $isAvailable = empty($classroom['adviser_id']);
+                $hasTeacher = !empty($classroom['adviser_id']);
+                $roomStatus = $isAvailable ? 'Available' : 'Unavailable';
+                $cardClass = $isAvailable ? 'available' : 'unavailable';
+                $iconClass = $hasTeacher ? 'occupied' : ($isAvailable ? 'available' : 'unavailable');
+            ?>
+                <div class="col-xl-3 col-lg-4 col-md-6 mb-4 classroom-item"
+                    style="height:19rem;"
+                    data-name="<?= htmlspecialchars(strtolower($classroom["room_name"])) ?>"
+                    data-type="<?= htmlspecialchars(strtolower($classroom["room_type"])) ?>"
+                    data-status="<?= htmlspecialchars(strtolower($roomStatus)) ?>"
+                    data-teacher="<?= htmlspecialchars(strtolower($classroom["adviser_firstname"] . ' ' . $classroom["adviser_lastname"])) ?>">
+                    <div class="card border-0 shadow classroom-card <?= $cardClass ?>">
+                        <div class="classroom-info">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="classroom-icon text-white <?= $iconClass ?> me-3">
+                                    <i class="fa-solid fa-door-closed"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1"><?= htmlspecialchars($classroom["room_name"]) ?></h5>
+                                    <span class="badge-status text-white bg-<?= $isAvailable ? 'success' : 'danger' ?>">
+                                        <?= $roomStatus ?>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <small class="text-muted">Type:</small>
+                                <div><strong><?= htmlspecialchars($classroom["room_type"]) ?></strong></div>
+                            </div>
+
+                            <div class="mb-2">
+                                <small class="text-muted">Teacher Assigned:</small>
+                                <div class="classroom-teacher">
+                                    <?php if ($hasTeacher): ?>
+                                        <i class="fa-solid fa-user-tie me-1"></i>
+                                        <strong><?= htmlspecialchars($classroom["adviser_firstname"] . " " . $classroom["adviser_lastname"]) ?></strong>
+                                    <?php else: ?>
+                                        <span class="text-muted">No teacher assigned</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-center mt-3">
+                                <?php if ($isAvailable && !$hasTeacher): ?>
+                                    <button type="button" class="btn btn-danger btn-sm assign-teacher-btn"
+                                        data-id="<?= $classroom["room_id"] ?>" title="Assign Teacher">
+                                        <i class="fa-solid fa-user-plus me-1"></i> Assign Teacher
+                                    </button>
+                                <?php elseif ($hasTeacher): ?>
+                                    <span class="badge bg-dark"><i class="fa-solid fa-user-check me-1"></i> Occupied</span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary"><i class="fa-solid fa-ban me-1"></i> Unavailable</span>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if ($classroom['sy_id']): ?>
+                                <div class="ua">
+                                    <p><?= htmlspecialchars($classroom['school_year_name']) ?></p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+
+            <!-- Pagination -->
+            <tr>
+                <td colspan="6">
+                    <div class="d-flex justify-content-between">
+                        <span>Page <?= $page ?> of <?= $totalPages ?></span>
+                        <div>
+                            <?php if ($page > 1): ?>
+                                <button class="btn btn-sm btn-secondary" onclick="fetchClassrooms(<?= $page - 1 ?>)">Prev</button>
+                            <?php endif; ?>
+                            <?php if ($page < $totalPages): ?>
+                                <button class="btn btn-sm btn-secondary" onclick="fetchClassrooms(<?= $page + 1 ?>)">Next</button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </div>
+    <?php else: ?>
+        <div class="empty-classroom text-center py-5">
+            <i class="fa-solid fa-school fa-3x text-muted mb-3"></i>
+            <h5>No Classrooms Found</h5>
+            <p class="text-muted">Try adjusting your search or filters</p>
+        </div>
+<?php
+    endif;
+
+    $html = ob_get_clean();
+
+    echo json_encode([
+        'html'        => $html,
+        'currentPage' => $page,
+        'hasData'     => !empty($classrooms),
+        'stats'       => $classroomStats
+    ]);
+    exit;
+endif;
 ?>
+
+
 
 
 <style>
@@ -124,6 +290,31 @@ $schoolYears = $currentSy ?? [];
         background: linear-gradient(135deg, #f6c23e, #dda20a);
     }
 
+    .ua p {
+        color: black;
+        font-size: .9rem;
+        width: fit-content;
+        margin-bottom: 0 !important;
+    }
+
+    .ua {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: start;
+        align-items: center;
+        gap: .5rem;
+        position: relative;
+    }
+
+    .ua::before {
+        content: '';
+        display: block;
+        height: 2rem;
+        border-radius: .5rem;
+        width: .5rem;
+        background-color: #224abe;
+    }
+
     .classroom-info {
         padding: 15px;
     }
@@ -163,18 +354,24 @@ $schoolYears = $currentSy ?? [];
 
 <div class="row g-3 scroll-classes">
     <!-- Search Section -->
-    <div class="row mb-3 justify-content-between align-items-center">
+    <div class="row mb-3 justify-content-between align-items-center d-flex flex-wrap gap-2">
         <div class="col-md-8">
             <div class="input-group">
                 <input type="text" id="searchInput" placeholder="Search classrooms by name, type, or teacher..." class="form-control">
-
             </div>
         </div>
-        <div class="col-md-4 text-end">
-            <div class="bg-light p-2 rounded d-inline-block">
-                <i class="fa-solid fa-calendar-day text-primary me-1"></i>
-                <strong>School Year:</strong> <?= htmlspecialchars($schoolYears["school_year_name"] ?? 'Not set') ?>
-            </div>
+        <div class="col-md-4 text-start">
+            <label for="syFilter">Occupied at</label>
+            <select id="syFilter" name="school_year" class="form-select" style="max-width: 200px;">
+                <option value="">--- occupied at ---</option>
+                <?php
+                $catStmt = $pdo->query("SELECT school_year_id, school_year_name FROM school_year ORDER BY school_year_name ASC");
+                while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)): ?>
+                    <option value="<?= htmlspecialchars($cat['school_year_id']) ?>">
+                        <?= htmlspecialchars($cat['school_year_name']) ?>
+                    </option>
+                <?php endwhile; ?>
+            </select>
         </div>
     </div>
 
@@ -185,35 +382,31 @@ $schoolYears = $currentSy ?? [];
                 <div class="card-body">
                     <h5 class="card-title mb-3"><i class="fa-solid fa-chart-bar me-2"></i>Classrooms Overview</h5>
                     <div class="row text-center">
-                        <?php
-                        $availableCount = array_filter($classrooms, fn($c) => $c['room_status'] === 'Available');
-                        $unavailableCount = array_filter($classrooms, fn($c) => $c['room_status'] === 'Unavailable');
-                        $occupiedCount = array_filter($classrooms, fn($c) => !empty($c['adviser_id']));
-                        ?>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-primary bg-opacity-10 rounded">
-                                <h3 class="text-primary mb-1"><?= count($classrooms) ?></h3>
-                                <small class="text-white">Total Classrooms</small>
+                                <h3 class="text-primary mb-1" id="tc"><?= $classroomStats['total_classrooms'] ?? 0 ?></h3>
+                                <small class="text-dark">Total Classrooms</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-success bg-opacity-10 rounded">
-                                <h3 class="text-dark mb-1"><?= count($availableCount) ?></h3>
-                                <small class="text-white">Available</small>
+                                <h3 class="text-dark mb-1" id="av"><?= $classroomStats['available'] ?? 0 ?></h3>
+                                <small class="text-dark">Available</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-warning bg-opacity-10 rounded">
-                                <h3 class="text-dark mb-1"><?= count($occupiedCount) ?></h3>
+                                <h3 class="text-dark mb-1" id="oc"><?= $classroomStats['occupied'] ?? 0 ?></h3>
                                 <small class="text-dark">Occupied</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-danger bg-opacity-10 rounded">
-                                <h3 class="text-dark mb-1"><?= count($unavailableCount) ?></h3>
-                                <small class="text-white">Unavailable</small>
+                                <h3 class="text-dark mb-1" id="uv"><?= $classroomStats['unavailable'] ?? 0 ?></h3>
+                                <small class="text-dark">Unavailable</small>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -221,83 +414,7 @@ $schoolYears = $currentSy ?? [];
     </div>
 
     <!-- Classrooms Grid -->
-    <div id="classroomsGrid">
-        <?php if ($classrooms): ?>
-            <div class="row">
-                <?php foreach ($classrooms as $classroom) :
-                    $roomStatus = $classroom["room_status"];
-                    $isAvailable = $roomStatus === 'Available';
-                    $hasTeacher = !empty($classroom["adviser_id"]);
-                    $cardClass = $isAvailable ? 'available' : 'unavailable';
-                    $iconClass = $hasTeacher ? 'occupied' : ($isAvailable ? 'available' : 'unavailable');
-                ?>
-                    <div class="col-xl-3 col-lg-4 col-md-6 mb-4 classroom-item"
-                        data-name="<?= htmlspecialchars(strtolower($classroom["room_name"])) ?>"
-                        data-type="<?= htmlspecialchars(strtolower($classroom["room_type"])) ?>"
-                        data-status="<?= htmlspecialchars(strtolower($roomStatus)) ?>"
-                        data-teacher="<?= htmlspecialchars(strtolower($classroom["adviser_firstname"] . ' ' . $classroom["adviser_lastname"])) ?>">
-                        <div class="card border-0 shadow classroom-card <?= $cardClass ?>">
-                            <div class="classroom-info">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="classroom-icon text-white <?= $iconClass ?> me-3">
-                                        <i class="fa-solid fa-door-closed"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="mb-1"><?= htmlspecialchars($classroom["room_name"]) ?></h5>
-                                        <span class="badge-status bg-<?= $isAvailable ? 'success' : 'danger' ?>">
-                                            <?= htmlspecialchars($roomStatus) ?>
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div class="mb-2">
-                                    <small class="text-muted">Type:</small>
-                                    <div><strong><?= htmlspecialchars($classroom["room_type"]) ?></strong></div>
-                                </div>
-
-                                <div class="mb-2">
-                                    <small class="text-muted">Teacher Assigned:</small>
-                                    <div class="classroom-teacher">
-                                        <?php if ($hasTeacher): ?>
-                                            <i class="fa-solid fa-user-tie me-1"></i>
-                                            <strong><?= htmlspecialchars($classroom["adviser_firstname"] . " " . $classroom["adviser_lastname"]) ?></strong>
-                                        <?php else: ?>
-                                            <span class="text-muted">No teacher assigned</span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-
-                                <div class="d-flex justify-content-center mt-3">
-                                    <?php if ($isAvailable && !$hasTeacher): ?>
-                                        <button type="button"
-                                            class="btn btn-danger btn-sm assign-teacher-btn"
-                                            data-id="<?= $classroom["room_id"] ?>"
-                                            title="Assign Teacher to this Classroom">
-                                            <i class="fa-solid fa-user-plus me-1"></i> Assign Teacher
-                                        </button>
-                                    <?php elseif ($hasTeacher): ?>
-                                        <span class="badge bg-dark">
-                                            <i class="fa-solid fa-user-check me-1"></i> Occupied
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">
-                                            <i class="fa-solid fa-ban me-1"></i> Unavailable
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach ?>
-            </div>
-        <?php else: ?>
-            <div class="empty-classroom">
-                <i class="fa-solid fa-school fa-3x text-muted mb-3"></i>
-                <h5>No Classrooms Found</h5>
-                <p class="text-muted">No classrooms have been added yet.</p>
-            </div>
-        <?php endif; ?>
-    </div>
+    <div id="classroomsGrid"></div>
 </div>
 
 <!-- Assign Teacher Modal -->
@@ -372,142 +489,102 @@ $schoolYears = $currentSy ?? [];
         </div>
     </div>
 </div>
-
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const searchInput = document.getElementById('searchInput');
-        const classroomItems = document.querySelectorAll('.classroom-item');
-        const assignTeacherBtns = document.querySelectorAll('.assign-teacher-btn');
-        const classroomIdInput = document.getElementById('classroomIdInput');
-        const gradeSelect = document.getElementById('grade_level');
-        const sectionSelect = document.getElementById('section_id');
-        const clearSearchBtn = document.getElementById('clearSearch');
+    let currentPage = 1;
+    const grade_level = document.getElementById('grade_level');
+    const section_id = document.getElementById('section_id');
 
-        // PHP data passed to JavaScript
-        const sectionsByGrade = <?php echo json_encode($sectionsByGrade); ?>;
-
-        // Search functionality
-        function filterClassrooms() {
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            let visibleCount = 0;
-
-            classroomItems.forEach(item => {
-                const name = item.getAttribute('data-name');
-                const type = item.getAttribute('data-type');
-                const status = item.getAttribute('data-status');
-                const teacher = item.getAttribute('data-teacher');
-
-                let matchesSearch = true;
-
-                if (searchTerm) {
-                    matchesSearch = name.includes(searchTerm) ||
-                        type.includes(searchTerm) ||
-                        status.includes(searchTerm) ||
-                        teacher.includes(searchTerm);
-                }
-
-                if (matchesSearch) {
-                    item.style.display = '';
-                    visibleCount++;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-
-            // Show empty state if no results
-            const classroomsGrid = document.getElementById('classroomsGrid');
-            const emptyState = classroomsGrid.querySelector('.empty-classroom') || document.createElement('div');
-
-            if (visibleCount === 0) {
-                if (!classroomsGrid.querySelector('.empty-classroom')) {
-                    emptyState.className = 'empty-classroom';
-                    emptyState.innerHTML = `
-                    <i class="fa-solid fa-search fa-3x text-muted mb-3"></i>
-                    <h5>No Classrooms Found</h5>
-                    <p class="text-muted">Try adjusting your search</p>
-                `;
-                    classroomsGrid.appendChild(emptyState);
-                }
-            } else if (classroomsGrid.querySelector('.empty-classroom')) {
-                classroomsGrid.querySelector('.empty-classroom').remove();
-            }
+    function getSections() {
+        if (!grade_level.value) {
+            section_id.innerHTML = '<option value="">Select Grade Level First</option>';
+            section_id.disabled = true;
+            return;
         }
 
-        // Assign teacher button click handler
-        assignTeacherBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const classroomId = this.getAttribute('data-id');
-                classroomIdInput.value = classroomId;
+        const formData = new FormData();
+        formData.append('getsections', 1);
+        formData.append('grade', grade_level.value);
 
-                // Reset form
-                gradeSelect.value = '';
-                sectionSelect.innerHTML = '<option value="">Select Grade Level First</option>';
-                sectionSelect.disabled = true;
-
-                const modal = new bootstrap.Modal(document.getElementById('assgnTeacher'));
-                modal.show();
-            });
-        });
-
-        // Grade level change handler
-        gradeSelect.addEventListener('change', function() {
-            const selectedGrade = this.value;
-
-            // Clear current sections
-            sectionSelect.innerHTML = '<option value="">Select Section</option>';
-
-            if (selectedGrade) {
-                // Enable section dropdown
-                sectionSelect.disabled = false;
-
-                // Get sections for the selected grade
-                const sections = sectionsByGrade[selectedGrade];
-
-                if (sections && sections.length > 0) {
-                    // Add sections to dropdown
-                    sections.forEach(section => {
-                        const option = document.createElement('option');
-                        option.value = section.section_id;
-                        option.textContent = section.section_name;
-                        sectionSelect.appendChild(option);
+        fetch('contents/assign.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                section_id.innerHTML = '<option value="">Select Section</option>';
+                if (data.sections.length > 0) {
+                    section_id.disabled = false;
+                    data.sections.forEach(section => {
+                        const opt = document.createElement('option');
+                        opt.value = section.section_id;
+                        opt.textContent = section.section_name;
+                        section_id.appendChild(opt);
                     });
                 } else {
-                    // No sections for this grade
-                    sectionSelect.innerHTML = '<option value="">No sections available for this grade</option>';
+                    section_id.disabled = true;
                 }
-            } else {
-                // No grade selected
-                sectionSelect.disabled = true;
-                sectionSelect.innerHTML = '<option value="">Select Grade Level First</option>';
-            }
+            })
+            .catch(err => {
+                console.error('Failed to load sections:', err);
+                section_id.innerHTML = '<option value="">Failed to load sections</option>';
+                section_id.disabled = true;
+            });
+    }
+
+    function fetchClassrooms(page = 1) {
+        currentPage = page;
+        const searchInput = document.getElementById('searchInput');
+        const syFilter = document.getElementById('syFilter');
+        const classroomsGrid = document.getElementById('classroomsGrid');
+
+        // Show loading indicator inside the grid
+        classroomsGrid.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div>Loading classrooms...</div>
+        </div>
+    `;
+
+        const formData = new FormData();
+        formData.append('search', searchInput.value.trim());
+        formData.append('school_year', syFilter.value);
+        formData.append('ajax', 1);
+        formData.append('page', page);
+
+        fetch('contents/assign.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                classroomsGrid.innerHTML = data.html;
+
+                document.getElementById('tc').textContent = data.stats.total_classrooms ?? 0;
+                document.getElementById('av').textContent = data.stats.available ?? 0;
+                document.getElementById('oc').textContent = data.stats.occupied ?? 0;
+                document.getElementById('uv').textContent = data.stats.unavailable ?? 0;
+            })
+            .catch(err => {
+                console.error(err);
+                classroomsGrid.innerHTML = `
+            <div class="text-danger py-4 text-center">
+                Failed to load classrooms.
+            </div>
+        `;
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('searchInput');
+        const syFilter = document.getElementById('syFilter');
+
+        grade_level.addEventListener('change', () => getSections());
+        searchInput.addEventListener('input', () => fetchClassrooms(1));
+        searchInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') fetchClassrooms(1);
         });
 
-        // Event listeners
-        searchInput.addEventListener('input', filterClassrooms);
-
-        // clearSearchBtn.addEventListener('click', function() {
-        //     searchInput.value = '';
-        //     filterClassrooms();
-        //     searchInput.focus();
-        // });
-
-        // Add Enter key support for search
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                filterClassrooms();
-            }
-        });
-
-        // Add some styling
-        searchInput.addEventListener('focus', function() {
-            this.parentElement.classList.add('border-primary', 'border-2');
-        });
-
-        searchInput.addEventListener('blur', function() {
-            this.parentElement.classList.remove('border-primary', 'border-2');
-        });
-
-        // Initialize
-        filterClassrooms();
+        syFilter.addEventListener('change', () => fetchClassrooms(1));
+        fetchClassrooms(currentPage);
     });
 </script>
