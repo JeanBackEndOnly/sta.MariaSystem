@@ -1,11 +1,6 @@
 <?php
-require_once __DIR__ . '/../../../tupperware.php';
-$result = checkURI('teacher', 2);
 
-if ($result['res']) {
-    header($result['uri']);
-    exit;
-}
+require_once 'C:/xampp/htdocs/sta.MariaSystem-main/vendor/autoload.php'; 
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -80,7 +75,7 @@ if (!empty($student['student_profile']) && file_exists(__DIR__ . "/assets/image/
 }
 
 
-$saveDir = BASE_PATH .  '/sf9_files';
+$saveDir = 'C:/xampp/htdocs/sta.MariaSystem-main/sf9_files';
 if (!is_dir($saveDir)) mkdir($saveDir, 0777, true);
 
 $existingSf9 = null;
@@ -132,7 +127,7 @@ if (isset($_GET['download']) && $_GET['download'] === '1') {
     }
     // file name saving as excel file based sa student info
     $fileName = build_sf9_filename($student['lrn'] ?? '', $student['fname'] ?? '', $student['lname'] ?? '', $student['gradeLevel'] ?? '');
-    $filePath = BASE_PATH .  '/sf9_files/' . $fileName;
+    $filePath = 'C:/xampp/htdocs/sta.MariaSystem-main/sf9_files/' . $fileName;
 
     if (!file_exists($filePath)) {
         die("Error: File not found on server. Path: " . htmlspecialchars($filePath));
@@ -183,7 +178,7 @@ foreach ($subjects_for_grade as $i => $subject_name) {
   
 
     
-    $template_path = BASE_PATH .  '/src/UI-Admin/contents/sf9/sf9.xlsx';
+    $template_path = 'C:/xampp/htdocs/sta.MariaSystem-main/src/UI-Admin/contents/sf9/sf9.xlsx';
     $spreadsheet = IOFactory::load($template_path);
 
     $sheet = $spreadsheet->getSheetByName('Sheet1');
@@ -250,7 +245,7 @@ foreach ($targetCells as $cell) {
     $drawing = new Drawing();
     $drawing->setName('DepEd Logo');
     $drawing->setDescription('DepEd Logo');
-    $drawing->setPath('C:/xampp/htdocs<?= BASE_FR ?>/assets/image/deped.png');
+    $drawing->setPath('C:/xampp/htdocs/sta.MariaSystem-main/assets/image/deped.png');
     $drawing->setCoordinates('P5');
     $drawing->setWidth(80);
     $drawing->setHeight(80);
@@ -478,7 +473,7 @@ $backSheet->setCellValue("A{$row}", $subjects[$i] ?? '');
 <head>
 <meta charset="UTF-8">
 <title>SF9 Fill</title>
-<link href="<?= base_url() ?>/assets/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   body { margin:0; padding:0; font-family: 'Poppins', Arial, sans-serif; background:#f4f5f7; }
@@ -519,7 +514,42 @@ $backSheet->setCellValue("A{$row}", $subjects[$i] ?? '');
   @media (max-width: 767px) {
     .sidebar img { width:86px; height:104px; }
   }
-  
+  .legend-box {
+    background: #fff3f3;
+    border: 1px solid #dc3545;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 14px;
+    color: #212529;
+    box-shadow: 0 3px 8px rgba(220, 53, 69, 0.1);
+    max-width: 95%;
+    margin: auto;
+}
+
+.legend-box strong {
+    color: #dc3545;
+}
+
+.legend-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 5px;
+}
+
+.legend-item {
+    font-weight: 500;
+}
+
+@media print {
+    .legend-box {
+        background: #ffffff;
+        border: 1px solid #000;
+        box-shadow: none;
+    }
+}
+
 </style>
 </head>
 <body>
@@ -527,7 +557,7 @@ $backSheet->setCellValue("A{$row}", $subjects[$i] ?? '');
 
 <div class="text-white d-flex align-items-center justify-content-between col-12 m-0 p-0 header-brand">
   <div class="d-flex align-items-center ps-4">
-    <img src="<?= BASE_FR ?>/assets/image/logo2.png" alt="Logo"
+    <img src="/sta.MariaSystem-main/assets/image/logo2.png" alt="Logo"
          style="width: 65px; height: 65px; border-radius: 50%; margin-right: 15px; object-fit: cover;">
     <h4 class="card-title text-white m-0 fw-bold" style="font-size: 1.3rem;">STA.MARIA WEB SYSTEM</h4>
   </div>
@@ -677,10 +707,30 @@ $backSheet->setCellValue("A{$row}", $subjects[$i] ?? '');
             ?>
             <tr>
               <td><input type="text" name="subject[]" class="form-control form-control-sm" value="<?= htmlspecialchars($subject_val) ?>"></td>
-              <td><input type="number" name="q1[]" class="q form-control form-control-sm" value="<?= htmlspecialchars($q1_val) ?>"></td>
-              <td><input type="number" name="q2[]" class="q form-control form-control-sm" value="<?= htmlspecialchars($q2_val) ?>"></td>
-              <td><input type="number" name="q3[]" class="q form-control form-control-sm" value="<?= htmlspecialchars($q3_val) ?>"></td>
-              <td><input type="number" name="q4[]" class="q form-control form-control-sm" value="<?= htmlspecialchars($q4_val) ?>"></td>
+             <td>
+  <input type="number" name="q1[]" min="50" max="100"
+         onblur="this.value = Math.min(100, Math.max(50, this.value))"         class="q form-control form-control-sm"
+         value="<?= htmlspecialchars($q1_val) ?>">
+</td>
+
+<td>
+  <input type="number" name="q2[]" min="50" max="100"
+         onblur="this.value = Math.min(100, Math.max(50, this.value))"         class="q form-control form-control-sm"
+         value="<?= htmlspecialchars($q2_val) ?>">
+</td>
+
+<td>
+  <input type="number" name="q3[]" min="50" max="100"
+         onblur="this.value = Math.min(100, Math.max(50, this.value))"         class="q form-control form-control-sm"
+         value="<?= htmlspecialchars($q3_val) ?>">
+</td>
+
+<td>
+  <input type="number" name="q4[]" min="50" max="100"
+         onblur="this.value = Math.min(100, Math.max(50, this.value))"         class="q form-control form-control-sm"
+         value="<?= htmlspecialchars($q4_val) ?>">
+</td>
+
               <td><input type="text" name="final[]" class="final form-control form-control-sm" readonly value="<?= htmlspecialchars($final_val) ?>"></td>
               <td><input type="text" name="remarks[]" class="remarks form-control form-control-sm" readonly value="<?= htmlspecialchars($remarks_val) ?>"></td>
             </tr>
@@ -694,6 +744,17 @@ $backSheet->setCellValue("A{$row}", $subjects[$i] ?? '');
             </tr>
           </tfoot>
         </table>
+        <div class="legend-box text-center mt-4 mb-4">
+    <strong>LEGEND:</strong>
+    <div class="legend-row">
+        <span class="legend-item"><strong>90–100</strong> = Outstanding │</span>
+        <span class="legend-item"><strong>85–89</strong> = Very Satisfactory │</span>
+        <span class="legend-item"><strong>80–84</strong> = Satisfactory │</span>
+        <span class="legend-item"><strong>75–79</strong> = Fairly Satisfactory │</span>
+        <span class="legend-item"><strong>Below 75</strong> = Did Not Meet Expectation</span>
+    </div>
+</div>
+
       </div>
 
      
