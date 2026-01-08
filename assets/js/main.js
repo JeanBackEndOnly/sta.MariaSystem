@@ -560,6 +560,7 @@ $(document).ready(function () {
       $form.data("isSubmitted", true);
       
       // Basic validation
+      const sex = $form.find('[name="sex"]').val().trim();
       const lrn = $form.find('[name="lrn"]').val().trim();
       const grade_level = $form.find('[name="grade_level"]').val().trim();
       const lastName = $form.find('[name="lastName"]').val().trim();
@@ -569,6 +570,7 @@ $(document).ready(function () {
       const birthdate = $form.find('[name="birthdate"]').val().trim();
       
       if (!lrn ||
+          !sex ||
           !grade_level ||
           !lastName || !firstName || !middleName
             || !religion || !birthdate) {
@@ -938,6 +940,164 @@ $(document).ready(function () {
     const school_year_id = $(this).data('id');
     $('#school_year_id').val(school_year_id);
     $('#activateSY').modal('show');
+  });
+  $(document).on("submit", "#enrollstud-form", function (e) { 
+    // alert('Button Submit');
+      e.preventDefault();
+      const $form = $(this);
+      if ($form.data("isSubmitted")) return;
+      $form.data("isSubmitted", true);
+      
+      // Basic validation
+      const student_id = $form.find('[name="student_id"]').val().trim();
+
+      if (!student_id) {
+          Swal.fire({
+              title: "Error",
+              text: "Please fill in all required fields",
+              icon: "error",
+              toast: true,
+              position: "top-end",
+              timer: 3000,
+              showConfirmButton: false,
+          });
+          $form.data("isSubmitted", false);
+          return;
+      }
+      
+      const formData = new FormData(this);
+      const $btn = $form.find("button[type='submit']");
+      $btn.prop("disabled", true);
+      $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+      
+      $.ajax({
+          url: base_url + "authentication/action.php?action=enrollstud_form",
+          type: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: "json",
+          success: function (response) {
+              if (response.status === 1) {
+                  Swal.fire({
+                      title: "Success!",
+                      text: response.message,
+                      icon: "success",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  }).then(() => {
+                      location.reload();
+                  });
+              } else {
+                  Swal.fire({
+                      title: "Error",
+                      text: response.message,
+                      icon: "error",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  });
+              }
+          },
+          error: function (jqXHR, textStatus, err) {
+              console.error("AJAX error:", textStatus, err);
+              Swal.fire({
+                  title: "Connection Error",
+                  text: "Please check your connection and try again.",
+                  icon: "error",
+                  toast: true,
+                  position: "top-end",
+                  timer: 3000,
+                  showConfirmButton: false,
+              });
+          },
+          complete: function () {
+              $form.data("isSubmitted", false);
+              $btn.prop("disabled", false).html('Enrolled'); 
+          }
+      });
+  });
+  $(document).on("submit", "#reenrollstud-form", function (e) { 
+    // alert('Button Submit');
+      e.preventDefault();
+      const $form = $(this);
+      if ($form.data("isSubmitted")) return;
+      $form.data("isSubmitted", true);
+      
+      // Basic validation
+      const student_id = $form.find('[name="student_id"]').val().trim();
+
+      if (!student_id) {
+          Swal.fire({
+              title: "Error",
+              text: "Please fill in all required fields",
+              icon: "error",
+              toast: true,
+              position: "top-end",
+              timer: 3000,
+              showConfirmButton: false,
+          });
+          $form.data("isSubmitted", false);
+          return;
+      }
+      
+      const formData = new FormData(this);
+      const $btn = $form.find("button[type='submit']");
+      $btn.prop("disabled", true);
+      $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+      
+      $.ajax({
+          url: base_url + "authentication/action.php?action=reenrollstud_form",
+          type: "POST",
+          data: formData,
+          processData: false,
+          contentType: false,
+          dataType: "json",
+          success: function (response) {
+              if (response.status === 1) {
+                  Swal.fire({
+                      title: "Success!",
+                      text: response.message,
+                      icon: "success",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  }).then(() => {
+                      location.reload();
+                  });
+              } else {
+                  Swal.fire({
+                      title: "Error",
+                      text: response.message,
+                      icon: "error",
+                      toast: true,
+                      position: "top-end",
+                      timer: 3000,
+                      showConfirmButton: false,
+                  });
+              }
+          },
+          error: function (jqXHR, textStatus, err) {
+              console.error("AJAX error:", textStatus, err);
+              Swal.fire({
+                  title: "Connection Error",
+                  text: "Please check your connection and try again.",
+                  icon: "error",
+                  toast: true,
+                  position: "top-end",
+                  timer: 3000,
+                  showConfirmButton: false,
+              });
+          },
+          complete: function () {
+              $form.data("isSubmitted", false);
+              $btn.prop("disabled", false).html('Enrolled'); 
+          }
+      });
   });
   $(document).on("submit", "#activateSY-form", function (e) { 
     // alert('Button Submit');

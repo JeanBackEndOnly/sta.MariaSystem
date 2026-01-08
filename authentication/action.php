@@ -85,6 +85,20 @@ if($action === 'rejectEnrolment_form'){
     }
     exit();
 }
+if($action === 'reenrollstud_form'){
+    $registration = $crud->reenrollstud_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
+if($action === 'enrollstud_form'){
+    $registration = $crud->enrollstud_form();
+    if($registration){
+        echo $registration;
+    }
+    exit();
+}
 if($action === 'activationSY_form'){
     $registration = $crud->activationSY_form();
     if($registration){

@@ -452,7 +452,7 @@ class Action
     {
         $lrn = htmlspecialchars(trim($_POST["lrn"] ?? ''));
         $gradeLevel = htmlspecialchars(trim($_POST["grade_level"] ?? ''));
-        $nickname = htmlspecialchars(trim($_POST["nickname"] ?? ''));
+        // $nickname = htmlspecialchars(trim($_POST["nickname"] ?? ''));
         $sex = htmlspecialchars(trim($_POST["sex"] ?? ''));
         $lastName = htmlspecialchars(trim($_POST["lastName"] ?? ''));
         $firstName = htmlspecialchars(trim($_POST["firstName"] ?? ''));
@@ -626,6 +626,58 @@ class Action
                 return json_encode(['status' => 0, 'message' => 'Invalid data provided. Please check your selections.']);
             }
             return json_encode(['status' => 0, 'message' => 'Database error: ' . $e->getMessage()]);
+        }
+    }
+    function reenrollstud_form()
+    {
+        $student_id = $_POST["student_id"] ?? null;
+        if (!$student_id) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'No student selected'
+            ]);
+        }
+        try {
+            //code...
+            $query = "UPDATE student SET enrolment_status = 'pending', isMovingUP = NULL WHERE student_id = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$student_id]);
+            return json_encode([
+                'status' => 1,
+                'message' => 'Student is on Enrollment Process!'
+            ]);
+        } catch (\Throwable $th) {
+
+            return json_encode([
+                'status' => 0,
+                'message' => 'Something went wrong in: ' . $th->getMessage()
+            ]);
+        }
+    }
+    function enrollstud_form()
+    {
+        $student_id = $_POST["student_id"] ?? null;
+        $gradeLevel = $_POST["gradeLevel"] ?? null;
+        if (!$student_id) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'No student selected'
+            ]);
+        }
+        try {
+            $query = "UPDATE student SET enrolment_status = 'pending', isMovingUP = NULL, gradeLevel = ? WHERE student_id = ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([$student_id, $gradeLevel]);
+            return json_encode([
+                'status' => 1,
+                'message' => 'Student is on Enrollment Process!'
+            ]);
+        } catch (\Throwable $th) {
+
+            return json_encode([
+                'status' => 0,
+                'message' => 'Something went wrong in: ' . $th->getMessage()
+            ]);
         }
     }
     function activationSY_form()

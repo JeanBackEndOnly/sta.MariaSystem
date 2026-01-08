@@ -128,11 +128,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if (empty($errors)) {
                 $newHashed = password_hash($_POST["password"], PASSWORD_BCRYPT);
                 $user_role = "PARENT";
-                $query = "INSERT INTO users (school_year_id, firstname, middlename, lastname, suffix, user_role, email, relationship, username, password) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $query = "INSERT INTO users (firstname, middlename, lastname, suffix, user_role, email, relationship, username, password) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $pdo->prepare($query);
                 $stmt->execute([
-                    $activeSY["school_year_id"],
                     $_POST["firstName"],
                     $_POST["middleName"],
                     $_POST["lastName"],
