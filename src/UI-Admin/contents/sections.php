@@ -243,10 +243,10 @@ endif;
     </div>
 
     <div style="display: flex; gap: 1rem; align-items: center; border: none;">
-        <select id="syFilter" name="school_year" class="form-select" style="max-width: 200px;">
-            <?php
-            // Get all SYs, order active first
-            $catStmt = $pdo->query("
+                    <select id="syFilter" name="school_year" class="form-select" style="max-width: 200px;">
+                        <?php
+                        // Get all SYs, order active first
+                        $catStmt = $pdo->query("
                             SELECT school_year_id, school_year_name, school_year_status
                             FROM school_year
                             ORDER BY 
@@ -254,29 +254,29 @@ endif;
                                 school_year_name ASC
                         ");
 
-            $activeSyId = null;
-            $yr['school_year_id'] = null;
-            $yr['school_year_name'] = null;
-            $schoolYears = [];
-            while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)) {
-                if ($cat['school_year_status'] === 'Active' && $activeSyId === null) {
-                    $activeSyId = $cat['school_year_id'];
-                    $yr['school_year_id'] = $cat['school_year_id'];
-                    $yr['school_year_name'] = $cat['school_year_name'];
-                }
-                $schoolYears[] = $cat;
-            }
-            ?>
-            <option value="">--- active at ---</option>
+                        $activeSyId = null;
+                        $yr['school_year_id'] = null;
+                        $yr['school_year_name'] = null;
+                        $schoolYears = [];
+                        while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)) {
+                            if ($cat['school_year_status'] === 'Active' && $activeSyId === null) {
+                                $activeSyId = $cat['school_year_id'];
+                                $yr['school_year_id'] = $cat['school_year_id'];
+                                $yr['school_year_name'] = $cat['school_year_name'];
+                            }
+                            $schoolYears[] = $cat;
+                        }
+                        ?>
+                        <option value="">--- active at ---</option>
 
-            <?php foreach ($schoolYears as $sy): ?>
-                <option value="<?= htmlspecialchars($sy['school_year_id']) ?>"
-                    <?= ($sy['school_year_id'] == $activeSyId) ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($sy['school_year_name']) ?>
-                    <?= $sy['school_year_status'] === 'Active' ? ' (Active)' : '' ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
+                        <?php foreach ($schoolYears as $sy): ?>
+                            <option value="<?= htmlspecialchars($sy['school_year_id']) ?>"
+                                <?= ($sy['school_year_id'] == $activeSyId) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($sy['school_year_name']) ?>
+                                <?= $sy['school_year_status'] === 'Active' ? ' (Active)' : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
     </div>
     <div class="fsfs">
         <li>

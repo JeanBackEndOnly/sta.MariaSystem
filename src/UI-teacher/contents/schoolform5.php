@@ -367,11 +367,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <table class="table table-bordered table-sm text-center align-middle">
                                 <thead>
                                     <tr>
-                                        <th>LRN</th>
+                                        <th style="width: 8rem;">LRN</th>
                                         <th>Learner's Name</th>
                                         <th>General Average</th>
                                         <th>ACTION TAKEN: PROMOTED, CONDITIONAL, or RETAINED</th>
-                                        <th>Sex</th>
+                                        <th style="width: 5rem;">Sex</th>
                                         <th>Did Not Meet Expectations of the ff. Learning Area/s as of end of current School Year </th>
                                     </tr>
                                 </thead>

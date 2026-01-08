@@ -1,12 +1,318 @@
 <?php
 require_once __DIR__ . '/../../../tupperware.php';
+
 $result = checkURI('parent', 2);
 if ($result['res']) {
     header($result['uri']);
     exit;
 }
+
+$user_id = $_SESSION['user_id'] ?? null;
+if (!$user_id) {
+    http_response_code(403);
+    exit;
+}
+
+
+$activeSyStmt = $pdo->prepare("
+    SELECT school_year_id
+    FROM school_year
+    WHERE school_year_status = 'Active'
+    LIMIT 1
+");
+$activeSyStmt->execute();
+$activeSyId = (int)$activeSyStmt->fetchColumn();
+
+
+$gradeFilter = $_POST['gradeFilter'] ?? '';
+$syFilter    = isset($_POST['syFilter']) ? (int)$_POST['syFilter'] : $activeSyId;
+$search      = trim($_POST['search'] ?? '');
+
+$page     = max(1, (int)($_POST['page'] ?? 1));
+$perPage  = 25;
+$offset   = ($page - 1) * $perPage;
+
+/* ===============================
+   BUILD WHERE CLAUSE
+================================ */
+$where  = [];
+$params = [];
+
+// Guardian restriction
+$where[] = "s.guardian_id = :user_id";
+$params['user_id'] = $user_id;
+
+// Grade filter
+if ($gradeFilter !== '') {
+    $where[] = "s.gradeLevel = :grade";
+    $params['grade'] = $gradeFilter;
+}
+
+// 🔥 CORE SY LOGIC (THIS IS THE IMPORTANT PART)
+if ($syFilter === $activeSyId) {
+
+    // ACTIVE SY:
+    // enrolled in active SY OR pending (regardless of enrolment)
+    $where[] = "(
+        e.school_year_id = :sy
+        OR s.enrolment_status = 'pending'
+    )";
+
+    $params['sy'] = $syFilter;
+} else if ($syFilter){
+    $where[] = "e.school_year_id = :sy";
+    $params['sy'] = $syFilter;
+}
+
+
+// Search
+if ($search !== '') {
+    $where[] = "(
+        s.fname LIKE :search
+        OR s.mname LIKE :search
+        OR s.lname LIKE :search
+        OR s.lrn LIKE :search
+    )";
+    $params['search'] = "%$search%";
+}
+
+$whereSQL = implode(' AND ', $where);
+
+/* ===============================
+   COUNT (FOR PAGINATION)
+================================ */
+$countStmt = $pdo->prepare("
+    SELECT COUNT(DISTINCT s.student_id)
+    FROM student s
+    LEFT JOIN enrolment e ON s.student_id = e.student_id
+    WHERE $whereSQL
+");
+$countStmt->execute($params);
+$totalStudents = (int)$countStmt->fetchColumn();
+$totalPages = max(1, ceil($totalStudents / $perPage));
+
+/* ===============================
+   FETCH STUDENTS
+================================ */
+$studentsStmt = $pdo->prepare("
+    SELECT
+        s.*,
+        e.enrolment_id,
+        e.school_year_id,
+        e.section_name,
+        e.adviser_id
+    FROM student s
+    LEFT JOIN enrolment e ON s.student_id = e.student_id
+    WHERE $whereSQL
+    ORDER BY s.student_id DESC
+    LIMIT :offset, :perpage
+");
+
+foreach ($params as $key => $val) {
+    $studentsStmt->bindValue(":$key", $val);
+}
+
+$studentsStmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$studentsStmt->bindValue(':perpage', $perPage, PDO::PARAM_INT);
+
+$studentsStmt->execute();
+$students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+// Handle AJAX request
+if (isset($_POST['ajax'])) {
+    ob_start();
+    if (empty($students)): ?>
+        <div class="col-12">
+            <div class="card border-0 shadow text-center py-5" style="background: linear-gradient(135deg, #f8f9fa, #e9ecef);">
+                <div class="card-body">
+                    <div class="mb-4">
+                        <i class="fa-solid fa-users-slash fa-4x" style="color: #6c757d;"></i>
+                    </div>
+                    <h4 class="mb-3">No Learners Found</h4>
+                    <p class="text-muted mb-4">You haven't added any learners to your account yet.</p>
+                    <button type="button" class="btn btn-danger px-4" data-bs-toggle="modal" data-bs-target="#AddNewAccount"
+                        style="background: linear-gradient(135deg, #e74a3b, #be2617); border: none;">
+                        <i class="fa fa-plus me-2"></i> Add Your First Learner
+                    </button>
+                </div>
+            </div>
+        </div>
+        <?php else:
+        foreach ($students as $student):
+            // Calculate animation delay
+            static $delay = 0.1;
+            $nxtlvl = filter_var($student['gradeLevel'], FILTER_SANITIZE_NUMBER_INT);
+            $isup = $student['isMovingUP'];
+            // $isup = true;
+        ?>
+            <div class="col-xl-4 col-lg-6 col-md-6 mb-4 student-card s55" style="animation-delay: <?= $delay ?>s">
+                <div class="card border-0 shadow h-100">
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+                            <!-- Profile Picture -->
+                            <div class="col-md-5 text-center mb-3 mb-md-0">
+                                <div class="position-relative d-inline-block">
+                                    <?php if ($student["student_profile"] !== ''): ?>
+                                        <img src="../../authentication/uploads/<?php echo htmlspecialchars($student["student_profile"]); ?>"
+                                            class="img-fluid" alt="Profile Picture">
+                                    <?php else: ?>
+                                        <img src="../../assets/image/users.png" class="img-fluid" alt="Default Profile">
+                                    <?php endif; ?>
+
+                                    <!-- LRN Badge -->
+                                    <div class="position-absolute bottom-0 end-0 bg-dark text-white rounded-pill px-2 py-1 lrr"
+                                        style="font-size: 10px; transform: translate(5px, 5px);">
+                                        LRN: <?= substr(htmlspecialchars($student["lrn"]), 0, 6) ?>...
+                                    </div>
+                                </div>
+                                <div class="rsyr">
+                                    <?php if ($isup === true && $isup !== null) { ?>
+                                        <div id="passed">
+                                            <button onclick="enroll('enrollstud',<?= $student['student_id'] ?>,<?= $nxtlvl ?>)">Enroll</button>
+                                            <p>Your student passed <?= $student['gradeLevel'] ?> and is eligible to enroll for Grade <?= $nxtlvl + 1 ?>.</p>
+                                        </div>
+                                    <?php } elseif ($isup === false && $isup !== null) { ?>
+                                        <div id="fail">
+                                            <button onclick="enroll('reenrollstud',<?= $student['student_id'] ?>)">Re-Enroll</button>
+                                            <p>Your student failed <?= $student['gradeLevel'] ?> and must re-enroll again.</p>
+                                        </div>
+                                    <?php } ?>
+                                </div>
+                            </div>
+                            <!-- Student Information -->
+                            <div class="col-md-7">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="mb-0 text-dark">
+                                        <?= htmlspecialchars($student["fname"]) . " " .
+                                            htmlspecialchars(substr($student["mname"], 0, 1)) . ". " .
+                                            htmlspecialchars($student["lname"]) ?>
+                                    </h5>
+                                    <span class="status-badge <?=
+                                                                $student["enrolment_status"] == 'active' ? 'status-active' : ($student["enrolment_status"] == '' ? 'status-pending' : 'status-inactive')
+                                                                ?>">
+                                        <?= $student["enrolment_status"] == '' ? 'Pending' : htmlspecialchars(ucfirst($student["enrolment_status"])) ?>
+                                    </span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="fa-solid fa-graduation-cap me-2 text-primary" style="width: 16px;"></i>
+                                        <span>Grade Level: <strong><?= htmlspecialchars($student["gradeLevel"]) ?></strong></span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="fa-solid fa-cake-candles me-2 text-danger" style="width: 16px;"></i>
+                                        <span>Birthday: <strong><?= htmlspecialchars(date('M d, Y', strtotime($student["birthdate"]))) ?></strong></span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa-solid fa-venus-mars me-2 text-success" style="width: 16px;"></i>
+                                        <span>Sex: <strong><?= htmlspecialchars($student["sex"]) ?></strong></span>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="d-flex gap-2 mt-3 pt-3 border-top fltr">
+                                    <a href="index.php?page=contents/profile&student_id=<?= htmlspecialchars($student["student_id"]) ?>"
+                                        class="flex-fill">
+                                        <button class="btn btn-action btn-profile w-100">
+                                            <i class="fa-solid fa-user me-1"></i> Profile
+                                        </button>
+                                    </a>
+                                    <a href="index.php?page=contents/form&student_id=<?= htmlspecialchars($student["student_id"]) ?>"
+                                        class="flex-fill">
+                                        <button class="btn btn-action btn-form w-100">
+                                            <i class="fa-solid fa-file-lines me-1"></i> Form
+                                        </button>
+                                    </a>
+
+                                    <?php
+                                    // Construct report card filename
+                                    $lrn = $student["lrn"];
+                                    $fname = preg_replace("/[^A-Za-z0-9]/", "", strtolower($student["fname"]));
+                                    $lname = preg_replace("/[^A-Za-z0-9]/", "", strtolower($student["lname"]));
+                                    $grade = str_replace(" ", "", strtolower($student["gradeLevel"]));
+                                    $reportFile = BASE_PATH . "/sf9_files/{$lrn}_{$fname}_{$lname}_{$grade}.xlsx";
+
+                                    if (file_exists($reportFile)) {
+                                        $webPath = BASE_PATH . "/sf9_files/{$lrn}_{$fname}_{$lname}_{$grade}.xlsx";
+                                    ?>
+                                        <a href="index.php?page=contents/sf9_view&student_id=<?= htmlspecialchars($student['student_id']) ?>"
+                                            class="flex-fill">
+                                            <button class="btn btn-action btn-report w-100">
+                                                <i class="fa-solid fa-file-excel me-1"></i> Report
+                                            </button>
+                                        </a>
+                                    <?php } else { ?>
+                                        <button class="btn btn-action w-100" disabled style="background: #000000;">
+                                            <i class="fa-solid fa-file-excel me-1"></i> No Report File
+                                        </button>
+                                    <?php } ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php
+            $delay += 0.1;
+        endforeach;
+        ?>
+        <div class="col-12 d-flex justify-content-between mt-3">
+            <?php if ($page > 1): ?>
+                <button class="btn btn-sm btn-secondary btn-prev">Prev</button>
+            <?php endif; ?>
+            <span>Page <?= $page ?> of <?= $totalPages ?></span>
+            <?php if ($page < $totalPages): ?>
+                <button class="btn btn-sm btn-secondary btn-next">Next</button>
+            <?php endif; ?>
+        </div>
+<?php
+    endif;
+    $html = ob_get_clean();
+    echo json_encode(['html' => $html, 'currentPage' => $page, 'totalPages' => $totalPages]);
+    exit;
+}
 ?>
+
+
 <style>
+    .fltr {
+        flex-wrap: wrap;
+
+    }
+
+    .s55 {
+        background: linear-gradient(312deg, #e7e7e7, #ffffff) !important;
+        box-shadow: -17px 17px 34px #949494,
+            17px -17px 34px #ffffff !important;
+        height: 19rem;
+    }
+
+    .fltr a button {
+        margin: 0 !important;
+    }
+
+    .rsyr button {
+        padding: .4rem 3rem;
+        border: solid 1px #595959;
+        border-radius: .5rem;
+        margin: 0.7rem 0 .1rem;
+    }
+
+    #fail button {
+        color: #e9e9e9;
+        background-color: #a91818;
+    }
+
+    #passed button {
+        color: #000000;
+        background-color: #1fb597;
+    }
+
+    .rsyr button:hover {
+        opacity: 80%;
+    }
+
     img {
         width: 90px;
         height: 90px;
@@ -17,7 +323,7 @@ if ($result['res']) {
 
     /* Card Styling */
     .student-card {
-        width: 31rem;
+        width: 33rem;
         border: none;
         border-radius: 15px;
         transition: all 0.3s ease;
@@ -252,6 +558,52 @@ if ($result['res']) {
             </button>
         </div>
     </div>
+    <div class="col-md-8 d-flex gap-2 align-items-center mt-2">
+        <select id="gradeFilter" name="gradeLevelCategory" class="form-select" style="max-width: 200px;">
+            <option value="">All Grades</option>
+            <option value="Grade 1">Grade 1</option>
+            <option value="Grade 2">Grade 2</option>
+            <option value="Grade 3">Grade 3</option>
+            <option value="Grade 4">Grade 4</option>
+            <option value="Grade 5">Grade 5</option>
+            <option value="Grade 6">Grade 6</option>
+        </select>
+
+        <select id="syFilter" name="school_year" class="form-select" style="max-width: 200px;">
+            <?php
+            // Get all SYs, order active first
+            $catStmt = $pdo->query("
+                            SELECT school_year_id, school_year_name, school_year_status
+                            FROM school_year
+                            ORDER BY 
+                                CASE WHEN school_year_status = 'Active' THEN 0 ELSE 1 END,
+                                school_year_name ASC
+                        ");
+
+            $activeSyId = null;
+            $yr['school_year_id'] = null;
+            $yr['school_year_name'] = null;
+            $schoolYears = [];
+            while ($cat = $catStmt->fetch(PDO::FETCH_ASSOC)) {
+                if ($cat['school_year_status'] === 'Active' && $activeSyId === null) {
+                    $activeSyId = $cat['school_year_id'];
+                    $yr['school_year_id'] = $cat['school_year_id'];
+                    $yr['school_year_name'] = $cat['school_year_name'];
+                }
+                $schoolYears[] = $cat;
+            }
+            ?>
+            <option value="">--- active at ---</option>
+
+            <?php foreach ($schoolYears as $sy): ?>
+                <option value="<?= htmlspecialchars($sy['school_year_id']) ?>"
+                    <?= ($sy['school_year_id'] == $activeSyId) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($sy['school_year_name']) ?>
+                    <?= $sy['school_year_status'] === 'Active' ? ' (Active)' : '' ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
 
     <!-- Create learner profile modal -->
     <div class="modal fade" id="AddNewAccount" tabindex="-1" aria-labelledby="AddNewAccountLabel" aria-hidden="true">
@@ -289,12 +641,8 @@ if ($result['res']) {
                                 </select>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label fw-semibold">Nickname</label>
-                                <input type="text" class="form-control" placeholder="Student nickname" name="nickname">
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label fw-semibold">Sex</label>
-                                <select name="sex" class="form-select">
+                                <label class="form-label fw-semibold">Sex <span class="text-danger">*</span></label>
+                                <select  required name="sex" class="form-select">
                                     <option value="">Select student sex</option>
                                     <option value="MALE">Male</option>
                                     <option value="FEMALE">Female</option>
@@ -339,7 +687,7 @@ if ($result['res']) {
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label  class="form-label fw-semibold">Birth date <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Birth date <span class="text-danger">*</span></label>
                                 <input required type="date" id="bdate" name="birthdate" class="form-control">
                             </div>
                             <div class="col-md-4 mb-3">
@@ -361,170 +709,129 @@ if ($result['res']) {
             </div>
         </div>
     </div>
-
-    <!-- Students Grid -->
-    <div class="row mt-4" id="studentsContainer">
-        <?php
-        $currentSyStmt = $pdo->prepare("
-    SELECT school_year_id 
-    FROM school_year 
-    WHERE school_year_status = 'Active' 
-    LIMIT 1
-");
-        $currentSyStmt->execute();
-        $currentSy = $currentSyStmt->fetch(PDO::FETCH_ASSOC);
-
-        $activeSyId = $currentSy['school_year_id'] ?? null;
-        $user_id = $_SESSION['user_id'] ?? null;
-
-        $students = [];
-
-        if ($user_id) {
-            try {
-                $stmt = $pdo->prepare("
-            SELECT student.*, users.school_year_id 
-            FROM student 
-            LEFT JOIN users ON student.guardian_id = users.user_id
-            WHERE student.guardian_id = ? 
-            ORDER BY student.student_id DESC
-        ");
-                $stmt->execute([$user_id]);
-                $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                $students = [];
-            }
-        }
-
-        if (empty($students)): ?>
-            <div class="col-12">
-                <div class="card border-0 shadow text-center py-5" style="background: linear-gradient(135deg, #f8f9fa, #e9ecef);">
-                    <div class="card-body">
-                        <div class="mb-4">
-                            <i class="fa-solid fa-users-slash fa-4x" style="color: #6c757d;"></i>
+    <div class="modal fade" id="enrollstud" tabindex="-1" aria-labelledby="enrollstudLabel" aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title text-white" id="enrollstudLabel">
+                        <i class="fa-solid fa-check me-2"></i>Enroll Student For Next Grade Level
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form class="row g-3" id="enrollstud-form" method="post">
+                        <input type="hidden" name="student_id" id="student_id_e">
+                        <input type="hidden" name="student_lvl" id="student_lvl">
+                        <div class="col-12 text-center mb-3">
+                            <i class="fa-solid fa-circle-check fa-3x text-success mb-3"></i>
+                            <h5>Confirm Enrollment</h5>
+                            <p class="text-muted">Are you sure you want to enroll this student to the next level?</p>
                         </div>
-                        <h4 class="mb-3">No Learners Found</h4>
-                        <p class="text-muted mb-4">You haven't added any learners to your account yet.</p>
-                        <button type="button" class="btn btn-danger px-4" data-bs-toggle="modal" data-bs-target="#AddNewAccount"
-                            style="background: linear-gradient(135deg, #e74a3b, #be2617); border: none;">
-                            <i class="fa fa-plus me-2"></i> Add Your First Learner
-                        </button>
-                    </div>
+                        <div class="col-12 text-center mt-3">
+                            <button type="button" class="btn btn-secondary me-3 px-4" data-bs-dismiss="modal">
+                                <i class="fa-solid fa-times me-2"></i>Cancel
+                            </button>
+                            <button type="submit" class="btn btn-success px-4">
+                                <i class="fa-solid fa-check me-2"></i>Enroll
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
-            <?php else:
-            foreach ($students as $student):
-                // Calculate animation delay
-                static $delay = 0.1;
-            ?>
-                <div class="col-xl-4 col-lg-6 col-md-6 mb-4 student-card" style="animation-delay: <?= $delay ?>s">
-                    <div class="card border-0 shadow h-100">
-                        <div class="card-body p-4">
-                            <div class="row align-items-center">
-                                <!-- Profile Picture -->
-                                <div class="col-md-4 text-center mb-3 mb-md-0">
-                                    <div class="position-relative d-inline-block">
-                                        <?php if ($student["student_profile"] !== ''): ?>
-                                            <img src="../../authentication/uploads/<?php echo htmlspecialchars($student["student_profile"]); ?>"
-                                                class="img-fluid" alt="Profile Picture">
-                                        <?php else: ?>
-                                            <img src="../../assets/image/users.png" class="img-fluid" alt="Default Profile">
-                                        <?php endif; ?>
-
-                                        <!-- LRN Badge -->
-                                        <div class="position-absolute bottom-0 end-0 bg-dark text-white rounded-pill px-2 py-1 lrr"
-                                            style="font-size: 10px; transform: translate(5px, 5px);">
-                                            LRN: <?= substr(htmlspecialchars($student["lrn"]), 0, 6) ?>...
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Student Information -->
-                                <div class="col-md-8">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <h5 class="mb-0 text-dark">
-                                            <?= htmlspecialchars($student["fname"]) . " " .
-                                                htmlspecialchars(substr($student["mname"], 0, 1)) . ". " .
-                                                htmlspecialchars($student["lname"]) ?>
-                                        </h5>
-                                        <span class="status-badge <?=
-                                                                    $student["enrolment_status"] == 'active' ? 'status-active' : ($student["enrolment_status"] == '' ? 'status-pending' : 'status-inactive')
-                                                                    ?>">
-                                            <?= $student["enrolment_status"] == '' ? 'Pending' : htmlspecialchars(ucfirst($student["enrolment_status"])) ?>
-                                        </span>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <div class="d-flex align-items-center mb-1">
-                                            <i class="fa-solid fa-graduation-cap me-2 text-primary" style="width: 16px;"></i>
-                                            <span>Grade Level: <strong><?= htmlspecialchars($student["gradeLevel"]) ?></strong></span>
-                                        </div>
-                                        <div class="d-flex align-items-center mb-1">
-                                            <i class="fa-solid fa-cake-candles me-2 text-danger" style="width: 16px;"></i>
-                                            <span>Birthday: <strong><?= htmlspecialchars(date('M d, Y', strtotime($student["birthdate"]))) ?></strong></span>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <i class="fa-solid fa-venus-mars me-2 text-success" style="width: 16px;"></i>
-                                            <span>Sex: <strong><?= htmlspecialchars($student["sex"]) ?></strong></span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Action Buttons -->
-                                    <div class="d-flex gap-2 mt-3 pt-3 border-top">
-                                        <a href="index.php?page=contents/profile&student_id=<?= htmlspecialchars($student["student_id"]) ?>"
-                                            class="flex-fill">
-                                            <button class="btn btn-action btn-profile w-100">
-                                                <i class="fa-solid fa-user me-1"></i> Profile
-                                            </button>
-                                        </a>
-                                        <a href="index.php?page=contents/form&student_id=<?= htmlspecialchars($student["student_id"]) ?>"
-                                            class="flex-fill">
-                                            <button class="btn btn-action btn-form w-100">
-                                                <i class="fa-solid fa-file-lines me-1"></i> Form
-                                            </button>
-                                        </a>
-
-                                        <?php
-                                        // Construct report card filename
-                                        $lrn = $student["lrn"];
-                                        $fname = preg_replace("/[^A-Za-z0-9]/", "", strtolower($student["fname"]));
-                                        $lname = preg_replace("/[^A-Za-z0-9]/", "", strtolower($student["lname"]));
-                                        $grade = str_replace(" ", "", strtolower($student["gradeLevel"]));
-                                        $reportFile = BASE_PATH . "/sf9_files/{$lrn}_{$fname}_{$lname}_{$grade}.xlsx";
-
-                                        if (file_exists($reportFile)) {
-                                            $webPath = BASE_PATH . "/sf9_files/{$lrn}_{$fname}_{$lname}_{$grade}.xlsx";
-                                        ?>
-                                            <a href="index.php?page=contents/sf9_view&student_id=<?= htmlspecialchars($student['student_id']) ?>"
-                                                class="flex-fill">
-                                                <button class="btn btn-action btn-report w-100">
-                                                    <i class="fa-solid fa-file-excel me-1"></i> Report
-                                                </button>
-                                            </a>
-                                        <?php } else { ?>
-                                            <button class="btn btn-action w-100" disabled style="background: #6c757d;">
-                                                <i class="fa-solid fa-file-excel me-1"></i> Report
-                                            </button>
-                                        <?php } ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        </div>
+    </div>
+    <div class="modal fade" id="reenrollstud" tabindex="-1" aria-labelledby="reenrollstudLabel" aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title text-white" id="reenrollstudLabel">
+                        <i class="fa-solid fa-ban me-2"></i>Re-Enroll Student
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
-        <?php
-                $delay += 0.1;
-            endforeach;
-        endif;
-        ?>
+                <div class="modal-body">
+                    <form class="row g-3" id="reenrollstud-form" method="post">
+                        <input type="hidden" name="student_id" id="student_id_r">
+                        <div class="col-12 text-center mb-3">
+                            <i class="fa-solid fa-triangle-exclamation fa-3x text-warning mb-3"></i>
+                            <h5>Confirm Re-Enrollment</h5>
+                            <p class="text-muted">Are you sure you want to Re-enroll this student?</p>
+                        </div>
+                        <div class="col-12 text-center mt-3">
+                            <button type="button" class="btn btn-secondary me-3 px-4" data-bs-dismiss="modal">
+                                <i class="fa-solid fa-times me-2"></i>Cancel
+                            </button>
+                            <button type="submit" class="btn btn-warning px-4">
+                                <i class="fa-solid fa-ban me-2"></i>Re-Enroll
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Students Grid -->
+    <div class="row mt-4" id="studentsContainer">
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Profile picture preview
+    let currentPage = 1;
+    let totalPages = 1;
+
+    function enroll(id, studid, nxtlvl = 0) {
+        document.getElementById('student_id_r').value = studid
+        document.getElementById('student_id_e').value = studid
+        document.getElementById('student_lvl').value = 'Grade ' + (nxtlvl + 1)
+        const modal = new bootstrap.Modal(document.getElementById(id));
+        modal.show();
+    }
+
+    function fetchStudents(search = '', page = 1) {
+        const studentsContainer = document.getElementById('studentsContainer');
+        const gradeFilter = document.getElementById('gradeFilter')?.value || '';
+        const syFilter = document.getElementById('syFilter')?.value || '';
+
+        const formData = new FormData();
+        formData.append('ajax', true);
+        formData.append('search', search);
+        formData.append('page', page);
+        formData.append('gradeFilter', gradeFilter);
+        formData.append('syFilter', syFilter);
+
+        fetch('contents/learners.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                studentsContainer.innerHTML = data.html;
+                currentPage = data.currentPage;
+                totalPages = data.totalPages;
+
+                const btnPrev = studentsContainer.querySelector('.btn-prev');
+                const btnNext = studentsContainer.querySelector('.btn-next');
+                if (btnPrev) btnPrev.addEventListener('click', () => fetchStudents(search, currentPage - 1));
+                if (btnNext) btnNext.addEventListener('click', () => fetchStudents(search, currentPage + 1));
+
+                attachCardHover();
+                attachProfilePreview(); // reattach profile change after reload
+            })
+            .catch(err => console.error(err));
+    }
+
+    function attachCardHover() {
+        document.querySelectorAll('.student-card').forEach(card => {
+            card.addEventListener('mouseenter', () => card.style.transform = 'translateY(-8px)');
+            card.addEventListener('mouseleave', () => card.style.transform = 'translateY(0)');
+        });
+    }
+
+    function attachProfilePreview() {
         const profileUpload = document.getElementById('profileUpload');
         const profilePreview = document.getElementById('profilePreview');
-
         if (profileUpload && profilePreview) {
             profileUpload.addEventListener('change', function(e) {
                 const file = e.target.files[0];
@@ -537,66 +844,37 @@ if ($result['res']) {
                 }
             });
         }
+    }
+    const bdate = document.getElementById('bdate');
+    const grlvl = document.getElementById('grlvl');
 
 
-        // Search functionality
+    function updateMinDate() {
+        const gradelvl = parseInt(grlvl.value.replace('Grade ', ''))
+        const minAge = 6 + (gradelvl - 1)
+        const today = new Date()
+        const cuttoff = new Date(today.getFullYear() - minAge, today.getMonth(), today.getDate())
+
+        bdate.max = cuttoff.toISOString().split('T')[0]
+        bdate.min = new Date(today.getFullYear() - (minAge + 1), today.getMonth(), today.getDate() + 1).toISOString().split('T')[0]
+        bdate.value = ''
+    }
+    document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('searchInput');
-        const studentCards = document.querySelectorAll('.student-card');
-
-        if (searchInput) {
-            searchInput.addEventListener('keyup', function() {
-                const searchTerm = this.value.toLowerCase();
-                console.log(searchTerm);
-
-
-                studentCards.forEach(card => {
-                    const text = card.textContent.toLowerCase();
-                    if (text.includes(searchTerm)) {
-                        card.style.display = 'block';
-                        // card.style.animation = 'fadeInUp 0.3s ease-out';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-            });
-        }
-
-        // Add hover effects to student cards
-        studentCards.forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-8px)';
-            });
-
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-            });
-        });
-
-        // Form validation for LRN
-        const lrnInput = document.querySelector('input[name="lrn"]');
-        if (lrnInput) {
-            lrnInput.addEventListener('input', function(e) {
-                this.value = this.value.replace(/\D/g, '');
-                if (this.value.length > 12) {
-                    this.value = this.value.slice(0, 12);
-                }
-            });
-        }
-
-        const bdate = document.getElementById('bdate');
-        const grlvl = document.getElementById('grlvl');
-
+        const gradeFilter = document.getElementById('gradeFilter');
+        const syFilter = document.getElementById('syFilter');
         grlvl.addEventListener('change', updateMinDate)
 
-        function updateMinDate() {
-            const gradelvl = parseInt(grlvl.value.replace('Grade ', ''))
-            const minAge = 6 + (gradelvl - 1)
-            const today = new Date()
-            const cuttoff = new Date(today.getFullYear() - minAge, today.getMonth(), today.getDate())
+        // Initial load
+        fetchStudents();
 
-            bdate.max = cuttoff.toISOString().split('T')[0]
-            bdate.min = new Date(today.getFullYear() - (minAge + 1), today.getMonth(), today.getDate() + 1).toISOString().split('T')[0]
-            bdate.value = ''
-        }
+        // Search
+        if (searchInput) searchInput.addEventListener('keyup', () => fetchStudents(searchInput.value, 1));
+        // Filters
+        if (gradeFilter) gradeFilter.addEventListener('change', () => fetchStudents(searchInput.value || '', 1));
+        if (syFilter) syFilter.addEventListener('change', () => fetchStudents(searchInput.value || '', 1));
+
+        // Attach profile preview initially
+        attachProfilePreview();
     });
 </script>

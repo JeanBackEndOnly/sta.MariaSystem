@@ -571,7 +571,7 @@ $gradesData = [];
                                     </h5>
                                     <div style="text-align: center; margin-bottom: .5rem;">
                                         <label for="syFilter">Select Year</label>
-                                        <select id="syFilter" name="school_year" class="form-select" style="width:200px;" >
+                                        <select id="syFilter" name="school_year" class="form-select" style="width:200px;">
                                             <?php
                                             $startYear = 2020;
                                             $currentYear = (int)date('Y');
@@ -877,109 +877,109 @@ $gradesData = [];
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Medical Tab -->
-                    <div class="tab-pane fade" id="medical-info" role="tabpanel">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-white border-bottom py-3">
-                                <h5 class="mb-0 fw-semibold">
-                                    <i class="fas fa-heartbeat me-2 text-primary"></i>Medical Information
-                                </h5>
-                            </div>
-                            <div class="card-body p-4">
-                                <form id="medical-update" class="row g-3">
-                                    <input type="hidden" name="student_id" value="<?= htmlspecialchars($student_info["student_id"] ?? '') ?>">
+                <!-- Medical Tab -->
+                <div class="tab-pane fade" id="medical-info" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom py-3">
+                            <h5 class="mb-0 fw-semibold">
+                                <i class="fas fa-heartbeat me-2 text-primary"></i>Medical Information
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form id="medical-update" class="row g-3">
+                                <input type="hidden" name="student_id" value="<?= htmlspecialchars($student_info["student_id"] ?? '') ?>">
 
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-semibold">
-                                            <i class="fas fa-weight me-1 text-muted"></i> Weight (kg)
-                                        </label>
-                                        <input type="number" step="0.1" class="form-control" name="weight"
-                                            value="<?= htmlspecialchars($student_info["weight"] ?? '') ?>"
-                                            placeholder="e.g., 45.5">
-                                    </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">
+                                        <i class="fas fa-weight me-1 text-muted"></i> Weight (kg)
+                                    </label>
+                                    <input type="number" step="0.1" class="form-control" name="weight"
+                                        value="<?= htmlspecialchars($student_info["weight"] ?? '') ?>"
+                                        placeholder="e.g., 45.5">
+                                </div>
 
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-semibold">
-                                            <i class="fas fa-ruler-vertical me-1 text-muted"></i> Height (m)
-                                        </label>
-                                        <input type="number" step="0.01" class="form-control" name="height"
-                                            value="<?= htmlspecialchars($student_info["height"] ?? '') ?>"
-                                            placeholder="e.g., 1.65">
-                                    </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">
+                                        <i class="fas fa-ruler-vertical me-1 text-muted"></i> Height (m)
+                                    </label>
+                                    <input type="number" step="0.01" class="form-control" name="height"
+                                        value="<?= htmlspecialchars($student_info["height"] ?? '') ?>"
+                                        placeholder="e.g., 1.65">
+                                </div>
 
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-semibold">
-                                            <i class="fas fa-calculator me-1 text-muted"></i> Height² (m²)
-                                        </label>
-                                        <input type="text" class="form-control" name="height_squared" readonly
-                                            value="<?= htmlspecialchars($student_info["height_squared"] ?? '') ?>">
-                                    </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">
+                                        <i class="fas fa-calculator me-1 text-muted"></i> Height² (m²)
+                                    </label>
+                                    <input type="text" class="form-control" name="height_squared" readonly
+                                        value="<?= htmlspecialchars($student_info["height_squared"] ?? '') ?>">
+                                </div>
 
-                                    <!-- BMI Results -->
-                                    <div class="col-12 mt-4">
-                                        <div class="card border">
-                                            <div class="card-body">
-                                                <h6 class="fw-semibold mb-3">
-                                                    <i class="fas fa-chart-line me-2 text-primary"></i>BMI Calculation
-                                                </h6>
-                                                <div class="row g-3">
-                                                    <div class="col-md-4">
-                                                        <label class="form-label fw-semibold">BMI Result</label>
-                                                        <input type="text" id="bm-result" name="bmi" readonly
-                                                            value="<?= htmlspecialchars($student_info['bmi'] ?? '') ?>"
-                                                            class="form-control bg-light">
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label fw-semibold">BMI Category</label>
-                                                        <input type="text" id="bm-category" name="bmi_category" readonly
-                                                            value="<?= htmlspecialchars($student_info['bmi_category'] ?? '') ?>"
-                                                            class="form-control bg-light">
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label fw-semibold">Height for Age (HFA)</label>
-                                                        <input type="text" id="hfa-result" name="hfa" readonly
-                                                            value="<?= htmlspecialchars($student_info['hfa'] ?? '') ?>"
-                                                            class="form-control bg-light">
-                                                    </div>
-                                                    <div class="col-12 mt-3">
-                                                        <label class="form-label fw-semibold">Medical Remarks</label>
-                                                        <input type="text" id="medical-remarks" name="medical_remarks" readonly
-                                                            value="<?= htmlspecialchars($student_info['medical_remarks'] ?? '') ?>"
-                                                            class="form-control bg-light">
-                                                    </div>
+                                <!-- BMI Results -->
+                                <div class="col-12 mt-4">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <h6 class="fw-semibold mb-3">
+                                                <i class="fas fa-chart-line me-2 text-primary"></i>BMI Calculation
+                                            </h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold">BMI Result</label>
+                                                    <input type="text" id="bm-result" name="bmi" readonly
+                                                        value="<?= htmlspecialchars($student_info['bmi'] ?? '') ?>"
+                                                        class="form-control bg-light">
                                                 </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold">BMI Category</label>
+                                                    <input type="text" id="bm-category" name="bmi_category" readonly
+                                                        value="<?= htmlspecialchars($student_info['bmi_category'] ?? '') ?>"
+                                                        class="form-control bg-light">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-semibold">Height for Age (HFA)</label>
+                                                    <input type="text" id="hfa-result" name="hfa" readonly
+                                                        value="<?= htmlspecialchars($student_info['hfa'] ?? '') ?>"
+                                                        class="form-control bg-light">
+                                                </div>
+                                                <div class="col-12 mt-3">
+                                                    <label class="form-label fw-semibold">Medical Remarks</label>
+                                                    <input type="text" id="medical-remarks" name="medical_remarks" readonly
+                                                        value="<?= htmlspecialchars($student_info['medical_remarks'] ?? '') ?>"
+                                                        class="form-control bg-light">
+                                                </div>
+                                            </div>
 
-                                                <!-- BMI Chart -->
-                                                <div class="mt-4">
-                                                    <div class="bmi-chart d-flex align-items-center mt-3">
-                                                        <small class="text-muted me-2">Underweight</small>
-                                                        <div class="flex-grow-1 bg-info" style="height: 20px; opacity: 0.3;"></div>
-                                                        <small class="text-muted mx-2">Normal</small>
-                                                        <div class="flex-grow-1 bg-success" style="height: 20px; opacity: 0.3;"></div>
-                                                        <small class="text-muted mx-2">Overweight</small>
-                                                        <div class="flex-grow-1 bg-warning" style="height: 20px; opacity: 0.3;"></div>
-                                                        <small class="text-muted mx-2">Obese</small>
-                                                        <div class="flex-grow-1 bg-danger" style="height: 20px; opacity: 0.3;"></div>
-                                                    </div>
+                                            <!-- BMI Chart -->
+                                            <div class="mt-4">
+                                                <div class="bmi-chart d-flex align-items-center mt-3">
+                                                    <small class="text-muted me-2">Underweight</small>
+                                                    <div class="flex-grow-1 bg-info" style="height: 20px; opacity: 0.3;"></div>
+                                                    <small class="text-muted mx-2">Normal</small>
+                                                    <div class="flex-grow-1 bg-success" style="height: 20px; opacity: 0.3;"></div>
+                                                    <small class="text-muted mx-2">Overweight</small>
+                                                    <div class="flex-grow-1 bg-warning" style="height: 20px; opacity: 0.3;"></div>
+                                                    <small class="text-muted mx-2">Obese</small>
+                                                    <div class="flex-grow-1 bg-danger" style="height: 20px; opacity: 0.3;"></div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div class="col-12 mt-4 pt-3 border-top">
-                                        <div class="d-flex justify-content-end gap-2">
-                                            <button type="submit" class="btn btn-primary px-4">
-                                                <i class="fas fa-save me-2"></i>Update Medical Info
-                                            </button>
-                                        </div>
+                                <div class="col-12 mt-4 pt-3 border-top">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button type="submit" class="btn btn-primary px-4">
+                                            <i class="fas fa-save me-2"></i>Update Medical Info
+                                        </button>
                                     </div>
-                                </form>
-                            </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
-
                 </div>
+
             </div>
         </div>
     </div>
