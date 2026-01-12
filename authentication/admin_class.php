@@ -10,7 +10,7 @@ use PHPMailer\PHPMailer\Exception;
 class Action
 {
     public $nao = 'now';
-    // public $nao = '2025-12-22 13:00:00';
+    // public $nao = '2026-01-11 13:00:00';
     private $db;
     public function __construct()
     {
@@ -579,12 +579,12 @@ class Action
     }
     function enrolment_form()
     {
-        $section_name = $_POST['section_name'] ?? null;
-        $adviser_id = $_POST['adviser_id'] ?? null;
-        $schoolyear_id = $_POST['schoolyear_id'] ?? null;
-        $grade_level = $_POST['grade_level'] ?? null;
-        $subjects = $_POST['subjects'] ?? []; // Changed from subjects[] to subjects
-        $student_id = $_POST['student_id'] ?? null;
+        $section_name   = $_POST['section_name'] ?? null;
+        $adviser_id     = $_POST['adviser_id'] ?? null;
+        $schoolyear_id  = $_POST['schoolyear_id'] ?? null;
+        $grade_level    = $_POST['grade_level'] ?? null;
+        $subjects       = $_POST['subjects'] ?? [];
+        $student_id     = $_POST['student_id'] ?? null;
 
         try {
             // Validate required fields
@@ -593,41 +593,53 @@ class Action
             }
 
             // Check if student already has an enrolment for this school year
-            $stmt = $this->db->prepare("SELECT enrolment_id FROM enrolment WHERE student_id = ? ");
-            $stmt->execute([$student_id]);
+            $stmt = $this->db->prepare("
+            SELECT enrolment_id 
+            FROM enrolment 
+            WHERE student_id = ? AND school_year_id = ?
+        ");
+            $stmt->execute([$student_id, $schoolyear_id]);
             $existing_enrolment = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($existing_enrolment) {
-                return json_encode(['status' => 0, 'message' => 'Student already has an enrolment for this school year.']);
+                return json_encode(['status' => 0, 'message' => 'Student is already enrolled for this school year.']);
             }
 
             // Insert enrolment
-            $stmt = $this->db->prepare("INSERT INTO enrolment 
+            $stmt = $this->db->prepare("
+            INSERT INTO enrolment 
                 (student_id, adviser_id, section_name, school_year_id, Grade_level, enrolment_Status)
-                VALUES (?, ?, ?, ?, ?, 'Approved')");
+            VALUES (?, ?, ?, ?, ?, 'Approved')
+        ");
             $stmt->execute([$student_id, $adviser_id, $section_name, $schoolyear_id, $grade_level]);
-
             $enrolment_id = $this->db->lastInsertId();
 
             // Insert selected subjects
-            $stmt = $this->db->prepare("INSERT INTO enrolment_subjects (enrolment_id, subjects_id) VALUES (?, ?)");
+            $stmt = $this->db->prepare("
+            INSERT INTO enrolment_subjects (enrolment_id, subjects_id) 
+            VALUES (?, ?)
+        ");
             foreach ($subjects as $subj_id) {
                 $stmt->execute([$enrolment_id, $subj_id]);
             }
 
-            $stmt = $this->db->prepare("UPDATE student SET enrolment_status = 'Active' WHERE student_id = ?");
+            $stmt = $this->db->prepare("
+            UPDATE student 
+            SET enrolment_status = 'Active' 
+            WHERE student_id = ?
+        ");
             $stmt->execute([$student_id]);
 
             return json_encode(['status' => 1, 'message' => 'Enrolment approved successfully.']);
         } catch (PDOException $e) {
             error_log($e->getMessage());
-            // Check for specific constraint violations
             if (strpos($e->getMessage(), 'foreign key constraint') !== false) {
                 return json_encode(['status' => 0, 'message' => 'Invalid data provided. Please check your selections.']);
             }
             return json_encode(['status' => 0, 'message' => 'Database error: ' . $e->getMessage()]);
         }
     }
+
     function reenrollstud_form()
     {
         $student_id = $_POST["student_id"] ?? null;
@@ -1611,638 +1623,141 @@ class Action
         }
     }
 
-    function morning_attendanceP()
+    function attendance($student_id, $attendanceType, $clientTime, $session)
     {
-        $student_id = $_POST['student_id'] ?? null;
-        $adviser_id = $_SESSION['user_id'] ?? null;
-
-        if (empty($student_id)) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'Missing student_id.'
-            ]);
-        }
-
-        try {
-            // Use PHP DateTime with explicit timezone to avoid server timezone mismatch
-            $tz = new DateTimeZone('Asia/Manila'); // change if needed
-            // $now = new DateTime($this->nao, $tz);
-            $now = new DateTime($this->nao, $tz);
-            $currentTime = $now->format('H:i:s');
-            $today = $now->format('Y-m-d');
-            $nowDatetime = $now->format('Y-m-d H:i:s');
-
-            // $currentTime = $now->format('H:i:s');       
-            // $today = $now->format('Y-m-d');              
-            // $nowDatetime = $now->format('Y-m-d H:i:s');  
-
-            // 1) Check if already marked morning attendance for THIS student TODAY
-            $checkSql = "SELECT 1 FROM attendance 
-                        WHERE student_id = :student_id 
-                        AND DATE(morning_attendance) = :today
-                        LIMIT 1";
-            $stmt = $this->db->prepare($checkSql);
-            $stmt->execute([
-                ':student_id' => $student_id,
-                ':today' => $today
-            ]);
-            if ($stmt->fetchColumn()) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'Student has already marked morning attendance today.'
-                ]);
-            }
-
-            // 2) Enforce time window 06:00:00 - 12:00:00
-            if ($currentTime < '06:00:00' || $currentTime > '12:00:00') {
-                return json_encode([
-                    'status' => 0,
-                    'message' => "Morning attendance is allowed only between 06:00 and 12:00. Current time: {$currentTime}"
-                ]);
-            }
-
-            // 3) Insert attendance (use the PHP-generated datetime to keep timezone consistent)
-            $insertSql = "INSERT INTO attendance (student_id, adviser_id, morning_attendance, attendance_type)
-                        VALUES (:student_id, :adviser_id, :now, 'Present')";
-            $ins = $this->db->prepare($insertSql);
-            $ins->execute([
-                ':student_id' => $student_id,
-                ':adviser_id' => $adviser_id,
-                ':now' => $nowDatetime
-            ]);
-
-            return json_encode([
-                'status' => 1,
-                'message' => 'Morning attendance recorded successfully "PRESENT".'
-            ]);
-        } catch (PDOException $e) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ]);
-        }
-    }
-    function morning_attendanceA()
-    {
-        $student_id = $_POST['student_id'] ?? null;
-        $adviser_id = $_SESSION['user_id'] ?? null;
-
-        if (empty($student_id)) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'Missing student_id.'
-            ]);
-        }
-
-        try {
-            // Use PHP DateTime with explicit timezone to avoid server timezone mismatch
-            $tz = new DateTimeZone('Asia/Manila'); // change if needed
-            $now = new DateTime($this->nao, $tz);
-            $currentTime = $now->format('H:i:s');       // "HH:MM:SS"
-            $today = $now->format('Y-m-d');             // "YYYY-MM-DD"
-            $nowDatetime = $now->format('Y-m-d H:i:s'); // full datetime to store
-
-            // 1) Check if already marked morning attendance for THIS student TODAY
-            $checkSql = "SELECT 1 FROM attendance 
-                        WHERE student_id = :student_id 
-                        AND DATE(morning_attendance) = :today
-                        LIMIT 1";
-            $stmt = $this->db->prepare($checkSql);
-            $stmt->execute([
-                ':student_id' => $student_id,
-                ':today' => $today
-            ]);
-            if ($stmt->fetchColumn()) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'Student has already marked morning attendance today.'
-                ]);
-            }
-
-            // 2) Enforce time window 06:00:00 - 12:00:00
-            if ($currentTime < '06:00:00' || $currentTime > '12:00:00') {
-                return json_encode([
-                    'status' => 0,
-                    'message' => "Morning attendance is allowed only between 06:00 and 12:00. Current time: {$currentTime}"
-                ]);
-            }
-
-            // 3) Insert attendance (use the PHP-generated datetime to keep timezone consistent)
-            $insertSql = "INSERT INTO attendance (student_id, adviser_id, morning_attendance, attendance_type)
-                        VALUES (:student_id, :adviser_id, :now, 'Absent')";
-            $ins = $this->db->prepare($insertSql);
-            $ins->execute([
-                ':student_id' => $student_id,
-                ':adviser_id' => $adviser_id,
-                ':now' => $nowDatetime
-            ]);
-
-            return json_encode([
-                'status' => 1,
-                'message' => 'Morning attendance recorded successfully "ABSENT".'
-            ]);
-        } catch (PDOException $e) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ]);
-        }
-    }
-    function morning_attendanceL()
-    {
-        $student_id = $_POST['student_id'] ?? null;
-        $adviser_id = $_SESSION['user_id'] ?? null;
-
-        if (empty($student_id)) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'Missing student_id.'
-            ]);
-        }
-
-        try {
-            // Use PHP DateTime with explicit timezone to avoid server timezone mismatch
-            $tz = new DateTimeZone('Asia/Manila'); // change if needed
-            $now = new DateTime($this->nao, $tz);
-            $currentTime = $now->format('H:i:s');       // "HH:MM:SS"
-            $today = $now->format('Y-m-d');             // "YYYY-MM-DD"
-            $nowDatetime = $now->format('Y-m-d H:i:s'); // full datetime to store
-
-            // 1) Check if already marked morning attendance for THIS student TODAY
-            $checkSql = "SELECT 1 FROM attendance 
-                        WHERE student_id = :student_id 
-                        AND DATE(morning_attendance) = :today
-                        LIMIT 1";
-            $stmt = $this->db->prepare($checkSql);
-            $stmt->execute([
-                ':student_id' => $student_id,
-                ':today' => $today
-            ]);
-            if ($stmt->fetchColumn()) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'Student has already marked morning attendance today.'
-                ]);
-            }
-
-            // 2) Enforce time window 06:00:00 - 12:00:00
-            if ($currentTime < '06:00:00' || $currentTime > '12:00:00') {
-                return json_encode([
-                    'status' => 0,
-                    'message' => "Morning attendance is allowed only between 06:00 and 12:00. Current time: {$currentTime}"
-                ]);
-            }
-
-            // 3) Insert attendance (use the PHP-generated datetime to keep timezone consistent)
-            $insertSql = "INSERT INTO attendance (student_id, adviser_id, morning_attendance, attendance_type)
-                        VALUES (:student_id, :adviser_id, :now, 'Late')";
-            $ins = $this->db->prepare($insertSql);
-            $ins->execute([
-                ':student_id' => $student_id,
-                ':adviser_id' => $adviser_id,
-                ':now' => $nowDatetime
-            ]);
-
-            return json_encode([
-                'status' => 1,
-                'message' => 'Morning attendance recorded successfully "LATE".'
-            ]);
-        } catch (PDOException $e) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ]);
-        }
+        return $this->recordAttendance($student_id, $attendanceType, $clientTime, $session);
     }
 
-    // function afternoon_attendanceP() {
-    //     $student_id = $_POST['student_id'] ?? null;
-    //     $adviser_id = $_SESSION['user_id'] ?? null;
-
-    //     if (empty($student_id)) {
-    //         return json_encode([
-    //             'status' => 0,
-    //             'message' => 'Missing student_id.'
-    //         ]);
-    //     }
-
-    //     try {
-    //         // Use PHP DateTime with explicit timezone to avoid server timezone mismatch
-    //         $tz = new DateTimeZone('Asia/Manila'); // change if needed
-    //         $now = new DateTime($this->nao, $tz);
-    //         $currentTime = $now->format('H:i:s');       // "HH:MM:SS"
-    //         $today = $now->format('Y-m-d');             // "YYYY-MM-DD"
-    //         $nowDatetime = $now->format('Y-m-d H:i:s'); // full datetime to store
-
-    //         // 1) Check if already marked morning attendance for THIS student TODAY
-    //         $checkSql = "SELECT 1 FROM attendance 
-    //                     WHERE student_id = :student_id 
-    //                     AND DATE(afternoon_attendance) = :today
-    //                     LIMIT 1";
-    //         $stmt = $this->db->prepare($checkSql);
-    //         $stmt->execute([
-    //             ':student_id' => $student_id,
-    //             ':today' => $today
-    //         ]);
-    //         if ($stmt->fetchColumn()) {
-    //             return json_encode([
-    //                 'status' => 0,
-    //                 'message' => 'Student has already marked afternoon attendance today.'
-    //             ]);
-    //         }
-
-    //         // 2) Enforce time window 06:00:00 - 12:00:00
-    //      if ($currentTime < '13:00:00' || $currentTime > '18:00:00') {
-    //             return json_encode([
-    //                 'status' => 0,
-    //                 'message' => "afternoon attendance is allowed only between 06:00 and 12:00. Current time: {$currentTime}"
-    //             ]);
-    //         }
-
-    //         // 3) Insert attendance (use the PHP-generated datetime to keep timezone consistent)
-    //         $insertSql = "INSERT INTO attendance (student_id, adviser_id, afternoon_attendance, attendance_type)
-    //                     VALUES (:student_id, :adviser_id, :now, 'Present')";
-    //         $ins = $this->db->prepare($insertSql);
-    //         $ins->execute([
-    //             ':student_id' => $student_id,
-    //             ':adviser_id' => $adviser_id,
-    //             ':now' => $nowDatetime
-    //         ]);
-
-    //         return json_encode([
-    //             'status' => 1,
-    //             'message' => 'Afternoon attendance recorded successfully "PRESENT".'
-    //         ]);
-
-    //     } catch (PDOException $e) {
-    //         return json_encode([
-    //             'status' => 0,
-    //             'message' => 'An error occurred: ' . $e->getMessage()
-    //         ]);
-    //     }
-    // } 
-
-
-    function afternoon_attendanceP()
+    private function recordAttendance($student_id, string $attendanceType, string $clientTime, string $session)
     {
-        $student_id = $_POST['student_id'] ?? null;
         $adviser_id = $_SESSION['user_id'] ?? null;
 
-        if (empty($student_id)) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'Missing student_id.'
-            ]);
+        if (!$student_id || !$attendanceType || !$session) {
+            return $this->jsonError("Missing required data.");
         }
 
         try {
-            // Use PHP DateTime with explicit timezone
             $tz = new DateTimeZone('Asia/Manila');
-            $now = new DateTime($this->nao, $tz);
-            $currentTime = $now->format('H:i:s');
-            $today = $now->format('Y-m-d');
-            $nowDatetime = $now->format('Y-m-d H:i:s');
+            $session = strtolower($session);
 
-            $stmtCheck = $this->db->prepare("SELECT attendance_type FROM attendance WHERE student_id = :student_id AND DATE(morning_attendance) = :today");
-            $stmtCheck->execute([
-                ':student_id' => $student_id,
-                ':today' => $today
-            ]);
-            $AttendanceSummary = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-            $checkAttendanceType = $AttendanceSummary['attendance_type'] ?? '';
-
-            if ($checkAttendanceType === 'Absent') {
-                $attendance_summary = 'Half-day';
-            } else if ($checkAttendanceType === 'Present') {
-                $attendance_summary = 'Present';
-            } else if ($checkAttendanceType === 'Late') {
-                $attendance_summary = 'Half-day-late';
+            if (!in_array($session, ['morning', 'afternoon', 'confirm'])) {
+                return $this->jsonError("Invalid session.");
             }
-            // 1) Check if student has morning attendance for today
-            $checkSql = "SELECT afternoon_attendance FROM attendance 
-                        WHERE student_id = :student_id 
-                        AND DATE(morning_attendance) = :today
-                        LIMIT 1";
-            $stmt = $this->db->prepare($checkSql);
-            $stmt->execute([
-                ':student_id' => $student_id,
-                ':today' => $today
-            ]);
 
+            if ($session !== 'confirm') {
+                if (!$clientTime) return $this->jsonError("Missing time.");
+
+                $clientDT = DateTime::createFromFormat('H:i', $clientTime, $tz);
+                if (!$clientDT) return $this->jsonError("Invalid time format.");
+
+                $hour = (int)$clientDT->format('H');
+                if ($hour < 6 || $hour > 18) {
+                    return $this->jsonError("Attendance allowed only 6:00–18:00.");
+                }
+
+                $attendanceDT = (new DateTime('now', $tz))->format('Y-m-d') . ' ' . $clientDT->format('H:i:s');
+            }
+
+            $sy_name = $this->db
+                ->query("SELECT school_year_name FROM school_year WHERE school_year_status='Active' LIMIT 1")
+                ->fetchColumn();
+
+            if (!$sy_name) return $this->jsonError("No active school year.");
+
+            $stmt = $this->db->prepare("
+            SELECT * FROM attendance 
+            WHERE student_id=?
+            LIMIT 1
+        ");
+            $stmt->execute([$student_id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$row) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'No morning attendance found for today. Please mark morning attendance first.'
-                ]);
+                $this->db->prepare("
+                INSERT INTO attendance (student_id, adviser_id, school_year_name)
+                VALUES (?, ?, ?)
+            ")->execute([$student_id, $adviser_id, $sy_name]);
+
+                $attendance_id = $this->db->lastInsertId();
+
+                $row = [
+                    'attendance_id' => $attendance_id,
+                    'attendance_type' => null,
+                    'A_attendance_type' => null
+                ];
             }
 
-            // Check if already marked afternoon attendance
-            if ($row['afternoon_attendance']) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'Student has already marked afternoon attendance today.'
-                ]);
-            }
+            $attendance_id = $row['attendance_id'];
 
-            // 2) Enforce time window 13:00:00 - 18:00:00 (AFTERNOON hours)
-            if ($currentTime < '13:00:00' || $currentTime > '18:00:00') {
-                return json_encode([
-                    'status' => 0,
-                    'message' => "Afternoon attendance is allowed only between 13:00 and 18:00. Current time: {$currentTime}"
-                ]);
-            }
+            if ($session === 'morning') {
 
-            // 3) UPDATE the existing record with afternoon attendance
-            try {
-                $updateSql = "UPDATE attendance 
-                            SET afternoon_attendance = :afternoon_attendance, 
-                                A_attendance_type = 'Present', attendance_summary = :attendance_summary
-                            WHERE student_id = :student_id 
-                            AND DATE(morning_attendance) = :today";
+                $this->db->prepare("
+                UPDATE attendance 
+                SET morning_attendance=?, attendance_type=? 
+                WHERE attendance_id=?
+            ")->execute([$attendanceDT, $attendanceType, $attendance_id]);
+            } elseif ($session === 'afternoon') {
 
-                $ins = $this->db->prepare($updateSql);
-                $ins->execute([
-                    ':student_id' => $student_id,
-                    ':afternoon_attendance' => $nowDatetime,  // Corrected parameter name
-                    ':today' => $today,
-                    ':attendance_summary' => $attendance_summary
-                ]);
+                $this->db->prepare("
+                UPDATE attendance 
+                SET afternoon_attendance=?, A_attendance_type=? 
+                WHERE attendance_id=?
+            ")->execute([$attendanceDT, $attendanceType, $attendance_id]);
+            } elseif ($session === 'confirm') {
 
-                // Check if any rows were updated
-                if ($ins->rowCount() === 0) {
-                    return json_encode([
-                        'status' => 0,
-                        'message' => 'No attendance record found to update.'
-                    ]);
+                $stmt = $this->db->prepare("
+                    SELECT attendance_type, A_attendance_type 
+                    FROM attendance 
+                    WHERE attendance_id=?
+                ");
+                $stmt->execute([$attendance_id]);
+                $types = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                $morningType   = $types['attendance_type'] ?? null;
+                $afternoonType = $types['A_attendance_type'] ?? null;
+
+                if ($morningType === null && $afternoonType === null) {
+                    return $this->jsonError("Nothing to confirm.");
                 }
-            } catch (PDOException $e) {
-                // Handle the CASE statement error specifically
-                if (strpos($e->getMessage(), '1339') !== false || strpos($e->getMessage(), 'Case not found') !== false) {
-                    // This might be from a trigger or constraint
-                    return json_encode([
-                        'status' => 0,
-                        'message' => 'Cannot mark attendance at this time. Please check attendance rules.'
-                    ]);
+
+                $summary = null;
+
+                if ($morningType === 'Absent' && $afternoonType === 'Absent') {
+                    $summary = 'Absent';
+                } elseif (
+                    $morningType === 'Present' || $afternoonType === 'Present' ||
+                    $morningType === 'Late'    || $afternoonType === 'Late'
+                ) {
+                    $summary = 'Present';
                 }
-                throw $e; // Re-throw if it's a different error
+
+                $this->db->prepare("
+    UPDATE attendance 
+    SET attendance_summary=?
+    WHERE attendance_id=?
+")->execute([$summary, $attendance_id]);
+
+
+                return $this->jsonSuccess("Attendance confirmed.");
             }
 
-            return json_encode([
-                'status' => 1,
-                'message' => 'Afternoon attendance recorded successfully as "PRESENT".'
-            ]);
+            return $this->jsonSuccess(ucfirst($session) . " attendance recorded.");
         } catch (PDOException $e) {
-            // Log the full error for debugging
-            error_log("Attendance Error: " . $e->getMessage());
-
-            return json_encode([
-                'status' => 0,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ]);
+            return $this->jsonError("DB Error: " . $e->getMessage());
         }
     }
 
-    function afternoon_attendanceA()
+
+
+
+
+    private function jsonError($msg)
     {
-        $student_id = $_POST['student_id'] ?? null;
-        $adviser_id = $_SESSION['user_id'] ?? null;
-
-        if (empty($student_id)) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'Missing student_id.'
-            ]);
-        }
-
-        try {
-            // Use PHP DateTime with explicit timezone
-            $tz = new DateTimeZone('Asia/Manila');
-            $now = new DateTime($this->nao, $tz);
-            $currentTime = $now->format('H:i:s');
-            $today = $now->format('Y-m-d');
-            $nowDatetime = $now->format('Y-m-d H:i:s');
-
-            $stmtCheck = $this->db->prepare("SELECT attendance_type FROM attendance WHERE student_id = :student_id AND DATE(morning_attendance) = :today");
-            $stmtCheck->execute([
-                ':student_id' => $student_id,
-                ':today' => $today
-            ]);
-            $AttendanceSummary = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-            $checkAttendanceType = $AttendanceSummary['attendance_type'] ?? '';
-
-            if ($checkAttendanceType === 'Absent') {
-                $attendance_summary = 'Absent';
-            } else if ($checkAttendanceType === 'Present') {
-                $attendance_summary = 'Half-day';
-            } else if ($checkAttendanceType === 'Late') {
-                $attendance_summary = 'Half-day-late';
-            }
-            // 1) Check if student has morning attendance for today
-            $checkSql = "SELECT afternoon_attendance FROM attendance 
-                        WHERE student_id = :student_id 
-                        AND DATE(morning_attendance) = :today
-                        LIMIT 1";
-            $stmt = $this->db->prepare($checkSql);
-            $stmt->execute([
-                ':student_id' => $student_id,
-                ':today' => $today
-            ]);
-
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$row) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'No morning attendance found for today. Please mark morning attendance first.'
-                ]);
-            }
-
-            // Check if already marked afternoon attendance
-            if ($row['afternoon_attendance']) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'Student has already marked afternoon attendance today.'
-                ]);
-            }
-
-            // 2) Enforce time window 13:00:00 - 18:00:00 (AFTERNOON hours)
-            if ($currentTime < '13:00:00' || $currentTime > '18:00:00') {
-                return json_encode([
-                    'status' => 0,
-                    'message' => "Afternoon attendance is allowed only between 13:00 and 18:00. Current time: {$currentTime}"
-                ]);
-            }
-
-            // 3) UPDATE the existing record with afternoon attendance
-            try {
-                $updateSql = "UPDATE attendance 
-                            SET afternoon_attendance = :afternoon_attendance, 
-                                A_attendance_type = 'Absent', attendance_summary = :attendance_summary
-                            WHERE student_id = :student_id 
-                            AND DATE(morning_attendance) = :today";
-
-                $ins = $this->db->prepare($updateSql);
-                $ins->execute([
-                    ':student_id' => $student_id,
-                    ':afternoon_attendance' => $nowDatetime,  // Corrected parameter name
-                    ':today' => $today,
-                    ':attendance_summary' => $attendance_summary
-                ]);
-
-                // Check if any rows were updated
-                if ($ins->rowCount() === 0) {
-                    return json_encode([
-                        'status' => 0,
-                        'message' => 'No attendance record found to update.'
-                    ]);
-                }
-            } catch (PDOException $e) {
-                // Handle the CASE statement error specifically
-                if (strpos($e->getMessage(), '1339') !== false || strpos($e->getMessage(), 'Case not found') !== false) {
-                    // This might be from a trigger or constraint
-                    return json_encode([
-                        'status' => 0,
-                        'message' => 'Cannot mark attendance at this time. Please check attendance rules.'
-                    ]);
-                }
-                throw $e; // Re-throw if it's a different error
-            }
-
-            return json_encode([
-                'status' => 1,
-                'message' => 'Afternoon attendance recorded successfully as "PRESENT".'
-            ]);
-        } catch (PDOException $e) {
-            // Log the full error for debugging
-            error_log("Attendance Error: " . $e->getMessage());
-
-            return json_encode([
-                'status' => 0,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ]);
-        }
+        return json_encode(['status' => 0, 'message' => $msg]);
     }
-    function afternoon_attendanceL()
+    private function jsonSuccess($msg)
     {
-        $student_id = $_POST['student_id'] ?? null;
-        $adviser_id = $_SESSION['user_id'] ?? null;
-
-        if (empty($student_id)) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'Missing student_id.'
-            ]);
-        }
-
-        try {
-            // Use PHP DateTime with explicit timezone
-            $tz = new DateTimeZone('Asia/Manila');
-            $now = new DateTime($this->nao, $tz);
-            $currentTime = $now->format('H:i:s');
-            $today = $now->format('Y-m-d');
-            $nowDatetime = $now->format('Y-m-d H:i:s');
-
-            $stmtCheck = $this->db->prepare("SELECT attendance_type FROM attendance WHERE student_id = :student_id AND DATE(morning_attendance) = :today");
-            $stmtCheck->execute([
-                ':student_id' => $student_id,
-                ':today' => $today
-            ]);
-            $AttendanceSummary = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-            $checkAttendanceType = $AttendanceSummary['attendance_type'] ?? '';
-
-            if ($checkAttendanceType === 'Absent') {
-                $attendance_summary = 'Half-day-late';
-            } else if ($checkAttendanceType === 'Present') {
-                $attendance_summary = 'Half-day-late';
-            } else if ($checkAttendanceType === 'Late') {
-                $attendance_summary = 'Half-day-late';
-            }
-            // 1) Check if student has morning attendance for today
-            $checkSql = "SELECT afternoon_attendance FROM attendance 
-                        WHERE student_id = :student_id 
-                        AND DATE(morning_attendance) = :today
-                        LIMIT 1";
-            $stmt = $this->db->prepare($checkSql);
-            $stmt->execute([
-                ':student_id' => $student_id,
-                ':today' => $today
-            ]);
-
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$row) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'No morning attendance found for today. Please mark morning attendance first.'
-                ]);
-            }
-
-            // Check if already marked afternoon attendance
-            if ($row['afternoon_attendance']) {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'Student has already marked afternoon attendance today.'
-                ]);
-            }
-
-            // 2) Enforce time window 13:00:00 - 18:00:00 (AFTERNOON hours)
-            if ($currentTime < '13:00:00' || $currentTime > '18:00:00') {
-                return json_encode([
-                    'status' => 0,
-                    'message' => "Afternoon attendance is allowed only between 13:00 and 18:00. Current time: {$currentTime}"
-                ]);
-            }
-
-            // 3) UPDATE the existing record with afternoon attendance
-            try {
-                $updateSql = "UPDATE attendance 
-                            SET afternoon_attendance = :afternoon_attendance, 
-                                A_attendance_type = 'Late', attendance_summary = :attendance_summary
-                            WHERE student_id = :student_id 
-                            AND DATE(morning_attendance) = :today";
-
-                $ins = $this->db->prepare($updateSql);
-                $ins->execute([
-                    ':student_id' => $student_id,
-                    ':afternoon_attendance' => $nowDatetime,  // Corrected parameter name
-                    ':today' => $today,
-                    ':attendance_summary' => $attendance_summary
-                ]);
-
-                // Check if any rows were updated
-                if ($ins->rowCount() === 0) {
-                    return json_encode([
-                        'status' => 0,
-                        'message' => 'No attendance record found to update.'
-                    ]);
-                }
-            } catch (PDOException $e) {
-                // Handle the CASE statement error specifically
-                if (strpos($e->getMessage(), '1339') !== false || strpos($e->getMessage(), 'Case not found') !== false) {
-                    // This might be from a trigger or constraint
-                    return json_encode([
-                        'status' => 0,
-                        'message' => 'Cannot mark attendance at this time. Please check attendance rules.'
-                    ]);
-                }
-                throw $e; // Re-throw if it's a different error
-            }
-
-            return json_encode([
-                'status' => 1,
-                'message' => 'Afternoon attendance recorded successfully as "PRESENT".'
-            ]);
-        } catch (PDOException $e) {
-            // Log the full error for debugging
-            error_log("Attendance Error: " . $e->getMessage());
-
-            return json_encode([
-                'status' => 0,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ]);
-        }
+        return json_encode(['status' => 1, 'message' => $msg]);
     }
 
     function status_form()
