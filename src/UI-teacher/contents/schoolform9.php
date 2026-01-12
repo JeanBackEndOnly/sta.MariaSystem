@@ -90,7 +90,7 @@ $existingSf9 = null;
 if ($student_id) {
 
   $q = $pdo->prepare("SELECT * FROM sf9_data WHERE student_id = ? AND school_year = ?");
-  $q->execute([$student_id,$school_year_name]);
+  $q->execute([$student_id, $school_year_name]);
   $existingSf9 = $q->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
@@ -415,8 +415,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $successMessage = "SF9 saved and file created: {$filename}";
 
 
-    $q = $pdo->prepare("SELECT * FROM sf9_data WHERE student_id = ? ORDER BY created_at DESC LIMIT 1");
-    $q->execute([$student_id]);
+    $q = $pdo->prepare("SELECT * FROM sf9_data WHERE student_id = ? AND school_year = ? ORDER BY created_at DESC LIMIT 1");
+    $q->execute([$student_id, $school_year_name]);
     $existingSf9 = $q->fetch(PDO::FETCH_ASSOC) ?: null;
 
 
@@ -647,34 +647,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="mt-2">
             <label>Name</label>
             <input type="text" readonly class="form-control form-control-sm mb-1" name="student_name"
-              value="<?= htmlspecialchars($_POST['student_name'] ?? getFullName($student)) ?>">
+              value="<?= getFullName($student) ?>">
             <label>LRN</label>
             <input type="text" readonly class="form-control form-control-sm mb-1" name="student_lrn"
-              value="<?= htmlspecialchars($_POST['student_lrn'] ?? ($student['lrn'] ?? '')) ?>">
+              value="<?= ($student['lrn'] ?? '') ?>">
             <label>Age</label>
             <input type="text" readonly class="form-control form-control-sm mb-1" name="student_age"
-              value="<?= htmlspecialchars($_POST['student_age'] ?? ($existingSf9['age'] ?? $student['age'] ?? '')) ?>">
+              value="<?= $existingSf9['age'] ?>">
             <label>Sex</label>
             <input type="text" readonly class="form-control form-control-sm mb-1" name="student_sex"
-              value="<?= htmlspecialchars($_POST['student_sex'] ?? ($existingSf9['sex'] ?? $student['sex'] ?? '')) ?>">
+              value="<?= $existingSf9['sex'] ?>">
             <label>Grade</label>
             <select name="student_grade" id="grade_level" class="form-control form-control-sm mb-1">
               <option value="<?= htmlspecialchars($student['gradeLevel']) ?>"><?= htmlspecialchars($student['gradeLevel']) ?></option>
             </select>
             <label>Section</label>
             <select name="student_section" id="section" class="form-control form-control-sm mb-1">
-                <option value="<?= htmlspecialchars($existingSf9['section']) ?>"
-                  data-grade="<?= htmlspecialchars($existingSf9['grade']) ?>"
-                  <?= (($existingSf9['section'] ?? $student['section'] ?? '') == $existingSf9['section']) ? 'selected' : '' ?>>
-                  <?= htmlspecialchars($existingSf9['section']) ?>
-                </option>
+              <option value="<?= htmlspecialchars($existingSf9['section']) ?>"
+                data-grade="<?= htmlspecialchars($existingSf9['grade']) ?>"
+                <?= (($existingSf9['section']) == $existingSf9['section']) ? 'selected' : '' ?>>
+                <?= htmlspecialchars($existingSf9['section']) ?>
+              </option>
             </select>
             <label>School Year</label>
             <input type="text" readonly class="form-control form-control-sm mb-1" id="student_sy" name="student_sy"
-              value="<?= htmlspecialchars($_POST['student_sy'] ?? ($existingSf9['school_year'] ?? '')) ?>">
+              value="<?= ($existingSf9['school_year']) ?>">
             <label>Teacher</label>
             <input type="text" readonly class="form-control form-control-sm mb-1" id="student_teacher" name="student_teacher"
-              value="<?= htmlspecialchars($_POST['student_teacher'] ?? ($existingSf9['teacher'] ?? '')) ?>">
+              value="<?= ($existingSf9['teacher']) ?>">
             <label>Guardian</label>
             <input type="text" class="form-control form-control-sm mb-1" value="<?= htmlspecialchars($guardian_name) ?>" readonly>
           </div>
@@ -727,7 +727,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <tbody>
               <tr>
                 <td class="fw-semibold text-dark">No. of School Days</td>
-                <?php $totals = 0; foreach ($months as $m):
+                <?php $totals = 0;
+                foreach ($months as $m):
                   $val = intval($existing_attendance["days_school_{$m}"] ?? '0');
                   $totals += $val;
                 ?>
@@ -737,7 +738,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </tr>
               <tr>
                 <td class="fw-semibold text-dark">No. of Days Present</td>
-                <?php $totalP = 0; foreach ($months as $m):
+                <?php $totalP = 0;
+                foreach ($months as $m):
                   $val = intval($existing_attendance["days_present_{$m}"] ?? '0');
                   $totalP += $val;
                 ?>
@@ -747,7 +749,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </tr>
               <tr>
                 <td class="fw-semibold text-dark">No. of Days Absent</td>
-                <?php $totalA = 0; foreach ($months as $m):
+                <?php $totalA = 0;
+                foreach ($months as $m):
                   $val = intval($existing_attendance["days_absent_{$m}"] ?? '0');
                   $totalA += $val;
                 ?>
@@ -774,8 +777,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               </tr>
             </thead>
             <tbody>
-              <?php for ($i = 0; $i < 15; $i++):
+              <?php
+
+              for ($i = 0; $i < 15; $i++):
                 $subject_val = $_POST['subject'][$i] ?? ($existing_subjects[$i] ?? '');
+                if ($subject_val === '') continue;
                 $q1_val = $_POST['q1'][$i] ?? ($existing_q1[$i] ?? '');
                 $q2_val = $_POST['q2'][$i] ?? ($existing_q2[$i] ?? '');
                 $q3_val = $_POST['q3'][$i] ?? ($existing_q3[$i] ?? '');
@@ -784,7 +790,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $remarks_val = $_POST['remarks'][$i] ?? ($existing_remarks[$i] ?? '');
               ?>
                 <tr>
-                  <td><input type="text" name="subject[]" class="form-control form-control-sm" value="<?= htmlspecialchars($subject_val) ?>"></td>
+                  <td><input type="text" readonly name="subject[]" style="width: 100%;opacity: 65%;" class="form-control form-control-sm" value="<?= htmlspecialchars($subject_val) ?>"></td>
                   <td>
                     <input type="number" name="q1[]" min="50" max="100"
                       onblur="this.value = Math.min(100, Math.max(50, this.value))" class="q form-control form-control-sm"
@@ -808,8 +814,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       onblur="this.value = Math.min(100, Math.max(50, this.value))" class="q form-control form-control-sm"
                       value="<?= htmlspecialchars($q4_val) ?>">
                   </td>
-                  <td><input type="text" name="final[]" class="final form-control form-control-sm" readonly value="<?= htmlspecialchars($final_val) ?>"></td>
-                  <td><input type="text" name="remarks[]" class="remarks form-control form-control-sm" readonly value="<?= htmlspecialchars($remarks_val) ?>"></td>
+                  <td><input type="text" style="width: 100%; background-color: #dbdbdb;" name="final[]" class="final form-control form-control-sm" readonly value="<?= htmlspecialchars($final_val) ?>"></td>
+                  <td><input type="text" style="width: 100%; background-color: #dbdbdb;" name="remarks[]" class="remarks form-control form-control-sm" readonly value="<?= htmlspecialchars($remarks_val) ?>"></td>
                 </tr>
               <?php endfor; ?>
             </tbody>
@@ -1020,7 +1026,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             const params = new URLSearchParams(window.location.search);
             <?php if (!empty($student_id)): ?>
-              window.location.href = window.location.pathname + '?student_id=' + <?= json_encode($student_id) ?>+'&school_year_name='<?= json_encode($school_year_name) ?>;
+              window.location.href = window.location.pathname +
+                '?student_id=' + encodeURIComponent(<?= json_encode($student_id) ?>) +
+                '&school_year_name=' + encodeURIComponent(<?= json_encode($school_year_name) ?>);
             <?php else: ?>
               window.location.reload();
             <?php endif; ?>
