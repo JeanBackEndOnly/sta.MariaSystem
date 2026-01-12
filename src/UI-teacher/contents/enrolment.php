@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../../tupperware.php';
 
+// -------------------------------------------
+// SESSION & AUTH
+// -------------------------------------------
 $result = checkURI('teacher', 2);
 if ($result['res']) {
     header($result['uri']);
@@ -13,20 +16,20 @@ if (!$teacher_id) {
     exit;
 }
 
+// -------------------------------------------
+// INPUTS
+// -------------------------------------------
 $search = trim($_POST['search'] ?? '');
 $status = trim($_POST['status'] ?? '');
 $grade  = trim($_POST['grade'] ?? '');
 $sy     = trim($_POST['school_year'] ?? '');
-
 $limit  = 10;
 $page   = max(1, (int)($_POST['page'] ?? 1));
 $offset = ($page - 1) * $limit;
 
-/*
-|--------------------------------------------------------------------------
-| Does teacher have classes in ACTIVE SY?
-|--------------------------------------------------------------------------
-*/
+// -------------------------------------------
+// CHECK IF TEACHER HAS ACTIVE CLASSES
+// -------------------------------------------
 $activeSyStmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM classes c
@@ -38,112 +41,87 @@ $activeSyStmt = $pdo->prepare("
 $activeSyStmt->execute([':teacher_id' => $teacher_id]);
 $hasActiveSY = (int)$activeSyStmt->fetchColumn() > 0;
 
-/*
-|--------------------------------------------------------------------------
-| Is SELECTED SY active?
-|--------------------------------------------------------------------------
-*/
-$selectedSyIsActive = false;
-
-if ($sy !== '') {
-    $syStmt = $pdo->prepare("
-        SELECT school_year_status
-        FROM school_year
-        WHERE school_year_id = :sy
-        LIMIT 1
-    ");
-    $syStmt->execute([':sy' => $sy]);
-    $selectedSyIsActive = $syStmt->fetchColumn() === 'Active';
-}
-
-/*
-|--------------------------------------------------------------------------
-| Allow pending?
-|--------------------------------------------------------------------------
-*/
-$allowPending = $hasActiveSY && ($sy === '' || $selectedSyIsActive);
-
-/*
-|--------------------------------------------------------------------------
-| Teacher grade levels
-|--------------------------------------------------------------------------
-*/
+// -------------------------------------------
+// GET TEACHER GRADES
+// -------------------------------------------
 $classStmt = $pdo->prepare("
     SELECT DISTINCT grade_level
     FROM classes
     WHERE adviser_id = :teacher_id
 ");
 $classStmt->execute([':teacher_id' => $teacher_id]);
-$teacherGrades = array_column(
-    $classStmt->fetchAll(PDO::FETCH_ASSOC),
-    'grade_level'
-);
+$teacherGrades = array_column($classStmt->fetchAll(PDO::FETCH_ASSOC), 'grade_level');
 
-$bindParams = [
-    ':teacher_id' => $teacher_id
-];
+if (empty($teacherGrades)) {
+    // Teacher not assigned → return empty
+    $students = [];
+    $stat = ['total_students' => 0, 'enrolled' => 0, 'pending' => 0, 'rejected' => 0];
+    $totalPages = 1;
+    echo json_encode(compact('students', 'stat', 'totalPages'));
+    exit;
+}
 
-/*
-|--------------------------------------------------------------------------
-| Grade placeholders
-|--------------------------------------------------------------------------
-*/
-$gradePlaceholders = [];
+// -------------------------------------------
+// GRADE PLACEHOLDERS
+// -------------------------------------------
+$bindParams = [':teacher_id' => $teacher_id];
+$gradePH = [];
 foreach ($teacherGrades as $i => $g) {
     $ph = ":grade_$i";
-    $gradePlaceholders[] = $ph;
+    $gradePH[] = $ph;
     $bindParams[$ph] = $g;
 }
+$gradeIn = implode(',', $gradePH);
 
-/*
-|--------------------------------------------------------------------------
-| BASE WHERE (pending only when ALLOWED)
-|--------------------------------------------------------------------------
-*/
-$baseWhere = "( e.adviser_id = :teacher_id ";
 
-if ($allowPending && !empty($gradePlaceholders)) {
-    $baseWhere .= "
-        OR (
-            s.enrolment_status = 'pending'
-            AND (e.adviser_id IS NULL OR e.adviser_id = '')
-            AND s.gradeLevel IN (" . implode(',', $gradePlaceholders) . ")
-        )
-    ";
+$whereClauses = [];
+$systatus = 0;
+$iddf = 0;
+$syStmt = $pdo->prepare("SELECT school_year_status,school_year_id,school_year_name FROM school_year WHERE school_year_status = 'Active' LIMIT 1");
+$syStmt->execute();
+$syStatus = $syStmt->fetch(PDO::FETCH_ASSOC);
+$iddf = $syStatus['school_year_id'];
+if ($sy !== '') {
+    if ($syStatus['school_year_id'] == $sy) {
+        $systatus = 1;
+        $whereClauses[] = "( 
+            (e.adviser_id = :teacher_id AND e.school_year_id = :sy)
+            OR 
+            (s.enrolment_status = 'pending' AND (e.adviser_id IS NULL OR e.adviser_id = '') AND s.gradeLevel IN ($gradeIn))
+        )";
+        $bindParams[':sy'] = $sy;
+    } else {
+        $systatus = 2;
+        $whereClauses[] = "(e.adviser_id = :teacher_id AND e.school_year_id = :sy AND s.gradeLevel IN ($gradeIn))";
+        $bindParams[':sy'] = $sy;
+    }
+} else {
+    $whereClauses[] = "(e.student_id IS NOT NULL AND s.gradeLevel IN ($gradeIn))";
 }
 
-$baseWhere .= ")";
-
-/*
-|--------------------------------------------------------------------------
-| Optional filters
-|--------------------------------------------------------------------------
-*/
+// -------------------------------------------
+// OPTIONAL FILTERS
+// -------------------------------------------
 if ($status !== '') {
-    $baseWhere .= " AND s.enrolment_status = :status";
+    $whereClauses[] = "s.enrolment_status = :status";
     $bindParams[':status'] = $status;
 }
 
 if ($grade !== '') {
-    $baseWhere .= " AND s.gradeLevel = :grade_filter";
+    $whereClauses[] = "s.gradeLevel = :grade_filter";
     $bindParams[':grade_filter'] = $grade;
 }
 
 if ($search !== '') {
-    $baseWhere .= "
-        AND (
-            s.fname LIKE :search
-            OR s.lname LIKE :search
-            OR s.lrn   LIKE :search
-        )";
+    $whereClauses[] = "(s.fname LIKE :search OR s.lname LIKE :search OR s.lrn LIKE :search)";
     $bindParams[':search'] = "%$search%";
 }
 
-/*
-|--------------------------------------------------------------------------
-| STATS QUERY (SY filter in JOIN)
-|--------------------------------------------------------------------------
-*/
+$baseWhere = implode(' AND ', $whereClauses);
+
+// -------------------------------------------
+// STATS QUERY
+// -------------------------------------------
 $statSql = "
 SELECT
     COUNT(DISTINCT s.student_id) AS total_students,
@@ -160,74 +138,98 @@ WHERE $baseWhere
 $stmtStat = $pdo->prepare($statSql);
 $stmtStat->execute($bindParams + [':sy' => $sy]);
 $stat = $stmtStat->fetch(PDO::FETCH_ASSOC);
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-$ste = $pdo->prepare("SELECT u.*,c.*,sy.* FROM users as u
-LEFT JOIN classes c
-    ON u.user_id = c.adviser_id
-    INNER JOIN school_year sy
-        ON sy.school_year_id = c.sy_id
-       AND sy.school_year_status = 'Active'
-WHERE u.user_id = ? limit 1");
-$ste->execute([$teacher_id]);
-$me = $ste->fetch(PDO::FETCH_ASSOC);
-$ste = $pdo->prepare("SELECT *
-FROM subjects
-WHERE grade_level = ?");
-$ste->execute([$me['grade_level']]);
-$subj = $ste->fetchAll(PDO::FETCH_ASSOC);
 
-/*
-|--------------------------------------------------------------------------
-| STUDENTS QUERY
-|--------------------------------------------------------------------------
-*/
+// -------------------------------------------
+// GET TEACHER INFO & SUBJECTS
+// -------------------------------------------
+$ste = $pdo->prepare("
+SELECT 
+    u.*,
+    c.*,
+    sy.*,
+    COALESCE(e.student_count, 0) AS student_count
+FROM users u
+LEFT JOIN classes c 
+    ON u.user_id = c.adviser_id
+INNER JOIN school_year sy
+    ON sy.school_year_id = c.sy_id
+LEFT JOIN (
+    SELECT adviser_id, COUNT(student_id) AS student_count
+    FROM enrolment
+    WHERE school_year_id = ?
+    GROUP BY adviser_id
+) e ON e.adviser_id = u.user_id
+WHERE u.user_id = ? 
+LIMIT 1
+");
+$ste->execute([$iddf, $teacher_id]);
+$me = $ste->fetch(PDO::FETCH_ASSOC);
+
+// $stmt55 = $pdo->prepare("SELECT COUNT(student_id) as student_count FROM enrolment WHERE school_year_id = ? AND adviser_id = ?");
+// $stmt55->execute([$iddf,$teacher_id]);
+// $countT = $stmt55->fetch(PDO::FETCH_ASSOC);
+// $me['student_count'] = $countT['student_count'] ?? 0;
+
+// var_dump($me)
+if (!$me) {
+    $subj = [];
+} else {
+    $ste = $pdo->prepare("SELECT * FROM subjects WHERE grade_level = ?");
+    $ste->execute([$me['grade_level']]);
+    $subj = $ste->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// -------------------------------------------
+// STUDENTS QUERY
+// -------------------------------------------
 $sql = "
 SELECT DISTINCT
-    s.*,
+    s.*, e.school_year_id,
     u.firstname AS guardian_fname,
     u.lastname  AS guardian_lname
 FROM student s
 LEFT JOIN enrolment e
     ON e.student_id = s.student_id
-   AND (:sy = '' OR e.school_year_id = :sy)
+   AND (:sy_filter = '' OR e.school_year_id = :sy_filter)
 LEFT JOIN users u
     ON u.user_id = s.guardian_id
 WHERE $baseWhere
 ORDER BY s.lname ASC, s.fname ASC
 ";
 
-/*
-|--------------------------------------------------------------------------
-| COUNT
-|--------------------------------------------------------------------------
-*/
+// -------------------------------------------
+// COUNT + PAGINATION
+// -------------------------------------------
 $countSql = "SELECT COUNT(*) FROM ($sql) t";
 $stmtCount = $pdo->prepare($countSql);
-$stmtCount->execute($bindParams + [':sy' => $sy]);
 
+// Bind the SY filter with new placeholder
+$bindsForCount = $bindParams;
+$bindsForCount[':sy_filter'] = $sy;
+
+$stmtCount->execute($bindsForCount);
 $totalRows  = (int)$stmtCount->fetchColumn();
 $totalPages = max(1, ceil($totalRows / $limit));
 
-/*
-|--------------------------------------------------------------------------
-| PAGINATION
-|--------------------------------------------------------------------------
-*/
 $sql .= " LIMIT :limit OFFSET :offset";
 $stmt = $pdo->prepare($sql);
 
+// Bind teacher/grade filters
 foreach ($bindParams as $k => $v) {
     $stmt->bindValue($k, $v);
 }
 
-$stmt->bindValue(':sy', $sy);
-$stmt->bindValue(':limit',  $limit,  PDO::PARAM_INT);
+// Bind SY filter once
+$stmt->bindValue(':sy_filter', $sy);
+
+// Bind pagination
+$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 
 $stmt->execute();
 $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
 
 
 
@@ -303,17 +305,25 @@ if (isset($_POST['ajax'])) {
                     </div>
                 </td>
                 <td width="15%"><span class="badge bg-info"><?= htmlspecialchars($user["gradeLevel"] ?? 'Not set') ?></span></td>
-                <td width="15%"><span class="badge bg-<?= $badgeClass ?>"><i class="fa-solid fa-circle fa-xs me-1"></i><?= $statusText ?></span></td>
+                <td width="15%"><span class="badge bg-<?= $badgeClass ?>"><i class="fa-solid fa-circle fa-xs me-1"></i><?= $statusText ?></span>
+                    <?php if ($systatus === 0) {
+                        if ($iddf != $user['school_year_id']) { ?>- Ended<?php }
+                                                                    } else {
+                                                                        if ($systatus === 2) { ?>- Ended<?php }
+                                                                                                                    } ?>
+                </td>
                 <td width="20%"><?= !empty($user["enrolled_date"]) ? '<small>' . date('M d, Y', strtotime($user["enrolled_date"])) . '</small>' : '<small class="text-muted">Not enrolled yet</small>' ?></td>
                 <td width="25%">
                     <div class="d-flex flex-wrap gap-1 justify-content-center">
                         <a href="index.php?page=contents/form&student_id=<?= $user["student_id"] ?>" class="btn btn-sm btn-info" title="View Enrollment Form"><i class="fa-solid fa-file-lines me-1"></i> Form</a>
-                        <?php if ($status != 'active' && $status != 'rejected'): ?>
-                            <button onclick="approvebtn(<?= $user['student_id'] ?>)" type="button" class="btn btn-success btn-sm open-enrolment" data-id="<?= $user["student_id"] ?>" data-gradelevel="<?= htmlspecialchars($user["gradeLevel"]) ?>" title="Approve Enrollment"><i class="fa-solid fa-check me-1"></i> Approve</button>
-                        <?php endif; ?>
-                        <?php if ($status != 'rejected' && $status != 'active'): ?>
-                            <button onclick="rjkbtn()" type="button" class="btn btn-danger btn-sm open-rejection" data-id="<?= $user["student_id"] ?>" title="Reject Enrollment"><i class="fa-solid fa-xmark me-1"></i> Reject</button>
-                        <?php endif; ?>
+                        <?php if ($systatus === 1) {
+                            if ($status != 'active' && $status != 'rejected'): ?>
+                                <button onclick="approvebtn(<?= $user['student_id'] ?>)" type="button" class="btn btn-success btn-sm open-enrolment" data-id="<?= $user["student_id"] ?>" data-gradelevel="<?= htmlspecialchars($user["gradeLevel"]) ?>" title="Approve Enrollment"><i class="fa-solid fa-check me-1"></i> Approve</button>
+                            <?php endif; ?>
+                            <?php if ($status != 'rejected' && $status != 'active'): ?>
+                                <button onclick="rjkbtn()" type="button" class="btn btn-danger btn-sm open-rejection" data-id="<?= $user["student_id"] ?>" title="Reject Enrollment"><i class="fa-solid fa-xmark me-1"></i> Reject</button>
+                        <?php endif;
+                        } ?>
                     </div>
                 </td>
             </tr>
@@ -517,7 +527,11 @@ if (isset($_POST['ajax'])) {
     </div>
 </div>
 
-<!-- enrolment modal -->
+<?php
+$teacherFull = ($me['student_count'] ?? 0) >= 50;
+// $teacherFull = true;
+?>
+
 <div class="modal fade" id="AddNewAccount" tabindex="-1" aria-labelledby="AddNewAccountLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -525,20 +539,25 @@ if (isset($_POST['ajax'])) {
                 <h5 class="modal-title text-white" id="AddNewAccountLabel">
                     <i class="fa-solid fa-user-check me-2"></i>Approve Student Enrolment
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+
+                <?php if ($teacherFull): ?>
+                    <div class="alert alert-warning">
+                        You already has <strong>50 students</strong> enrolled. You cannot assign more.
+                    </div>
+                <?php endif; ?>
+
                 <form class="row g-3" id="enrolment-form" method="post">
                     <input type="hidden" name="student_id" id="student_id" value="<?= $s['subject_name'] ?>">
 
                     <div class="col-md-6">
                         <label class="form-label">Class Adviser <span class="text-danger">*</span></label>
-                        <select name="adviser_id" id="adviserSelect" class="form-select" required>
-                            <!-- <option value="">Select Adviser</option> -->
+                        <select name="adviser_id" id="adviserSelect" class="form-select" <?= $teacherFull ? 'disabled' : 'required' ?>>
                             <option value="<?= $me["adviser_id"] ?>"
                                 data-section="<?= htmlspecialchars($me["section_name"]) ?>">
-                                <?= htmlspecialchars($me["lastname"]) . ", " . htmlspecialchars($me["firstname"]) ?>
+                                <?= htmlspecialchars($me["lastname"]) . ", " . htmlspecialchars($me["firstname"]) . " - (" . htmlspecialchars($me["student_count"]) . "/50)" ?>
                             </option>
                         </select>
                     </div>
@@ -552,42 +571,37 @@ if (isset($_POST['ajax'])) {
                     <div class="col-md-6">
                         <label class="form-label">School Year <span class="text-danger">*</span></label>
                         <div class="form-control bg-light">
-                            <?= htmlspecialchars($me['school_year_name'] ?? 'Not set') ?></div>
-                        <input type="hidden" name="schoolyear_id" value="<?= $me["school_year_id"] ?? '' ?>">
+                            <?= htmlspecialchars($systatus['school_year_name'] ?? 'Not set') ?>
+                        </div>
+                        <input type="hidden" name="schoolyear_id" value="<?= $systatus['school_year_name'] ?? '' ?>">
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label">Grade Level <span class="text-danger">*</span></label>
                         <div class="form-control bg-light" id="gradeLevelDisplay"><?= $me['grade_level'] ?></div>
-                        <input type="hidden" id="gradeLevelValue" value="<?= $me['grade_level'] ?> " name="grade_level">
+                        <input type="hidden" id="gradeLevelValue" value="<?= $me['grade_level'] ?>" name="grade_level">
                     </div>
 
                     <div class="col-12">
                         <div class="card mt-3 border">
                             <div class="card-header bg-light">
-                                <h6 class="card-title mb-0"><i class="fa-solid fa-book me-2"></i>Subjects for this Grade
-                                    Level</h6>
+                                <h6 class="card-title mb-0"><i class="fa-solid fa-book me-2"></i>Subjects for this Grade Level</h6>
                             </div>
                             <div class="card-body">
                                 <div id="subjectListContainer" class="row">
-                                    <?php
-                                    foreach ($subj as $s) {
-                                    ?>
+                                    <?php foreach ($subj as $s): ?>
                                         <div>
                                             <strong><?= $s['subject_code'] ?></strong> - <?= $s['subject_name'] ?>
                                             <input type="hidden" name="subjects[]" value="<?= $s['subject_id'] ?>">
                                         </div>
-                                    <?php
-                                    }
-                                    ?>
-                                    <!-- <p class="text-muted text-center">Select a student to view their subjects</p> -->
+                                    <?php endforeach; ?>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="col-12 text-center mt-4">
-                        <button type="submit" class="btn btn-primary px-5">
+                        <button type="submit" class="btn btn-primary px-5" <?= $teacherFull ? 'disabled' : '' ?>>
                             <i class="fa-solid fa-check me-2"></i>Approve Enrolment
                         </button>
                     </div>
@@ -596,6 +610,7 @@ if (isset($_POST['ajax'])) {
         </div>
     </div>
 </div>
+
 
 <!-- rejection modal -->
 <div class="modal fade" id="rejectEnrolment" tabindex="-1" aria-labelledby="rejectEnrolmentLabel">
