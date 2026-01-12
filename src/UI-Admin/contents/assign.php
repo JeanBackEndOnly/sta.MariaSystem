@@ -30,7 +30,6 @@ $activeSyId = $currentSy['school_year_id'] ?? null;
 
 // Determine the query condition
 if (!$syFilter) {
-    // 1. SY is empty → show all classrooms + active classes
     $sql = "
     SELECT c.room_id, c.room_name, c.room_type, c.room_status,
            cl.class_id, cl.sy_id, u.user_id AS adviser_id,
@@ -46,7 +45,6 @@ if (!$syFilter) {
     $params = [];
 } else {
     if ($syFilter == $activeSyId) {
-        // 2. SY is active → same as above
         $sql = "
         SELECT c.room_id, c.room_name, c.room_type, c.room_status,
                cl.class_id, cl.sy_id, u.user_id AS adviser_id,
@@ -62,7 +60,6 @@ if (!$syFilter) {
         ";
         $params = [':activeSyId' => $activeSyId];
     } else {
-        // 3. SY is non-active → only classrooms with classes in that SY
         $sql = "
         SELECT c.room_id, c.room_name, c.room_type, c.room_status,
                cl.class_id, cl.sy_id, u.user_id AS adviser_id,
@@ -126,13 +123,21 @@ $classrooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch available teachers
 $teachersStmt = $pdo->prepare("
-    SELECT * 
-    FROM users 
-    WHERE user_role = 'TEACHER' 
-    AND user_id NOT IN (SELECT adviser_id FROM classes WHERE sy_id = ?) 
-    ORDER BY lastname ASC
+    SELECT 
+        u.*,
+        COUNT(e.student_id) AS student_count
+    FROM users u
+    LEFT JOIN classes c
+        ON c.adviser_id = u.user_id
+        AND c.sy_id = ?
+    LEFT JOIN enrolment e
+        ON e.adviser_id = u.user_id
+        AND e.school_year_id = ?
+    WHERE u.user_role = 'TEACHER'
+    GROUP BY u.user_id
+    ORDER BY u.lastname ASC
 ");
-$teachersStmt->execute([$activeSyId]);
+$teachersStmt->execute([$activeSyId, $activeSyId]);
 $teachers = $teachersStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Current school year info
@@ -162,14 +167,25 @@ if (isset($_POST['getsections'])) {
 
 // Fetch available teachers
 $teachersStmt = $pdo->prepare("
-    SELECT * 
-    FROM users 
-    WHERE user_role = 'TEACHER' 
-    AND user_id NOT IN (SELECT adviser_id FROM classes WHERE sy_id = ?) 
-    ORDER BY lastname ASC
-");
-$teachersStmt->execute([$activeSyId]);
+            SELECT 
+                u.user_id,
+                u.firstname,
+                u.lastname,
+                COUNT(DISTINCT e.student_id) AS student_count
+            FROM users u
+            LEFT JOIN enrolment e
+                ON e.adviser_id = u.user_id
+            AND e.school_year_id = ?
+            LEFT JOIN classes c
+                ON c.adviser_id = u.user_id
+            AND c.sy_id = ?
+            WHERE u.user_role = 'TEACHER'
+            AND c.adviser_id IS NULL
+            GROUP BY u.user_id, u.firstname, u.lastname
+            ORDER BY u.lastname ASC;");
+$teachersStmt->execute([$activeSyId,$activeSyId]);
 $teachers = $teachersStmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 // Current school year info
 $schoolYears = $currentSy ?? [];
@@ -556,8 +572,8 @@ endif;
                         <select name="teacher_name" id="teacher_id" class="form-select" required>
                             <option value="">Select Teacher</option>
                             <?php foreach ($teachers as $teacher): ?>
-                                <option value="<?= $teacher["user_id"] ?>">
-                                    <?= htmlspecialchars($teacher["lastname"]) . ", " . htmlspecialchars($teacher["firstname"]) ?>
+                                <option value="<?= $teacher['student_count'] < 50 ? $teacher["user_id"] : '' ?>" data-studcount="<?= $teacher['student_count'] ?>">
+                                    <?= htmlspecialchars($teacher["lastname"]) . ", " . htmlspecialchars($teacher["firstname"]) . " - (" . htmlspecialchars($teacher['student_count']) . "/50)" ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -682,5 +698,23 @@ endif;
 
         syFilter.addEventListener('change', () => fetchClassrooms(1));
         fetchClassrooms(currentPage);
+        const select = document.getElementById('teacher_id');
+
+        Array.from(select.options).forEach(option => {
+            const count = parseInt(option.dataset.studcount);
+            if (count === 50) {
+                option.disabled = true;
+                option.style.color = 'red'; // make text red
+                option.textContent += ' (FULL)'; // optional: indicate full
+            }
+        });
+
+        select.addEventListener('change', () => {
+            const selected = select.selectedOptions[0];
+            if (parseInt(selected.dataset.studcount) === 50) {
+                alert('This teacher already has 50 students.');
+                select.value = ''; // reset selection
+            }
+        });
     });
 </script>
