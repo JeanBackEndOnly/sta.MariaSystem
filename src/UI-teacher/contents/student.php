@@ -69,7 +69,7 @@ $totalRows = $stmtCount->fetchColumn();
 $totalPages = max(1, ceil($totalRows / $limit));
 
 // --- Fetch students ---
-$sql = "SELECT DISTINCT s.*, e.section_name, e.school_year_id, sy.school_year_name
+$sql = "SELECT DISTINCT s.*, e.section_name, sy.school_year_name, sy.school_year_name
         FROM enrolment e
         JOIN student s ON s.student_id = e.student_id
         JOIN school_year sy ON sy.school_year_id = e.school_year_id
@@ -104,7 +104,7 @@ if (isset($_POST['ajax'])) {
                 <td><?= htmlspecialchars($s['section_name']) ?></td>
                 <td><span class="badge bg-<?= $badgeClass ?>"><?= ucfirst($statusKey) ?></span></td>
                 <td><?= date('M d, Y', strtotime($s['enrolled_date'])) ?></td>
-                <td><a href="index.php?page=contents/profile&student_id=<?= $s['student_id'] ?>" class="btn btn-sm btn-info">Profile</a></td>
+                <td><a href="index.php?page=contents/profile&student_id=<?= $s['student_id'] ?>&school_year_name=<?= $s['school_year_name'] ?>" class="btn btn-sm btn-info">Profile</a></td>
             </tr>
         <?php
         endforeach;
