@@ -423,6 +423,7 @@ endif;
         </div>
     </div>
 </div>
+
 <script>
     let currentPage = 1;
 
