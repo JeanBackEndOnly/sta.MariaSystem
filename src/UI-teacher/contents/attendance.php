@@ -104,6 +104,10 @@ if (isset($_POST['ajax'])) {
                             <input type="hidden" name="student_id" value="<?= $user["student_id"] ?>">
                             <button type="submit" class="btn btn-sm btn-success">✔ Confirm</button>
                         </form>
+                        <form title="Cancel" class="attendance-form" data-type="cancel">
+                            <input type="hidden" name="student_id" value="<?= $user["student_id"] ?>">
+                            <button type="submit" class="btn btn-sm btn-danger">✖ Cancel</button>
+                        </form>
                     <?php else: ?>
                         <form title="Present" class="attendance-form" data-type="P">
                             <input type="hidden" name="student_id" value="<?= $user["student_id"] ?>">
