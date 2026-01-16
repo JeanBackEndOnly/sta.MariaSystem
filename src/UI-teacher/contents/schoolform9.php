@@ -790,7 +790,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $remarks_val = $_POST['remarks'][$i] ?? ($existing_remarks[$i] ?? '');
               ?>
                 <tr>
-                  <td><input type="text" readonly name="subject[]" style="width: 100%;opacity: 65%;" class="form-control form-control-sm" value="<?= htmlspecialchars($subject_val) ?>"></td>
+                  <td><input type="text" readonly name="subject[]" style="width: 100%;" disabled class="form-control form-control-sm" value="<?= htmlspecialchars($subject_val) ?>"></td>
                   <td>
                     <input type="number" name="q1[]" min="50" max="100"
                       onblur="this.value = Math.min(100, Math.max(50, this.value))" class="q form-control form-control-sm"
@@ -814,8 +814,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       onblur="this.value = Math.min(100, Math.max(50, this.value))" class="q form-control form-control-sm"
                       value="<?= htmlspecialchars($q4_val) ?>">
                   </td>
-                  <td><input type="text" style="width: 100%; background-color: #dbdbdb;" name="final[]" class="final form-control form-control-sm" readonly value="<?= htmlspecialchars($final_val) ?>"></td>
-                  <td><input type="text" style="width: 100%; background-color: #dbdbdb;" name="remarks[]" class="remarks form-control form-control-sm" readonly value="<?= htmlspecialchars($remarks_val) ?>"></td>
+                  <td><input type="text" style="width: 100%;" disabled name="final[]" class="final form-control form-control-sm" readonly value="<?= htmlspecialchars($final_val) ?>"></td>
+                  <td><input type="text" style="width: 100%;" disabled name="remarks[]" class="remarks form-control form-control-sm" readonly value="<?= htmlspecialchars($remarks_val) ?>"></td>
                 </tr>
               <?php endfor; ?>
             </tbody>
