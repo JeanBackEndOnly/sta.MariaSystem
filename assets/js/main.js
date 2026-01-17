@@ -1449,6 +1449,13 @@ $(document).ready(function () {
         });
     });
 
+    $('#saveBtn').click(function (e) { 
+        e.preventDefault();
+        const lockConf = document.getElementById('saveModal');
+        const svm = new bootstrap.Modal(lockConf);
+        svm.hide()
+        $('#saveGradess').submit();
+    });
     $(document).on("submit", "#displayStudentInfo", function (e) {
         // alert('Button Submit');
         e.preventDefault();
@@ -2284,16 +2291,18 @@ $(document).ready(function () {
         if ($form.data("isSubmitted")) return;
         $form.data("isSubmitted", true);
 
-        const typeMap = { 'P': 'Present', 'A': 'Absent', 'L': 'Late', "confirm": 'confirm' };
+        const typeMap = { 'P': 'Present', 'A': 'Absent', 'L': 'Late', "confirm": 'confirm', "cancel": 'cancel' };
         const type = typeMap[$form.data("type")];
 
 
         let session = document.getElementById('sessionFilter').value;
         const time = document.getElementById('timeInput').value;
-        if (type === 'confirm') {
+        if (type === 'cancel') {
+            session = 'cancel'
+        } else if (type === 'confirm') {
             session = 'confirm'
         }
-        
+
         // if (!time) {
         //     Swal.fire("Error", "Please select a time.", "error");
         //     $form.data("isSubmitted", false);
