@@ -90,52 +90,92 @@ $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 if (isset($_POST['ajax'])) {
     ob_start();
     $count = $offset + 1;
+    
+    // Desktop Table View
+    $tableHtml = '';
+    // Mobile Card View
+    $cardsHtml = '';
+    
     if ($students):
         foreach ($students as $s):
             $statusKey = strtolower($s['enrolment_status'] ?? 'pending');
             $badgeClass = $statusMap[$statusKey] ?? 'secondary';
-?>
-            <tr data-name="<?= htmlspecialchars(strtolower($s['lname'] . ' ' . $s['fname'])) ?>"
-                data-grade="<?= htmlspecialchars(strtolower($s['gradeLevel'])) ?>"
-                data-status="<?= $statusKey ?>">
-                <td><?= $count++ ?></td>
-                <td><?= htmlspecialchars($s['lname'] . ', ' . $s['fname']) ?></td>
-                <td><?= htmlspecialchars($s['gradeLevel']) ?></td>
-                <td><?= htmlspecialchars($s['section_name']) ?></td>
-                <td><span class="badge bg-<?= $badgeClass ?>"><?= ucfirst($statusKey) ?></span></td>
-                <td><?= date('M d, Y', strtotime($s['enrolled_date'])) ?></td>
-                <td><a href="index.php?page=contents/profile&student_id=<?= $s['student_id'] ?>&school_year_name=<?= $s['school_year_name'] ?>" class="btn btn-sm btn-info">Profile</a></td>
-            </tr>
-        <?php
+            
+            // Table row
+            $tableHtml .= '<tr data-name="' . htmlspecialchars(strtolower($s['lname'] . ' ' . $s['fname'])) . '"
+                data-grade="' . htmlspecialchars(strtolower($s['gradeLevel'])) . '"
+                data-status="' . $statusKey . '">
+                <td>' . $count . '</td>
+                <td>' . htmlspecialchars($s['lrn']) . '</td>
+                <td>' . htmlspecialchars($s['lname'] . ', ' . $s['fname']) . '</td>
+                <td>' . htmlspecialchars($s['gradeLevel']) . '</td>
+                <td>' . htmlspecialchars($s['section_name']) . '</td>
+                <td><span class="badge bg-' . $badgeClass . '">' . ucfirst($statusKey) . '</span></td>
+                <td>' . date('M d, Y', strtotime($s['enrolled_date'])) . '</td>
+                <td><a href="index.php?page=contents/profile&student_id=' . $s['student_id'] . '&school_year_name=' . $s['school_year_name'] . '" class="btn btn-sm btn-info">Profile</a></td>
+            </tr>';
+            
+            // Mobile card
+            $cardsHtml .= '<div class="student-card-mobile mb-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-0">' . htmlspecialchars($s['lname'] . ', ' . $s['fname']) . '</h6>
+                            <small class="text-muted">LRN: ' . htmlspecialchars($s['lrn']) . '</small>
+                        </div>
+                        <span class="badge bg-' . $badgeClass . '">' . ucfirst($statusKey) . '</span>
+                    </div>
+                    <div class="row g-2 text-sm mb-2">
+                        <div class="col-6">
+                            <small class="text-muted">Grade</small>
+                            <div>' . htmlspecialchars($s['gradeLevel']) . '</div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Section</small>
+                            <div>' . htmlspecialchars($s['section_name']) . '</div>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mb-2">Enrolled: ' . date('M d, Y', strtotime($s['enrolled_date'])) . '</small>
+                    <a href="index.php?page=contents/profile&student_id=' . $s['student_id'] . '&school_year_name=' . $s['school_year_name'] . '" class="btn btn-sm btn-info w-100">View Profile</a>
+                </div>
+            </div>';
+            
+            $count++;
         endforeach;
-        ?>
-        <tr>
-            <td colspan="6">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>Page <?= $page ?> of <?= $totalPages ?></span>
-                    <div>
-                        <?php if ($page > 1): ?>
-                            <button class="btn btn-sm btn-secondary" onclick="fetchStudents(<?= $page - 1 ?>)">Prev</button>
-                        <?php endif; ?>
-                        <?php if ($page < $totalPages): ?>
-                            <button class="btn btn-sm btn-secondary" onclick="fetchStudents(<?= $page + 1 ?>)">Next</button>
-                        <?php endif; ?>
+        
+        // Pagination
+        $paginationHtml = '<tr>
+            <td colspan="8">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span class="text-sm">Page ' . $page . ' of ' . $totalPages . '</span>
+                    <div class="d-flex gap-2">
+                        ' . ($page > 1 ? '<button class="btn btn-sm btn-secondary" onclick="fetchStudents(' . ($page - 1) . ')">Prev</button>' : '') . '
+                        ' . ($page < $totalPages ? '<button class="btn btn-sm btn-secondary" onclick="fetchStudents(' . ($page + 1) . ')">Next</button>' : '') . '
                     </div>
                 </div>
             </td>
-        </tr>
-    <?php
+        </tr>';
+        $tableHtml .= $paginationHtml;
+        
+        // Pagination for mobile cards
+        $mobilePageHtml = '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 p-3 border-top">
+            <span class="text-sm">Page ' . $page . ' of ' . $totalPages . '</span>
+            <div class="d-flex gap-2">
+                ' . ($page > 1 ? '<button class="btn btn-sm btn-secondary" onclick="fetchStudents(' . ($page - 1) . ')">Prev</button>' : '') . '
+                ' . ($page < $totalPages ? '<button class="btn btn-sm btn-secondary" onclick="fetchStudents(' . ($page + 1) . ')">Next</button>' : '') . '
+            </div>
+        </div>';
+        $cardsHtml .= $mobilePageHtml;
     else:
-    ?>
-        <tr>
-            <td colspan="7" class="text-center py-3">No students found.</td>
-        </tr>
-<?php
+        $noDataMsg = '<tr><td colspan="8" class="text-center py-3">No students found.</td></tr>';
+        $tableHtml .= $noDataMsg;
+        $cardsHtml .= '<div class="text-center py-5"><p class="text-muted">No students found.</p></div>';
     endif;
-    $rowsHtml = ob_get_clean();
+    
     echo json_encode([
         'hasData' => !empty($students),
-        'html' => $rowsHtml,
+        'html' => $tableHtml,
+        'cardsHtml' => $cardsHtml,
         'pagination' => ['current' => $page, 'total' => $totalPages]
     ]);
     exit;
@@ -147,20 +187,20 @@ if (isset($_POST['ajax'])) {
     <h4>Student Management</h4>
 </div>
 
-<div class="row g-3 mb-3">
-    <div class="col-md-3">
-        <input type="text" id="searchInput" class="form-control" placeholder="Search name or LRN">
+<div class="row g-2 g-md-3 mb-3">
+    <div class="col-12 col-md-3">
+        <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search name or LRN">
     </div>
-    <div class="col-md-2">
-        <select id="statusFilter" class="form-select">
+    <div class="col-6 col-md-2">
+        <select id="statusFilter" class="form-select form-select-sm">
             <option value="">All Status</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
             <option value="pending">Pending</option>
         </select>
     </div>
-    <div class="col-md-2">
-        <select id="gradeFilter" class="form-select">
+    <div class="col-6 col-md-2">
+        <select id="gradeFilter" class="form-select form-select-sm">
             <option value="">All Grades</option>
             <option value="Grade 1">Grade 1</option>
             <option value="Grade 2">Grade 2</option>
@@ -170,8 +210,8 @@ if (isset($_POST['ajax'])) {
             <option value="Grade 6">Grade 6</option>
         </select>
     </div>
-    <div class="col-md-2">
-        <select id="syFilter" class="form-select">
+    <div class="col-12 col-md-2">
+        <select id="syFilter" class="form-select form-select-sm">
             <option value="">--- All my student ---</option>
             <?php
             $syStmt = $pdo->query("SELECT school_year_id, school_year_name, school_year_status FROM school_year ORDER BY CASE WHEN school_year_status='Active' THEN 0 ELSE 1 END, school_year_name ASC");
@@ -184,21 +224,31 @@ if (isset($_POST['ajax'])) {
     </div>
 </div>
 
-<div class="table-responsive" style="max-height:500px; overflow-y:auto;">
-    <table class="table table-bordered table-hover table-sm">
-        <thead class="table-light position-sticky top-0">
-            <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Grade</th>
-                <th>Section</th>
-                <th>Status</th>
-                <th>Enrolled Date</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="studentTableBody"></tbody>
-    </table>
+<div class="table-responsive-wrapper">
+    <div class="d-none d-md-block">
+        <!-- Desktop Table View -->
+        <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
+            <table class="table table-bordered table-hover table-sm">
+                <thead class="table-light position-sticky top-0">
+                    <tr>
+                        <th>#</th>
+                        <th>LRN</th>
+                        <th>Name</th>
+                        <th>Grade</th>
+                        <th>Section</th>
+                        <th>Status</th>
+                        <th>Enrolled Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="d-md-none">
+        <!-- Mobile Card View -->
+        <div id="studentCardsContainer" class="student-cards-mobile"></div>
+    </div>
 </div>
 
 <script>
@@ -211,7 +261,12 @@ if (isset($_POST['ajax'])) {
 
     function fetchStudents(page = 1) {
         currentPage = page;
-        tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-3">Loading...</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-3">Loading...</td></tr>`;
+        const cardsContainer = document.getElementById('studentCardsContainer');
+        if (cardsContainer) {
+            cardsContainer.innerHTML = `<div class="text-center py-3">Loading...</div>`;
+        }
+        
         const formData = new FormData();
         formData.append('ajax', 1);
         formData.append('search', searchInput.value);
@@ -227,9 +282,13 @@ if (isset($_POST['ajax'])) {
             .then(res => res.json())
             .then(data => {
                 tableBody.innerHTML = data.html;
+                const cardsContainer = document.getElementById('studentCardsContainer');
+                if (cardsContainer) {
+                    cardsContainer.innerHTML = data.cardsHtml;
+                }
             })
             .catch(err => {
-                tableBody.innerHTML = `<tr><td colspan="7" class="text-danger text-center">Failed to load data</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-danger text-center">Failed to load data</td></tr>`;
                 console.error(err);
             });
     }
@@ -304,5 +363,107 @@ if (isset($_POST['ajax'])) {
 
     #clearSearch:hover {
         background-color: #e9ecef;
+    }
+
+    /* ===== Mobile Responsive Styles ===== */
+    @media (max-width: 768px) {
+        .form-control-sm,
+        .form-select-sm {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
+        }
+
+        .table-responsive-wrapper {
+            padding: 0;
+        }
+
+        .student-cards-mobile {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .student-card-mobile {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .student-card-mobile:active {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        }
+
+        .student-card-mobile .card-body {
+            padding: 0.75rem;
+        }
+
+        .student-card-mobile h6 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .student-card-mobile small {
+            font-size: 0.8rem;
+        }
+
+        .student-card-mobile .row {
+            margin-bottom: 0.5rem;
+        }
+
+        .student-card-mobile .btn-sm {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        /* Ensure proper spacing on mobile */
+        .row.g-2 {
+            gap: 0.5rem;
+        }
+
+        h4 {
+            font-size: 1.15rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .form-control-sm,
+        .form-select-sm {
+            font-size: 0.8rem;
+        }
+
+        .student-card-mobile .card-body {
+            padding: 0.6rem;
+        }
+
+        .student-card-mobile h6 {
+            font-size: 0.85rem;
+        }
+
+        .btn-sm {
+            padding: 0.3rem 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        h4 {
+            font-size: 1rem;
+        }
+    }
+
+    /* Ensure table doesn't overflow on medium screens */
+    @media (max-width: 992px) {
+        .table {
+            font-size: 0.85rem;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.5rem;
+        }
+
+        .btn-info {
+            padding: 0.25rem 0.4rem;
+            font-size: 0.7rem;
+        }
     }
 </style>

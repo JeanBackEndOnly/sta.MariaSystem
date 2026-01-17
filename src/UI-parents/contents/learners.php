@@ -13,6 +13,35 @@ if (!$user_id) {
     exit;
 }
 
+// Handle SF9 file existence check
+if (isset($_POST['check_sf9'])) {
+    $student_id = (int)($_POST['student_id'] ?? 0);
+    $school_year_name = trim($_POST['school_year_name'] ?? '');
+    
+    // Get student info
+    $stmtStudent = $pdo->prepare("SELECT lrn, fname, lname, gradeLevel FROM student WHERE student_id = :student_id LIMIT 1");
+    $stmtStudent->execute([':student_id' => $student_id]);
+    $student = $stmtStudent->fetch(PDO::FETCH_ASSOC);
+    
+    if ($student) {
+        $lrn = $student['lrn'];
+        $fname = preg_replace("/[^A-Za-z0-9]/", "", strtolower($student['fname']));
+        $lname = preg_replace("/[^A-Za-z0-9]/", "", strtolower($student['lname']));
+        $grade = str_replace(" ", "", strtolower($student['gradeLevel']));
+        $safeSy = preg_replace('/[^A-Za-z0-9_-]/', '', $school_year_name);
+        
+        $reportFile = BASE_PATH . "/sf9_files/{$lrn}_{$fname}_{$lname}_{$grade}_{$safeSy}.xlsx";
+        $file_exists = file_exists($reportFile);
+        
+        header('Content-Type: application/json');
+        echo json_encode(['file_exists' => $file_exists]);
+        exit;
+    }
+    
+    header('Content-Type: application/json');
+    echo json_encode(['file_exists' => false]);
+    exit;
+}
 
 $activeSyStmt = $pdo->prepare("
     SELECT school_year_id
@@ -59,7 +88,7 @@ if ($syFilter === $activeSyId) {
     )";
 
     $params['sy'] = $syFilter;
-} else if ($syFilter){
+} else if ($syFilter) {
     $where[] = "e.school_year_id = :sy";
     $params['sy'] = $syFilter;
 }
@@ -130,10 +159,9 @@ if (isset($_POST['ajax'])) {
                         <i class="fa-solid fa-users-slash fa-4x" style="color: #6c757d;"></i>
                     </div>
                     <h4 class="mb-3">No Learners Found</h4>
-                    <p class="text-muted mb-4">You haven't added any learners to your account yet.</p>
                     <button type="button" class="btn btn-danger px-4" data-bs-toggle="modal" data-bs-target="#AddNewAccount"
                         style="background: linear-gradient(135deg, #e74a3b, #be2617); border: none;">
-                        <i class="fa fa-plus me-2"></i> Add Your First Learner
+                        <i class="fa fa-plus me-2"></i> Add Learner
                     </button>
                 </div>
             </div>
@@ -167,12 +195,12 @@ if (isset($_POST['ajax'])) {
                                     </div>
                                 </div>
                                 <div class="rsyr">
-                                    <?php if ($isup === true && $isup !== null) { ?>
+                                    <?php if ($isup === 1 && $isup !== null) { ?>
                                         <div id="passed">
                                             <button onclick="enroll('enrollstud',<?= $student['student_id'] ?>,<?= $nxtlvl ?>)">Enroll</button>
                                             <p>Your student passed <?= $student['gradeLevel'] ?> and is eligible to enroll for Grade <?= $nxtlvl + 1 ?>.</p>
                                         </div>
-                                    <?php } elseif ($isup === false && $isup !== null) { ?>
+                                    <?php } elseif ($isup === 0 && $isup !== null) { ?>
                                         <div id="fail">
                                             <button onclick="enroll('reenrollstud',<?= $student['student_id'] ?>)">Re-Enroll</button>
                                             <p>Your student failed <?= $student['gradeLevel'] ?> and must re-enroll again.</p>
@@ -226,22 +254,150 @@ if (isset($_POST['ajax'])) {
                                     </a>
 
                                     <?php
-                                    // Construct report card filename
+                                    // Construct report card filename with school year
                                     $lrn = $student["lrn"];
                                     $fname = preg_replace("/[^A-Za-z0-9]/", "", strtolower($student["fname"]));
                                     $lname = preg_replace("/[^A-Za-z0-9]/", "", strtolower($student["lname"]));
                                     $grade = str_replace(" ", "", strtolower($student["gradeLevel"]));
-                                    $reportFile = BASE_PATH . "/sf9_files/{$lrn}_{$fname}_{$lname}_{$grade}.xlsx";
+                                    
+                                    // Get active school year for initial check
+                                    $activeSyStmt = $pdo->prepare("SELECT school_year_name FROM school_year WHERE school_year_status = 'Active' LIMIT 1");
+                                    $activeSyStmt->execute();
+                                    $activeSyName = $activeSyStmt->fetchColumn();
+                                    $safeSy = preg_replace('/[^A-Za-z0-9_-]/', '', $activeSyName);
+                                    
+                                    $reportFile = BASE_PATH . "/sf9_files/{$lrn}_{$fname}_{$lname}_{$grade}_{$safeSy}.xlsx";
 
                                     if (file_exists($reportFile)) {
-                                        $webPath = BASE_PATH . "/sf9_files/{$lrn}_{$fname}_{$lname}_{$grade}.xlsx";
+                                        $webPath = BASE_PATH . "/sf9_files/{$lrn}_{$fname}_{$lname}_{$grade}_{$safeSy}.xlsx";
                                     ?>
-                                        <a href="index.php?page=contents/sf9_view&student_id=<?= htmlspecialchars($student['student_id']) ?>"
-                                            class="flex-fill">
-                                            <button class="btn btn-action btn-report w-100">
-                                                <i class="fa-solid fa-file-excel me-1"></i> Report
-                                            </button>
+                                    <style>
+                                        .report-button-container {
+                                            display: flex;
+                                            gap: 0;
+                                            width: 100%;
+                                            border-radius: 8px;
+                                            overflow: hidden;
+                                        }
+
+                                        #syFilteree,
+                                        [id^="syFilteree_"] {
+                                            flex: 1;
+                                            padding: 10px 14px;
+                                            border: none;
+                                            background: linear-gradient(135deg, rgba(28, 200, 138, 0.9), rgba(19, 133, 92, 0.9));
+                                            color: white;
+                                            font-size: 13px;
+                                            font-weight: 500;
+                                            cursor: pointer;
+                                            outline: none;
+                                            transition: all 0.3s ease;
+                                        }
+
+                                        #syFilteree option,
+                                        [id^="syFilteree_"] option {
+                                            background: #1cc88a;
+                                            color: white;
+                                            font-weight: 500;
+                                        }
+
+                                        #syFilteree:hover,
+                                        [id^="syFilteree_"]:hover {
+                                            background: linear-gradient(135deg, #1fb597, #179b80);
+                                            box-shadow: 0 2px 8px rgba(28, 200, 138, 0.3);
+                                        }
+
+                                        #syFilteree:focus,
+                                        [id^="syFilteree_"]:focus {
+                                            background: linear-gradient(135deg, #1fb597, #179b80);
+                                            box-shadow: 0 0 0 3px rgba(28, 200, 138, 0.2);
+                                        }
+
+                                        .report-link-wrapper {
+                                            display: none;
+                                            flex: 0.8;
+                                            padding: 10px 14px;
+                                            background: linear-gradient(135deg, rgba(28, 200, 138, 0.9), rgba(19, 133, 92, 0.9));
+                                            color: white;
+                                            text-decoration: none;
+                                            border-left: 1px solid rgba(255, 255, 255, 0.2);
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            font-size: 13px;
+                                            font-weight: 500;
+                                            transition: all 0.3s ease;
+                                        }
+
+                                        .report-link-wrapper.show {
+                                            display: flex;
+                                        }
+
+                                        .report-link-wrapper:hover {
+                                            background: linear-gradient(135deg, #1fb597, #179b80);
+                                            text-decoration: none;
+                                            color: white;
+                                            box-shadow: 0 2px 8px rgba(28, 200, 138, 0.3);
+                                        }
+
+                                        .report-link-wrapper i {
+                                            transition: transform 0.3s ease;
+                                        }
+
+                                        .report-link-wrapper:hover i {
+                                            transform: scale(1.1);
+                                        }
+
+                                        .btn-report {
+                                            padding: 0 !important;
+                                            display: flex !important;
+                                            gap: 0 !important;
+                                            font-size: 0.9rem !important;
+                                            align-items: center;
+                                            height: 38px;
+                                            background: linear-gradient(135deg, #1cc88a, #13855c) !important;
+                                            border: none !important;
+                                            overflow: hidden;
+                                            transition: all 0.3s ease;
+                                        }
+
+                                        .btn-report:hover {
+                                            box-shadow: 0 4px 12px rgba(28, 200, 138, 0.3) !important;
+                                            transform: translateY(-2px);
+                                        }
+
+                                    </style>
+                                    <div class="btn btn-action btn-report w-100">
+                                        <select id="syFilteree_<?= $student['student_id'] ?>" name="school_yearee" onchange="updateReportLink(this, <?= $student['student_id'] ?>)">
+                                            <?php
+                                            $catStmt11 = $pdo->query("
+                                                SELECT school_year_id, school_year_name, school_year_status
+                                                FROM school_year
+                                                ORDER BY 
+                                                    CASE WHEN school_year_status = 'Active' THEN 0 ELSE 1 END,
+                                                    school_year_name ASC
+                                            ");
+                                            $schoolYears11 = [];
+                                            $activeSyName = null;
+                                            while ($cat = $catStmt11->fetch(PDO::FETCH_ASSOC)) {
+                                                if ($cat['school_year_status'] === 'Active' && $activeSyName === null) {
+                                                    $activeSyName = $cat['school_year_name'];
+                                                }
+                                                $schoolYears11[] = $cat;
+                                            }
+                                            ?>
+                                            <?php foreach ($schoolYears11 as $sy): ?>
+                                                <option value="<?= htmlspecialchars($sy['school_year_name']) ?>"
+                                                    <?= ($sy['school_year_status'] === 'Active') ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($sy['school_year_name']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <a href="javascript:void(0);" class="report-link-wrapper show" id="reportLink_<?= $student['student_id'] ?>" 
+                                            data-student-id="<?= $student['student_id'] ?>" data-active-sy="<?= htmlspecialchars($activeSyName) ?>">
+                                            <i class="fa-solid fa-file-excel me-1"></i> Report
                                         </a>
+                                    </div>
                                     <?php } else { ?>
                                         <button class="btn btn-action w-100" disabled style="background: #000000;">
                                             <i class="fa-solid fa-file-excel me-1"></i> No Report File
@@ -317,13 +473,13 @@ if (isset($_POST['ajax'])) {
         width: 90px;
         height: 90px;
         border-radius: 50%;
-        border: 3px solid #e83e8c;
         object-fit: cover;
     }
 
     /* Card Styling */
     .student-card {
-        width: 33rem;
+        width: 100%;
+        max-width: 33rem;
         border: none;
         border-radius: 15px;
         transition: all 0.3s ease;
@@ -484,6 +640,16 @@ if (isset($_POST['ajax'])) {
     }
 
     /* Responsive */
+    @media (max-width: 1200px) {
+        .student-card {
+            max-width: 100%;
+        }
+
+        #studentsContainer {
+            justify-content: center;
+        }
+    }
+
     @media (max-width: 768px) {
         .lrr {
             width: 6rem;
@@ -492,7 +658,13 @@ if (isset($_POST['ajax'])) {
 
         .student-card {
             width: 100%;
+            max-width: 100%;
             margin-bottom: 20px;
+        }
+
+        #studentsContainer {
+            gap: 15px;
+            justify-content: stretch;
         }
 
         img {
@@ -503,6 +675,87 @@ if (isset($_POST['ajax'])) {
         .btn-action {
             padding: 6px 12px;
             font-size: 12px;
+        }
+
+        .d-flex.gap-2 {
+            flex-wrap: wrap;
+        }
+
+        .fltr a {
+            flex: 1 1 48%;
+            min-width: 100px;
+        }
+
+        h1.h3 {
+            font-size: 1.5rem !important;
+        }
+
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .scroll-class {
+            height: auto;
+        }
+
+        .student-card {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        img {
+            width: 60px;
+            height: 60px;
+        }
+
+        .btn-action {
+            padding: 8px 12px;
+            font-size: 11px;
+            width: 100% !important;
+        }
+
+        .fltr a {
+            flex: 1 1 100%;
+        }
+
+        .d-flex.gap-2.mt-3 {
+            gap: 8px !important;
+        }
+
+        h1.h3 {
+            font-size: 1.25rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+
+        p.text-muted {
+            font-size: 0.85rem;
+        }
+
+        .col-md-8 {
+            max-width: 100%;
+        }
+
+        .col-md-4 {
+            max-width: 100%;
+            margin-top: 1rem;
+        }
+
+        #searchInput {
+            padding: 10px 15px;
+            font-size: 12px;
+        }
+
+        .form-control,
+        .form-select {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .s55 {
+            height: auto;
         }
     }
 
@@ -642,7 +895,7 @@ if (isset($_POST['ajax'])) {
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label class="form-label fw-semibold">Sex <span class="text-danger">*</span></label>
-                                <select  required name="sex" class="form-select">
+                                <select required name="sex" class="form-select">
                                     <option value="">Select student sex</option>
                                     <option value="MALE">Male</option>
                                     <option value="FEMALE">Female</option>
@@ -781,6 +1034,55 @@ if (isset($_POST['ajax'])) {
     let currentPage = 1;
     let totalPages = 1;
 
+    function updateReportLink(selectElement, studentId) {
+        const schoolYearName = selectElement.value;
+        const reportLink = document.getElementById(`reportLink_${studentId}`);
+        
+        if (schoolYearName) {
+            // Check if file exists for this school year
+            const formData = new FormData();
+            formData.append('check_sf9', true);
+            formData.append('student_id', studentId);
+            formData.append('school_year_name', schoolYearName);
+            
+            fetch('contents/learners.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.file_exists) {
+                    reportLink.href = `index.php?page=contents/sf9_view&student_id=${studentId}&school_year_name=${encodeURIComponent(schoolYearName)}`;
+                    reportLink.classList.add('show');
+                } else {
+                    reportLink.classList.remove('show');
+                    reportLink.href = 'javascript:void(0);';
+                }
+            })
+            .catch(err => {
+                console.error('Error checking file:', err);
+                reportLink.classList.remove('show');
+                reportLink.href = 'javascript:void(0);';
+            });
+        } else {
+            reportLink.classList.remove('show');
+            reportLink.href = 'javascript:void(0);';
+        }
+    }
+
+    function initializeReportLinks() {
+        document.querySelectorAll('[id^="reportLink_"]').forEach(link => {
+            const studentId = link.getAttribute('data-student-id');
+            const activeSy = link.getAttribute('data-active-sy');
+            const select = document.getElementById(`syFilteree_${studentId}`);
+            
+            if (select && activeSy) {
+                select.value = activeSy;
+                updateReportLink(select, studentId);
+            }
+        });
+    }
+
     function enroll(id, studid, nxtlvl = 0) {
         document.getElementById('student_id_r').value = studid
         document.getElementById('student_id_e').value = studid
@@ -817,7 +1119,8 @@ if (isset($_POST['ajax'])) {
                 if (btnNext) btnNext.addEventListener('click', () => fetchStudents(search, currentPage + 1));
 
                 attachCardHover();
-                attachProfilePreview(); // reattach profile change after reload
+                attachProfilePreview();
+                initializeReportLinks();
             })
             .catch(err => console.error(err));
     }
@@ -876,5 +1179,6 @@ if (isset($_POST['ajax'])) {
 
         // Attach profile preview initially
         attachProfilePreview();
+        initializeReportLinks();
     });
 </script>
