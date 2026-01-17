@@ -8,18 +8,19 @@ if ($result['res']) {
 }
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
-
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 $mysqli = new mysqli("localhost", "root", "", "stamariadb");
 if ($mysqli->connect_error) die("DB Connection failed: " . $mysqli->connect_error);
 
 
-$templatePath = BASE_PATH . '/src/UI-Admin/contents/sf5/sf5.xlsx';
+$templatePath = BASE_PATH . '/src/UI-teacher/contents/sf5/sf5.xlsx';
 $saveDir = BASE_PATH . '/sf5_files';
 if (!is_dir($saveDir)) mkdir($saveDir, 0777, true);
 
-$totalRows = 59;
-$skipRow = 33;
+$totalRows = 100; // Dynamic limit
+$skipRow = null; // No skipped rows
 
 $formData = $_SESSION['sf5_form'] ?? [];
 $downloadLink = $_SESSION['sf5_download'] ?? '';
@@ -30,10 +31,49 @@ $sectionId = $_GET['section_id'] ?? '';
 $gradeLevel = $_GET['grade'] ?? '';
 $sectionName = $_GET['section'] ?? '';
 
+$progressCategories = [
+    'did_not_meet' => ['min' => 0, 'max' => 74],
+    'fairly_satisfactory' => ['min' => 75, 'max' => 79],
+    'satisfactory' => ['min' => 80, 'max' => 84],
+    'very_satisfactory' => ['min' => 85, 'max' => 89],
+    'outstanding' => ['min' => 90, 'max' => 100]
+];
+
 if ($sectionId) {
-    $formData['grade_level'] = $gradeLevel;
-    $formData['section'] = $sectionName;
-    $formData['school_year'] = $school_year;
+    // Get section info from database to ensure correct grade/section with proper spacing
+    $sectionQuery = $mysqli->prepare("SELECT section_name, section_grade_level FROM sections WHERE section_id = ? LIMIT 1");
+    $sectionQuery->bind_param("i", $sectionId);
+    $sectionQuery->execute();
+    $sectionResult = $sectionQuery->get_result();
+    if ($sectionRow = $sectionResult->fetch_assoc()) {
+        $gradeLevel = $sectionRow['section_grade_level'];
+        $sectionName = $sectionRow['section_name'];
+    }
+    $sectionQuery->close();
+
+    // Clear all old form data when loading a new section
+    $formData = [
+        'school_year' => $school_year,
+        'grade_level' => $gradeLevel,
+        'section' => $sectionName,
+        'male_total' => 0,
+        'female_total' => 0,
+        'combined_total' => 0,
+        'student_rows' => [],
+        'lrn' => [],
+        'name' => [],
+        'average' => [],
+        'action' => [],
+        'sex' => [],
+        'did_not_meet' => [],
+        'summary' => ['promoted' => ['male' => 0, 'female' => 0, 'total' => 0], 'conditional' => ['male' => 0, 'female' => 0, 'total' => 0], 'retained' => ['male' => 0, 'female' => 0, 'total' => 0]],
+        'prepared_by' => '',
+        'certified_by' => '',
+        'reviewed_by' => ''
+    ];
+    foreach ($progressCategories as $status => $range) {
+        $formData['progress'][$status] = ['male' => 0, 'female' => 0, 'total' => 0];
+    }
 }
 
 
@@ -70,8 +110,10 @@ if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName) && !empty(
     $stmt->execute();
     $result = $stmt->get_result();
     $rowNum = 13;
+    $formData['student_rows'] = [];
+    $studentCount = 0;
+
     while ($student = $result->fetch_assoc()) {
-        if ($rowNum == $skipRow) $rowNum++;
         $formData['lrn'][$rowNum] = $student['lrn'];
         $formData['name'][$rowNum] = $student['student_name'];
         $formData['average'][$rowNum] = $student['general_average'];
@@ -79,6 +121,8 @@ if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName) && !empty(
         $formData['action'][$rowNum] = $formData['action'][$rowNum] ?? '';
 
         $formData['sex'][$rowNum] = strtoupper($student['sex']);
+        $formData['student_rows'][] = $rowNum; // Track this row
+        $studentCount++;
 
         if ($student['sex'] === 'MALE') $formData['male_total']++;
         if ($student['sex'] === 'FEMALE') $formData['female_total']++;
@@ -96,6 +140,7 @@ if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName) && !empty(
         if ($rowNum > $totalRows) break;
     }
     $formData['combined_total'] = $formData['male_total'] + $formData['female_total'];
+    $formData['total_student_count'] = $studentCount;
     $stmt->close();
 }
 
@@ -136,25 +181,35 @@ if (isset($_GET['download'])) {
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $formData['school_year'] = $_POST['school_year'] ?? '';
-    $formData['curriculum'] = $_POST['curriculum'] ?? '';
-    $formData['grade_level'] = $_POST['grade_level'] ?? '';
-    $formData['section'] = $_POST['section'] ?? '';
+    // --- Collect form data ---
+    $formData = [
+        'school_year' => $_POST['school_year'] ?? '',
+        'curriculum' => $_POST['curriculum'] ?? '',
+        'grade_level' => $_POST['grade_level'] ?? '',
+        'section' => $_POST['section'] ?? '',
+        'prepared_by' => $_POST['prepared_by'] ?? '',
+        'certified_by' => $_POST['certified_by'] ?? '',
+        'reviewed_by' => $_POST['reviewed_by'] ?? '',
+        'student_rows' => [],
+        'lrn' => $_POST['lrn'] ?? [],
+        'name' => $_POST['name'] ?? [],
+        'average' => $_POST['average'] ?? [],
+        'action' => $_POST['action'] ?? [],
+        'sex' => $_POST['sex'] ?? [],
+        'did_not_meet' => $_POST['did_not_meet'] ?? [],
+        'summary' => $_POST['summary'] ?? []
+    ];
 
-    for ($r = 13; $r <= $totalRows; $r++) {
-        if ($r == $skipRow) continue;
-        $formData['lrn'][$r] = $_POST['lrn'][$r] ?? '';
-        $formData['name'][$r] = $_POST['name'][$r] ?? '';
-        $formData['average'][$r] = $_POST['average'][$r] ?? '';
-        $formData['action'][$r] = $_POST['action'][$r] ?? '';
-        $formData['sex'][$r] = $_POST['sex'][$r] ?? '';
-        $formData['did_not_meet'][$r] = $_POST['did_not_meet'][$r] ?? '';
+    // Filter out empty student rows
+    foreach ($formData['lrn'] as $r => $lrn) {
+        if (trim($lrn) !== '') {
+            $formData['student_rows'][] = $r;
+        }
     }
 
-    $male = 0;
-    $female = 0;
-    for ($r = 13; $r <= $totalRows; $r++) {
-        if ($r == $skipRow) continue;
+    // Count males/females
+    $male = $female = 0;
+    foreach ($formData['student_rows'] as $r) {
         $sex = strtoupper($formData['sex'][$r] ?? '');
         if ($sex === 'MALE') $male++;
         if ($sex === 'FEMALE') $female++;
@@ -163,11 +218,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['female_total'] = $female;
     $formData['combined_total'] = $male + $female;
 
+    // Prepare progress categories
     foreach ($progressCategories as $status => $range) {
         $formData['progress'][$status] = ['male' => 0, 'female' => 0, 'total' => 0];
     }
-    for ($r = 13; $r <= $totalRows; $r++) {
-        if ($r == $skipRow) continue;
+    foreach ($formData['student_rows'] as $r) {
         $avg = (float)($formData['average'][$r] ?? 0);
         $sex = strtoupper($formData['sex'][$r] ?? '');
         foreach ($progressCategories as $status => $range) {
@@ -180,29 +235,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Summary values
     $summaryRows = ['promoted', 'conditional', 'retained'];
     foreach ($summaryRows as $status) {
-        $formData['summary'][$status]['male'] = (int)($_POST['summary'][$status]['male'] ?? 0);
-        $formData['summary'][$status]['female'] = (int)($_POST['summary'][$status]['female'] ?? 0);
-        $formData['summary'][$status]['total'] = (int)($_POST['summary'][$status]['total'] ?? 0);
+        $formData['summary'][$status]['male'] = (int)($formData['summary'][$status]['male'] ?? 0);
+        $formData['summary'][$status]['female'] = (int)($formData['summary'][$status]['female'] ?? 0);
+        $formData['summary'][$status]['total'] = (int)($formData['summary'][$status]['total'] ?? 0);
     }
 
-    $formData['prepared_by'] = $_POST['prepared_by'] ?? '';
-    $formData['certified_by'] = $_POST['certified_by'] ?? '';
-    $formData['reviewed_by'] = $_POST['reviewed_by'] ?? '';
     $_SESSION['sf5_form'] = $formData;
 
-
+    // --- Load spreadsheet ---
     $spreadsheet = IOFactory::load($templatePath);
     $sheet = $spreadsheet->getActiveSheet();
 
+    // Header values
     $sheet->setCellValue('G5', $formData['school_year']);
     $sheet->setCellValue('J5', $formData['curriculum']);
     $sheet->setCellValue('J7', $formData['grade_level']);
     $sheet->setCellValue('M7', $formData['section']);
 
-    for ($r = 13; $r <= $totalRows; $r++) {
-        if ($r == $skipRow) continue;
+    // Clear old student rows
+    for ($row = 13; $row <= 100; $row++) {
+        foreach (['A', 'B', 'F', 'G', 'H', 'I'] as $col) {
+            $sheet->setCellValue("{$col}{$row}", '');
+        }
+    }
+
+    // --- Insert student data ---
+    foreach ($formData['student_rows'] as $r) {
         $sheet->setCellValue("A{$r}", $formData['lrn'][$r] ?? '');
         $sheet->setCellValue("B{$r}", $formData['name'][$r] ?? '');
         $sheet->setCellValue("F{$r}", $formData['average'][$r] ?? '');
@@ -211,10 +272,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sheet->setCellValue("I{$r}", $formData['did_not_meet'][$r] ?? '');
     }
 
-    $sheet->setCellValue('F33', $formData['male_total']);
-    $sheet->setCellValue('F60', $formData['female_total']);
-    $sheet->setCellValue('F61', $formData['combined_total']);
+    // --- Add totals rows dynamically ---
+    $lastStudentRow = !empty($formData['student_rows']) ? max($formData['student_rows']) : 12;
+    $totalMaleRow = $lastStudentRow + 1;
+    $totalFemaleRow = $totalMaleRow + 1;
+    $combinedRow = $totalFemaleRow + 1;
 
+    $sheet->setCellValue("B{$totalMaleRow}", "TOTAL MALE");
+    $sheet->setCellValue("F{$totalMaleRow}", $formData['male_total']);
+
+    $sheet->setCellValue("B{$totalFemaleRow}", "TOTAL FEMALE");
+    $sheet->setCellValue("F{$totalFemaleRow}", $formData['female_total']);
+
+    $sheet->setCellValue("B{$combinedRow}", "COMBINED");
+    $sheet->setCellValue("F{$combinedRow}", $formData['combined_total']);
+
+    // // --- Apply borders to all student + total rows ---
+    // $sheet->getStyle("A13:I{$combinedRow}")->applyFromArray([
+    //     'borders' => [
+    //         'allBorders' => [
+    //             'borderStyle' => Border::BORDER_THIN,
+    //             'color' => ['argb' => 'FF000000'],
+    //         ],
+    //     ],
+    //     'alignment' => [
+    //         'horizontal' => Alignment::HORIZONTAL_CENTER,
+    //         'vertical' => Alignment::VERTICAL_CENTER,
+    //     ],
+    // ]);
+    // Apply borders to all student rows including merged I:J
+    $sheet->getStyle("A13:J{$combinedRow}")->applyFromArray([
+        'borders' => [
+            'allBorders' => [
+                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                'color' => ['argb' => 'FF000000'],
+            ],
+        ],
+        'alignment' => [
+            'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+            'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+        ],
+    ]);
+
+
+    // Bold total rows
+    $sheet->getStyle("B{$totalMaleRow}:F{$combinedRow}")->getFont()->setBold(true);
+
+    // --- Progress & summary tables ---
     $summaryMap = [
         'promoted' => ['M15', 'N15', 'O15'],
         'conditional' => ['M17', 'N17', 'O17'],
@@ -239,34 +343,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sheet->setCellValue($cells[2], $formData['progress'][$status]['total']);
     }
 
+    // Prepared / Certified / Reviewed by
     $sheet->setCellValue('N36', $formData['prepared_by']);
     $sheet->setCellValue('N41', $formData['certified_by']);
     $sheet->setCellValue('N46', $formData['reviewed_by']);
 
+    // --- Save spreadsheet ---
     $schoolYear = preg_replace('/[^A-Za-z0-9_-]/', '', $formData['school_year']);
     $gradeLevel = preg_replace('/[^A-Za-z0-9_-]/', '', $formData['grade_level']);
     $section = preg_replace('/[^A-Za-z0-9_-]/', '', $formData['section']);
-    $filename = trim("{$schoolYear}_{$gradeLevel}_{$section}.xlsx", '_');
-    if ($filename === '') $filename = 'sf5_' . time() . '.xlsx';
+    $filename = trim("{$schoolYear}_{$gradeLevel}_{$section}.xlsx", '_') ?: 'sf5_' . time() . '.xlsx';
     $savePath = $saveDir . DIRECTORY_SEPARATOR . $filename;
 
     $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
     $writer->save($savePath);
 
     $_SESSION['sf5_download'] = $filename;
-    $downloadLink = $filename;
 
-
+    // --- Save actions to database ---
     $actionData = json_encode($formData['action'], JSON_UNESCAPED_UNICODE);
-    $check = $mysqli->prepare("SELECT id FROM sf5_data WHERE grade_level=? AND section=? AND school_year=? LIMIT 1");
+    $check = $mysqli->prepare("SELECT id,curriculum FROM sf5_data WHERE grade_level=? AND section=? AND school_year=? LIMIT 1");
     $check->bind_param("sss", $formData['grade_level'], $formData['section'], $formData['school_year']);
     $check->execute();
     $checkRes = $check->get_result();
-
+    $row = $checkRes->fetch_assoc();
     if ($checkRes->num_rows > 0) {
-        $row = $checkRes->fetch_assoc();
-        $update = $mysqli->prepare("UPDATE sf5_data SET action_taken=? WHERE id=?");
-        $update->bind_param("si", $actionData, $row['id']);
+        $formData['curriculum'] = $formData['curriculum'] ?? $row['curriculum'] ?? null;
+        $update = $mysqli->prepare("UPDATE sf5_data SET action_taken=?, curriculum=? WHERE id=?");
+        $update->bind_param("ssi", $actionData, $formData['curriculum'], $row['id']);
         $update->execute();
         $update->close();
     } else {
@@ -277,7 +381,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $check->close();
 
-    header("Location: " . $_SERVER['PHP_SELF'] . "?school_year={$school_year}&section_id={$sectionId}&grade={$gradeLevel}&section={$sectionName}");
+    // --- Redirect back ---
+    header("Location: " . $_SERVER['PHP_SELF'] . "?school_year=" . rawurlencode($formData['school_year']) . "&section_id=" . rawurlencode($sectionId) . "&grade=" . rawurlencode($formData['grade_level']) . "&section=" . rawurlencode($formData['section']));
     exit;
 }
 ?>
@@ -354,10 +459,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="card p-3 mb-3">
                         <h5>School Info</h5>
                         <div class="row">
-                            <div class="col-md-3"><input type="text" name="school_year" class="form-control" placeholder="School Year" value="<?= htmlspecialchars($formData['school_year'] ?? '', ENT_QUOTES) ?>"></div>
-                            <div class="col-md-3"><input type="text" name="curriculum" class="form-control" placeholder="Curriculum" value="<?= htmlspecialchars($formData['curriculum'] ?? '', ENT_QUOTES) ?>"></div>
-                            <div class="col-md-3"><input type="text" name="grade_level" class="form-control" placeholder="Grade Level" value="<?= htmlspecialchars($formData['grade_level'] ?? '', ENT_QUOTES) ?>"></div>
-                            <div class="col-md-3"><input type="text" name="section" class="form-control" placeholder="Section" value="<?= htmlspecialchars($formData['section'] ?? '', ENT_QUOTES) ?>"></div>
+                            <div class="col-md-3"><input type="text" name="school_year" class="form-control" placeholder="School Year" value="<?= htmlspecialchars($formData['school_year'] ?? '', ENT_QUOTES) ?>" readonly></div>
+                            <div class="col-md-3"><input type="text" name="curriculum" class="form-control" placeholder="Curriculum" d='<?= $row['curriculum'] ?>' value="<?= htmlspecialchars($row['curriculum'] ?? '', ENT_QUOTES) ?>"></div>
+                            <div class="col-md-3"><input type="text" name="grade_level" class="form-control" placeholder="Grade Level" value="<?= htmlspecialchars($formData['grade_level'] ?? '', ENT_QUOTES) ?>" readonly></div>
+                            <div class="col-md-3"><input type="text" name="section" class="form-control" placeholder="Section" value="<?= htmlspecialchars($formData['section'] ?? '', ENT_QUOTES) ?>" readonly></div>
                         </div>
                     </div>
 
@@ -376,30 +481,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php for ($r = 13; $r <= 59; $r++): if ($r == $skipRow) continue; ?>
-                                        <tr>
-                                            <td><input type="text" name="lrn[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['lrn'][$r] ?? '') ?>"></td>
-                                            <td><input type="text" name="name[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['name'][$r] ?? '') ?>"></td>
-                                            <td><input type="text" name="average[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['average'][$r] ?? '') ?>"></td>
-                                            <td>
-                                                <select name="action[<?= $r ?>]" class="form-control form-control-sm action-select">
-                                                    <option value="">Select</option>
-                                                    <option value="PROMOTED" <?= ($formData['action'][$r] ?? '') === 'PROMOTED' ? 'selected' : '' ?>>PROMOTED</option>
-                                                    <option value="RETAINED" <?= ($formData['action'][$r] ?? '') === 'RETAINED' ? 'selected' : '' ?>>RETAINED</option>
-                                                    <option value="CONDITIONAL" <?= ($formData['action'][$r] ?? '') === 'CONDITIONAL' ? 'selected' : '' ?>>CONDITIONAL</option>
-                                                </select>
-                                            </td>
+                                    <?php
+                                    // Display only rows that have actual students
+                                    if (!empty($formData['student_rows'])) {
+                                        foreach ($formData['student_rows'] as $r):
+                                    ?>
+                                            <tr>
+                                                <td><input disabled type="text" name="lrn[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['lrn'][$r] ?? '') ?>" readonly></td>
+                                                <td><input disabled type="text" name="name[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['name'][$r] ?? '') ?>" readonly></td>
+                                                <td><input disabled type="text" name="average[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['average'][$r] ?? '') ?>" readonly></td>
+                                                <td>
+                                                    <select name="action[<?= $r ?>]" class="form-control form-control-sm action-select" disabled>
+                                                        <?php
+                                                        if (($formData['action'][$r] ?? '') === '') {
+                                                        ?>
+                                                            <option value="">No reults yet</option>
+                                                        <?php
+                                                        } else {
+                                                        ?>
+                                                            <option value="<?= $formData['action'][$r] ?? '' ?>" selected><?= $formData['action'][$r] ?? '' ?></option>
+                                                        <?php
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                </td>
 
-                                            <td>
-                                                <select name="sex[<?= $r ?>]" class="form-control form-control-sm sex-select">
-                                                    <option value="">Select</option>
-                                                    <option value="MALE" <?= ($formData['sex'][$r] ?? '') === 'MALE' ? 'selected' : '' ?>>MALE</option>
-                                                    <option value="FEMALE" <?= ($formData['sex'][$r] ?? '') === 'FEMALE' ? 'selected' : '' ?>>FEMALE</option>
-                                                </select>
-                                            </td>
-                                            <td><input type="text" name="did_not_meet[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['did_not_meet'][$r] ?? '') ?>"></td>
-                                        </tr>
-                                    <?php endfor; ?>
+                                                <td>
+                                                    <select name="sex_display[<?= $r ?>]" class="form-control form-control-sm sex-select" disabled>
+                                                        <?php
+                                                        if (($formData['sex'][$r] ?? '') === '') {
+                                                        ?>
+                                                            <option value="">Not selected</option>
+                                                        <?php
+                                                        } else {
+                                                        ?>
+                                                            <option value="<?= $formData['sex'][$r] ?>" selected><?= $formData['sex'][$r] ?></option>
+                                                        <?php
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                    <input type="hidden" name="sex[<?= $r ?>]" value="<?= htmlspecialchars($formData['sex'][$r] ?? '') ?>">
+                                                </td>
+                                                <td><input readonly disabled type="text" name="did_not_meet[<?= $r ?>]" class="form-control form-control-sm " value="<?= htmlspecialchars($formData['did_not_meet'][$r] ?? '') ?>"></td>
+                                            </tr>
+                                    <?php
+                                        endforeach;
+                                    }
+                                    ?>
                                 </tbody>
 
                             </table>
@@ -407,7 +535,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div id="action-buttons">
                             <button type="button" class="btn btn-secondary" onclick="window.location.href='<?= BASE_FR ?>/src/UI-teacher/index.php?page=contents/sf5'">Back</button>
-                            <button type="submit" form="sf5-form" class="btn btn-primary">Save</button>
+                            <button type="button" id="save-grades" class="btn btn-primary">Save</button>
                             <?php if ($downloadLink): ?>
                                 <a href="?download=1" class="btn btn-success">Download</a>
                             <?php endif; ?>
@@ -429,9 +557,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php foreach (['promoted', 'conditional', 'retained'] as $status): ?>
                                 <tr>
                                     <td><?= ucfirst($status) ?></td>
-                                    <td><input type="number" name="summary[<?= $status ?>][male]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['summary'][$status]['male'] ?? '') ?>"></td>
-                                    <td><input type="number" name="summary[<?= $status ?>][female]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['summary'][$status]['female'] ?? '') ?>"></td>
-                                    <td><input type="number" name="summary[<?= $status ?>][total]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['summary'][$status]['total'] ?? '') ?>"></td>
+                                    <td><input type="number" name="summary[<?= $status ?>][male]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['summary'][$status]['male'] ?? '') ?>" readonly></td>
+                                    <td><input type="number" name="summary[<?= $status ?>][female]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['summary'][$status]['female'] ?? '') ?>" readonly></td>
+                                    <td><input type="number" name="summary[<?= $status ?>][total]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['summary'][$status]['total'] ?? '') ?>" readonly></td>
                                 </tr>
                             <?php endforeach; ?>
                         </table>
@@ -450,9 +578,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php foreach (array_keys($progressCategories) as $status): ?>
                                 <tr>
                                     <td><?= ucwords(str_replace('_', ' ', $status)) ?></td>
-                                    <td><input type="number" name="progress[<?= $status ?>][male]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['progress'][$status]['male'] ?? '') ?>"></td>
-                                    <td><input type="number" name="progress[<?= $status ?>][female]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['progress'][$status]['female'] ?? '') ?>"></td>
-                                    <td><input type="number" name="progress[<?= $status ?>][total]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['progress'][$status]['total'] ?? '') ?>"></td>
+                                    <td><input type="number" name="progress[<?= $status ?>][male]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['progress'][$status]['male'] ?? '') ?>" readonly></td>
+                                    <td><input type="number" name="progress[<?= $status ?>][female]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['progress'][$status]['female'] ?? '') ?>" readonly></td>
+                                    <td><input type="number" name="progress[<?= $status ?>][total]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['progress'][$status]['total'] ?? '') ?>" readonly></td>
                                 </tr>
                             <?php endforeach; ?>
                         </table>
@@ -468,7 +596,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         </form>
-    </div>
 
 
 
@@ -477,13 +604,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function updateTotals() {
             let male = 0,
                 female = 0;
-            for (let r = 13; r <= 59; r++) {
-                if (r == <?= $skipRow ?>) continue;
-                const sexSelect = document.querySelector(`select[name="sex[${r}]"]`);
+            // Loop through all sex select elements dynamically
+            document.querySelectorAll('select[name^="sex["]').forEach(sexSelect => {
                 const sexVal = sexSelect?.value.toUpperCase() || '';
                 if (sexVal === 'MALE') male++;
                 if (sexVal === 'FEMALE') female++;
-            }
+            });
             let maleInput = document.querySelector('input[name="male_total"]');
             if (!maleInput) {
                 maleInput = document.createElement('input');
@@ -512,28 +638,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
         function updateActions() {
-            for (let r = 13; r <= 59; r++) {
-                if (r == <?= $skipRow ?>) continue;
-                const avgInput = document.querySelector(`input[name="average[${r}]"]`);
+            // Loop through all average inputs dynamically
+            document.querySelectorAll('input[name^="average["]').forEach(avgInput => {
+                // Extract row number from input name
+                const match = avgInput.name.match(/\[(\d+)\]/);
+                if (!match) return;
+                const r = match[1];
+
                 const actionSelect = document.querySelector(`select[name="action[${r}]"]`);
-                if (!avgInput || !actionSelect) continue;
+                if (!avgInput || !actionSelect) return;
 
                 const avgStr = avgInput.value.trim();
                 if (avgStr === '') {
                     actionSelect.value = '';
-                    continue;
+                    return;
                 }
 
                 const avg = parseFloat(avgStr);
                 if (!isNaN(avg)) {
-
                     if (actionSelect.value !== 'CONDITIONAL' && actionSelect.value !== 'RETAINED' && actionSelect.value !== 'PROMOTED') {
                         if (avg <= 74) actionSelect.value = 'RETAINED';
                         else if (avg >= 75) actionSelect.value = 'PROMOTED';
                     }
                 }
-
-            }
+            });
             updateSummaryTable();
         }
 
@@ -558,9 +686,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             };
 
-            for (let r = 13; r <= 59; r++) {
-                if (r == <?= $skipRow ?>) continue;
-                const actionSelect = document.querySelector(`select[name="action[${r}]"]`);
+            // Loop through all action selects dynamically
+            document.querySelectorAll('select[name^="action["]').forEach(actionSelect => {
+                // Extract row number from select name
+                const match = actionSelect.name.match(/\[(\d+)\]/);
+                if (!match) return;
+                const r = match[1];
+
                 const sexSelect = document.querySelector(`select[name="sex[${r}]"]`);
                 const action = actionSelect?.value.toUpperCase() || '';
                 const sex = sexSelect?.value.toUpperCase() || '';
@@ -570,7 +702,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (sex === 'FEMALE') summaryInputs[action].female++;
                     summaryInputs[action].total++;
                 }
-            }
+            });
 
             summaryStatuses.forEach(status => {
                 const maleInput = document.querySelector(`input[name="summary[${status.toLowerCase()}][male]"]`);
@@ -591,6 +723,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         updateTotals();
         updateActions();
         updateSummaryTable();
+
+
     </script>
 </body>
 
