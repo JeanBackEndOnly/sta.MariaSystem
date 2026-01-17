@@ -176,7 +176,7 @@ function db_connect()
                 attendance_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 student_id INT(11) NOT NULL,
                 adviser_id INT(11) NOT NULL,
-                school_year_name INT(11) NOT NULL,
+                school_year_id INT(11) NOT NULL,
                 morning_attendance DATETIME NOT NULL,
                 attendance_type ENUM('Present', 'Absent', 'Late') NOT NULL,
                 afternoon_attendance DATETIME DEFAULT NULL,
@@ -184,7 +184,8 @@ function db_connect()
                 attendance_summary ENUM('Present', 'Absent', 'Half-day', 'Late', 'Half-day-late') DEFAULT NULL,
                 attendance_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (student_id) REFERENCES student(student_id) ON DELETE CASCADE,
-                FOREIGN KEY (adviser_id) REFERENCES users(user_id) ON DELETE CASCADE
+                FOREIGN KEY (adviser_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (school_year_id) REFERENCES school_year(school_year_id) ON DELETE CASCADE
             )",
             "CREATE TABLE IF NOT EXISTS feeback (
                 feeback_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,

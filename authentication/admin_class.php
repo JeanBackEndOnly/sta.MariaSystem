@@ -633,9 +633,9 @@ class Action
             return json_encode(['status' => 1, 'message' => 'Enrolment approved successfully.']);
         } catch (PDOException $e) {
             error_log($e->getMessage());
-            if (strpos($e->getMessage(), 'foreign key constraint') !== false) {
-                return json_encode(['status' => 0, 'message' => 'Invalid data provided. Please check your selections.']);
-            }
+            // if (strpos($e->getMessage(), 'foreign key constraint') !== false) {
+            //     return json_encode(['status' => 0, 'message' => 'Invalid data provided. Please check your selections.']);
+            // }
             return json_encode(['status' => 0, 'message' => 'Database error: ' . $e->getMessage()]);
         }
     }
@@ -669,17 +669,50 @@ class Action
     function enrollstud_form()
     {
         $student_id = $_POST["student_id"] ?? null;
-        $gradeLevel = $_POST["gradeLevel"] ?? null;
+        $gradeLevel = $_POST["student_lvl"] ?? null;
         if (!$student_id) {
             return json_encode([
                 'status' => 0,
                 'message' => 'No student selected'
             ]);
         }
+        $activeSyStmt = $this->db->prepare("
+    SELECT school_year_id, school_year_name
+    FROM school_year
+    WHERE school_year_status = 'Active'
+    LIMIT 1
+");
+        $activeSyStmt->execute();
+
+        $activeSy = $activeSyStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$activeSy) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'No active school year found'
+            ]);
+        }
+
+        $trStmt = $this->db->prepare("
+    SELECT enrolment_id 
+    FROM enrolment 
+    WHERE student_id = ? AND school_year_id = ?
+");
+        $trStmt->execute([$student_id, $activeSy['school_year_id']]);
+
+        $tr = $trStmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($tr) {
+            return json_encode([
+                'status' => 0,
+                'message' => 'Student is already enrolled for the active school year: ' . $activeSy['school_year_name']
+            ]);
+        }
+
         try {
             $query = "UPDATE student SET enrolment_status = 'pending', isMovingUP = NULL, gradeLevel = ? WHERE student_id = ?";
             $stmt = $this->db->prepare($query);
-            $stmt->execute([$student_id, $gradeLevel]);
+            $stmt->execute([$gradeLevel, $student_id]);
             return json_encode([
                 'status' => 1,
                 'message' => 'Student is on Enrollment Process!'
@@ -1632,7 +1665,7 @@ class Action
     {
         $adviser_id = $_SESSION['user_id'] ?? null;
 
-        if (!$student_id || !$attendanceType || !$session) {
+        if ((!$student_id || !$attendanceType || !$session) && $session !== 'confirm' && $session !== 'cancel') {
             return $this->jsonError("Missing required data.");
         }
 
@@ -1640,11 +1673,11 @@ class Action
             $tz = new DateTimeZone('Asia/Manila');
             $session = strtolower($session);
 
-            if (!in_array($session, ['morning', 'afternoon', 'confirm'])) {
+            if (!in_array($session, ['morning', 'afternoon', 'confirm', 'cancel'])) {
                 return $this->jsonError("Invalid session.");
             }
 
-            if ($session !== 'confirm') {
+            if ($session !== 'confirm' && $session !== 'cancel') {
                 if (!$clientTime) return $this->jsonError("Missing time.");
 
                 $clientDT = DateTime::createFromFormat('H:i', $clientTime, $tz);
@@ -1658,25 +1691,29 @@ class Action
                 $attendanceDT = (new DateTime('now', $tz))->format('Y-m-d') . ' ' . $clientDT->format('H:i:s');
             }
 
-            $sy_name = $this->db
-                ->query("SELECT school_year_name FROM school_year WHERE school_year_status='Active' LIMIT 1")
+            $sy_id = $this->db
+                ->query("SELECT school_year_id FROM school_year WHERE school_year_status='Active' LIMIT 1")
                 ->fetchColumn();
 
-            if (!$sy_name) return $this->jsonError("No active school year.");
+            if (!$sy_id) return $this->jsonError("No active school year.");
 
             $stmt = $this->db->prepare("
-            SELECT * FROM attendance 
-            WHERE student_id=?
-            LIMIT 1
-        ");
-            $stmt->execute([$student_id]);
+                SELECT * FROM attendance 
+                WHERE student_id = ?
+                AND school_year_id = ?
+                AND attendance_at >= CURDATE()
+                AND attendance_at < CURDATE() + INTERVAL 1 DAY
+                LIMIT 1
+            ");
+            $stmt->execute([$student_id, $sy_id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$row) {
+
                 $this->db->prepare("
-                INSERT INTO attendance (student_id, adviser_id, school_year_name)
-                VALUES (?, ?, ?)
-            ")->execute([$student_id, $adviser_id, $sy_name]);
+        INSERT INTO attendance (student_id, adviser_id, school_year_id, attendance_at)
+        VALUES (?, ?, ?, NOW())
+    ")->execute([$student_id, $adviser_id, $sy_id]);
 
                 $attendance_id = $this->db->lastInsertId();
 
@@ -1687,22 +1724,31 @@ class Action
                 ];
             }
 
+
             $attendance_id = $row['attendance_id'];
 
-            if ($session === 'morning') {
-
+            if ($session === 'cancel') {
+                $this->db->prepare("
+                DELETE FROM attendance 
+                WHERE attendance_id=?
+            ")->execute([$attendance_id]);
+                return $this->jsonSuccess("Attendance canceled.");
+            } elseif ($session === 'morning') {
+                if ($row['attendance_type'] !== null) {
+                    return $this->jsonError("Morning attendance already recorded.");
+                }
                 $this->db->prepare("
                 UPDATE attendance 
                 SET morning_attendance=?, attendance_type=? 
-                WHERE attendance_id=?
-            ")->execute([$attendanceDT, $attendanceType, $attendance_id]);
+                WHERE attendance_id=?")->execute([$attendanceDT, $attendanceType, $attendance_id]);
             } elseif ($session === 'afternoon') {
-
+                if ($row['A_attendance_type'] !== null) {
+                    return $this->jsonError("Afternoon attendance already recorded.");
+                }
                 $this->db->prepare("
                 UPDATE attendance 
                 SET afternoon_attendance=?, A_attendance_type=? 
-                WHERE attendance_id=?
-            ")->execute([$attendanceDT, $attendanceType, $attendance_id]);
+                WHERE attendance_id=?")->execute([$attendanceDT, $attendanceType, $attendance_id]);
             } elseif ($session === 'confirm') {
 
                 $stmt = $this->db->prepare("
@@ -1732,10 +1778,10 @@ class Action
                 }
 
                 $this->db->prepare("
-    UPDATE attendance 
-    SET attendance_summary=?
-    WHERE attendance_id=?
-")->execute([$summary, $attendance_id]);
+                    UPDATE attendance 
+                    SET attendance_summary=?
+                    WHERE attendance_id=?
+                ")->execute([$summary, $attendance_id]);
 
 
                 return $this->jsonSuccess("Attendance confirmed.");
