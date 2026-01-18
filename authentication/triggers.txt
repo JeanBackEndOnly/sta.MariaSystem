@@ -23,36 +23,6 @@ BEGIN
     SET old_summary = OLD.attendance_summary;
     SET new_summary = NEW.attendance_summary;
 
-    -- Insert student into sf9_data if not exists for this school year
-    IF NOT EXISTS (
-        SELECT 1 FROM sf9_data 
-        WHERE student_id = NEW.student_id 
-          AND school_year = sy_name
-    ) THEN
-        INSERT INTO sf9_data (
-            student_id,
-            student_name,
-            lrn,
-            grade,
-            sex,
-            age,
-            guardian,
-            school_year
-        )
-        SELECT 
-            s.student_id,
-            CONCAT(s.lname, ', ', s.fname, ' ', s.mname),
-            s.lrn,
-            s.gradeLevel,
-            s.sex,
-            TIMESTAMPDIFF(YEAR, s.birthdate, CURDATE()),
-            CONCAT(u.firstname,' ',u.middlename,' ',u.lastname),
-            sy_name
-        FROM student s
-        LEFT JOIN users u ON u.user_id = s.guardian_id
-        WHERE s.student_id = NEW.student_id;
-    END IF;
-
     -- Remove old attendance
     IF old_date IS NOT NULL AND DAYOFWEEK(old_date) <> 1 THEN
         SET attend_month = MONTH(old_date);
@@ -139,8 +109,77 @@ BEGIN
 
 END$$
 
+-- After Attendance Insert
+DROP TRIGGER IF EXISTS trg_sf9_attendance_insert$$
+CREATE TRIGGER trg_sf9_attendance_insert
+AFTER INSERT ON attendance
+FOR EACH ROW
+BEGIN
+    DECLARE new_date DATE;
+    DECLARE new_summary VARCHAR(20);
+    DECLARE attend_month INT;
+
+    IF NEW.attendance_at IS NOT NULL THEN
+        SET new_date = NEW.attendance_at;
+    END IF;
+
+    SET new_summary = NEW.attendance_summary;
 
 
+    -- Add new attendance
+    IF new_date IS NOT NULL AND DAYOFWEEK(new_date) <> 1 THEN
+        SET attend_month = MONTH(new_date);
+
+        IF new_summary = 'Present' THEN
+            IF attend_month = 6 THEN UPDATE sf9_data SET days_present_june = days_present_june + 1, days_school_june = days_school_june + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 7 THEN UPDATE sf9_data SET days_present_july = days_present_july + 1, days_school_july = days_school_july + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 8 THEN UPDATE sf9_data SET days_present_aug = days_present_aug + 1, days_school_aug = days_school_aug + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 9 THEN UPDATE sf9_data SET days_present_sep = days_present_sep + 1, days_school_sep = days_school_sep + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 10 THEN UPDATE sf9_data SET days_present_oct = days_present_oct + 1, days_school_oct = days_school_oct + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 11 THEN UPDATE sf9_data SET days_present_nov = days_present_nov + 1, days_school_nov = days_school_nov + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 12 THEN UPDATE sf9_data SET days_present_dec = days_present_dec + 1, days_school_dec = days_school_dec + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 1 THEN UPDATE sf9_data SET days_present_jan = days_present_jan + 1, days_school_jan = days_school_jan + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 2 THEN UPDATE sf9_data SET days_present_feb = days_present_feb + 1, days_school_feb = days_school_feb + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 3 THEN UPDATE sf9_data SET days_present_mar = days_present_mar + 1, days_school_mar = days_school_mar + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            END IF;
+        ELSEIF new_summary = 'Absent' THEN
+            IF attend_month = 6 THEN UPDATE sf9_data SET days_absent_june = days_absent_june + 1, days_school_june = days_school_june + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 7 THEN UPDATE sf9_data SET days_absent_july = days_absent_july + 1, days_school_july = days_school_july + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 8 THEN UPDATE sf9_data SET days_absent_aug = days_absent_aug + 1, days_school_aug = days_school_aug + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 9 THEN UPDATE sf9_data SET days_absent_sep = days_absent_sep + 1, days_school_sep = days_school_sep + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 10 THEN UPDATE sf9_data SET days_absent_oct = days_absent_oct + 1, days_school_oct = days_school_oct + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 11 THEN UPDATE sf9_data SET days_absent_nov = days_absent_nov + 1, days_school_nov = days_school_nov + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 12 THEN UPDATE sf9_data SET days_absent_dec = days_absent_dec + 1, days_school_dec = days_school_dec + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 1 THEN UPDATE sf9_data SET days_absent_jan = days_absent_jan + 1, days_school_jan = days_school_jan + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 2 THEN UPDATE sf9_data SET days_absent_feb = days_absent_feb + 1, days_school_feb = days_school_feb + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            ELSEIF attend_month = 3 THEN UPDATE sf9_data SET days_absent_mar = days_absent_mar + 1, days_school_mar = days_school_mar + 1 WHERE student_id = NEW.student_id AND school_year = sy_name;
+            END IF;
+        END IF;
+    END IF;
+    
+    IF new_date IS NOT NULL AND DAYOFWEEK(new_date) <> 1 THEN
+        UPDATE sf9_data
+            SET 
+                days_late = (
+                    SELECT COUNT(*) 
+                    FROM attendance 
+                    WHERE student_id = NEW.student_id 
+                    AND school_year_id = NEW.school_year_id
+                    AND (attendance_type = 'Late' OR A_attendance_type = 'Late')
+                ),
+                days_total = days_school_june + days_school_july + days_school_aug + days_school_sep +
+                            days_school_oct + days_school_nov + days_school_dec + days_school_jan +
+                            days_school_feb + days_school_mar + days_school_apr,
+                days_present = days_present_june + days_present_july + days_present_aug + days_present_sep +
+                                days_present_oct + days_present_nov + days_present_dec + days_present_jan +
+                                days_present_feb + days_present_mar + days_present_apr,
+                days_absent  = days_absent_june + days_absent_july + days_absent_aug + days_absent_sep +
+                                days_absent_oct + days_absent_nov + days_absent_dec + days_absent_jan +
+                                days_absent_feb + days_absent_mar + days_absent_apr
+            WHERE student_id = NEW.student_id AND school_year = sy_name;
+    END IF;
+
+END$$
 
 
 
