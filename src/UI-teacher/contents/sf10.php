@@ -26,13 +26,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     $types = '';
 
     /* teacher restriction (adviser) */
-    $where[] = "c.adviser_id = ?";
+    $where[] = "e.adviser_id = ?";
     $params[] = $teacher_id;
     $types .= 'i';
 
     /* school year */
     if ($sy) {
-        $where[] = "c.sy_id = ?";
+        $where[] = "e.school_year_id = ?";
         $params[] = $sy;
         $types .= 'i';
     }
@@ -57,9 +57,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     /* COUNT */
     $countSQL = "
         SELECT COUNT(*) total
-        FROM student s
-        INNER JOIN classes c 
-            ON c.grade_level = s.gradeLevel
+        FROM enrolment AS e
+        LEFT JOIN student AS s ON s.student_id = e.student_id
         $whereSQL
     ";
 
@@ -70,10 +69,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
 
     /* DATA */
     $sql = "
-        SELECT s.*, c.grade_level
-        FROM student s
-        INNER JOIN classes c 
-            ON c.grade_level = s.gradeLevel
+        SELECT s.*,e.* FROM enrolment AS e
+        LEFT JOIN student AS s ON s.student_id = e.student_id
         $whereSQL
         ORDER BY s.lname, s.fname
         LIMIT $perPage OFFSET $offset
