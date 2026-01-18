@@ -159,10 +159,10 @@ LEFT JOIN (
     WHERE school_year_id = ?
     GROUP BY adviser_id
 ) e ON e.adviser_id = u.user_id
-WHERE u.user_id = ? 
+WHERE u.user_id = ? AND c.sy_id = ?
 LIMIT 1
 ");
-$ste->execute([$iddf, $teacher_id]);
+$ste->execute([$iddf, $teacher_id, $iddf]);
 $me = $ste->fetch(PDO::FETCH_ASSOC);
 
 // $stmt55 = $pdo->prepare("SELECT COUNT(student_id) as student_count FROM enrolment WHERE school_year_id = ? AND adviser_id = ?");
