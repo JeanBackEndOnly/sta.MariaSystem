@@ -323,21 +323,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $finals = $_POST['final'] ?? [];
   $remarks = $_POST['remarks'] ?? [];
   $data['general_average'] = isset($_POST['general_average']) && $_POST['general_average'] !== '' ? (float)$_POST['general_average'] : null;
-
-  if ($data["general_average"] !== null) {
-    for ($i = 0; $i < 15; $i++) {
-      $idx = $i + 1;
-      $data["q1_{$idx}"] = isset($q1[$i]) && $q1[$i] !== '' ? (float)$q1[$i] : null;
-      $data["q2_{$idx}"] = isset($q2[$i]) && $q2[$i] !== '' ? (float)$q2[$i] : null;
-      $data["q3_{$idx}"] = isset($q3[$i]) && $q3[$i] !== '' ? (float)$q3[$i] : null;
-      $data["q4_{$idx}"] = isset($q4[$i]) && $q4[$i] !== '' ? (float)$q4[$i] : null;
-      $data["final_{$idx}"] = isset($finals[$i]) && $finals[$i] !== '' ? (float)$finals[$i] : null;
-      $data["remarks_{$idx}"] = isset($remarks[$i]) && $remarks[$i] !== '' ? $remarks[$i] : null;
+  $emptyfinal = 0;
+  for ($i = 0; $i < 15; $i++) {
+    $idx = $i + 1;
+    $data["q1_{$idx}"] = isset($q1[$i]) && $q1[$i] !== '' ? (float)$q1[$i] : null;
+    $data["q2_{$idx}"] = isset($q2[$i]) && $q2[$i] !== '' ? (float)$q2[$i] : null;
+    $data["q3_{$idx}"] = isset($q3[$i]) && $q3[$i] !== '' ? (float)$q3[$i] : null;
+    $data["q4_{$idx}"] = isset($q4[$i]) && $q4[$i] !== '' ? (float)$q4[$i] : null;
+    $data["final_{$idx}"] = isset($finals[$i]) && $finals[$i] !== '' ? (float)$finals[$i] : null;
+    $data["remarks_{$idx}"] = isset($remarks[$i]) && $remarks[$i] !== '' ? $remarks[$i] : null;
+    if ($data["final_{$idx}"] === null) {
+      $emptyfinal++;
     }
   }
 
 
-  if ($data["general_average"] !== null) {
+  if ($data["general_average"] !== null && $emptyfinal === 0) {
     $passed = false;
     if ($data["general_average"] >= 75.0) {
       $passed = true;
@@ -457,6 +458,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8">
   <title>SF9 Fill</title>
   <link href="<?= base_url() ?>assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="<?= base_url() ?>assets/fontawesome/css/all.min.css">
   <!-- <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"> -->
   <style>
     body {
@@ -807,6 +809,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         min-width: 40px;
       }
     }
+
+    .attrdd td {
+      position: relative;
+    }
+
+    .attrdd td i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6c757d;
+    }
   </style>
 </head>
 
@@ -981,7 +995,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="bg-white p-2 p-md-3 rounded shadow-sm mb-3">
           <div class="section-title">Grades</div>
           <div class="table-wrapper">
-            <table class="table table-bordered table-sm table-grades text-center align-middle">
+            <table class="attrdd table table-bordered table-sm table-grades text-center align-middle">
               <thead class="table-light">
                 <tr>
                   <th>Learning Area</th>
@@ -1003,36 +1017,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   $q2_val = $_POST['q2'][$i] ?? ($existing_q2[$i] ?? '');
                   $q3_val = $_POST['q3'][$i] ?? ($existing_q3[$i] ?? '');
                   $q4_val = $_POST['q4'][$i] ?? ($existing_q4[$i] ?? '');
+                  $q1_val = is_numeric($q1_val) ? (int)$q1_val : '';
+                  $q2_val = is_numeric($q2_val) ? (int)$q2_val : '';
+                  $q3_val = is_numeric($q3_val) ? (int)$q3_val : '';
+                  $q4_val = is_numeric($q4_val) ? (int)$q4_val : '';
                   $final_val = $_POST['final'][$i] ?? ($existing_final[$i] ?? '');
                   $remarks_val = $_POST['remarks'][$i] ?? ($existing_remarks[$i] ?? '');
                 ?>
                   <tr>
                     <td><input type="text" readonly name="subject[]" style="width: 100%;" disabled class="form-control form-control-sm" value="<?= htmlspecialchars($subject_val) ?>"></td>
                     <td>
-                      <input type="number" name="q1[]" min="50" max="100" <?php if(htmlspecialchars($q1_val)) echo 'disabled'; ?>
-                        onblur="this.value = Math.min(100, Math.max(50, this.value))" class="q form-control form-control-sm"
+                      <?php
+                      if (htmlspecialchars($q1_val)) { ?>
+                        <i class="fas fa-lock"></i>
+                      <?php }
+                      ?>
+                      <input type="number" name="q1[]" min="50" max="100" <?php if (htmlspecialchars($q1_val)) echo 'readonly'; ?>
+                        class="q form-control form-control-sm"
                         value="<?= htmlspecialchars($q1_val) ?>">
                     </td>
-
                     <td>
-                      <input type="number" name="q2[]" min="50" max="100" <?php if(htmlspecialchars($q2_val)) echo 'disabled'; ?>
-                        onblur="this.value = Math.min(100, Math.max(50, this.value))" class="q form-control form-control-sm"
+                      <?php
+                      if (htmlspecialchars($q2_val)) { ?>
+                        <i class="fas fa-lock"></i>
+                      <?php }
+                      ?>
+                      <input type="number" name="q2[]" min="50" max="100" <?php if (htmlspecialchars($q2_val)) echo 'readonly'; ?>
+                        class="q form-control form-control-sm"
                         value="<?= htmlspecialchars($q2_val) ?>">
                     </td>
-
                     <td>
-                      <input type="number" name="q3[]" min="50" max="100" <?php if(htmlspecialchars($q3_val)) echo 'disabled'; ?>
-                        onblur="this.value = Math.min(100, Math.max(50, this.value))" class="q form-control form-control-sm"
+                      <?php
+                      if (htmlspecialchars($q3_val)) { ?>
+                        <i class="fas fa-lock"></i>
+                      <?php }
+                      ?>
+                      <input type="number" name="q3[]" min="50" max="100" <?php if (htmlspecialchars($q3_val)) echo 'readonly'; ?>
+                        class="q form-control form-control-sm"
                         value="<?= htmlspecialchars($q3_val) ?>">
                     </td>
-
                     <td>
-                      <input type="number" name="q4[]" min="50" max="100" <?php if(htmlspecialchars($q4_val)) echo 'disabled'; ?>
-                        onblur="this.value = Math.min(100, Math.max(50, this.value))" class="q form-control form-control-sm"
+                      <?php
+                      if (htmlspecialchars($q4_val)) { ?>
+                        <i class="fas fa-lock"></i>
+                      <?php }
+                      ?>
+                      <input type="number" name="q4[]" min="50" max="100" <?php if (htmlspecialchars($q4_val)) echo 'readonly'; ?>
+                        class="q form-control form-control-sm"
                         value="<?= htmlspecialchars($q4_val) ?>">
                     </td>
-                    <td><input type="text" style="width: 100%;" disabled name="final[]" class="final form-control form-control-sm grade-input" readonly value="<?= htmlspecialchars($final_val) ?>"></td>
-                    <td><input type="text" style="width: 100%;" disabled name="remarks[]" class="remarks form-control form-control-sm" readonly value="<?= htmlspecialchars($remarks_val) ?>"></td>
+                    <td><input type="text" style="width: 100%;" name="final[]" class="final form-control form-control-sm grade-input" readonly value="<?= htmlspecialchars($final_val) ?>"></td>
+                    <td><input type="text" style="width: 100%;" name="remarks[]" class="remarks form-control form-control-sm" readonly value="<?= htmlspecialchars($remarks_val) ?>"></td>
                   </tr>
                 <?php endfor; ?>
               </tbody>
@@ -1285,6 +1320,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.getElementById("general_average").value = count > 0 ? (total / count).toFixed(2) : "";
       }
 
+      document.querySelectorAll(".table-grades input.q").forEach(i => i.addEventListener("keyup", computeAllGrades));
+      document.querySelectorAll(".table-grades input.q").forEach(i => i.addEventListener("change", computeAllGrades));
       document.querySelectorAll(".table-grades input.q").forEach(i => i.addEventListener("input", computeAllGrades));
 
       document.addEventListener('DOMContentLoaded', computeAllGrades);
