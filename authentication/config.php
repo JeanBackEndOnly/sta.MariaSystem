@@ -241,9 +241,6 @@ function db_connect()
                 promoted_male INT(11),
                 promoted_female INT(11),
                 promoted_total INT(11),
-                conditional_male INT(11),
-                conditional_female INT(11),
-                conditional_total INT(11),
                 retained_male INT(11),
                 retained_female INT(11),
                 retained_total INT(11),
@@ -266,7 +263,7 @@ function db_connect()
                 certified_by VARCHAR(100),
                 reviewed_by VARCHAR(100),
                 learners LONGTEXT,
-                `action_taken` longtext DEFAULT NULL,
+                action_taken longtext DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )",
 
