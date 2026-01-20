@@ -7,6 +7,7 @@ if ($result['res']) {
     exit;
 }
 
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -24,6 +25,8 @@ $skipRow = null; // No skipped rows
 
 $formData = $_SESSION['sf5_form'] ?? [];
 $downloadLink = $_SESSION['sf5_download'] ?? '';
+
+// Don't initialize signatories - keep them null/undefined until loaded from database
 
 
 $school_year = $_GET['school_year'] ?? '';
@@ -51,6 +54,13 @@ if ($sectionId) {
     }
     $sectionQuery->close();
 
+    // Preserve signatories if they exist
+    $preservedSignatories = [
+        'prepared_by' => $formData['prepared_by'] ?? null,
+        'certified_by' => $formData['certified_by'] ?? null,
+        'reviewed_by' => $formData['reviewed_by'] ?? null
+    ];
+
     // Clear all old form data when loading a new section
     $formData = [
         'school_year' => $school_year,
@@ -67,9 +77,10 @@ if ($sectionId) {
         'sex' => [],
         'did_not_meet' => [],
         'summary' => ['promoted' => ['male' => 0, 'female' => 0, 'total' => 0], 'conditional' => ['male' => 0, 'female' => 0, 'total' => 0], 'retained' => ['male' => 0, 'female' => 0, 'total' => 0]],
-        'prepared_by' => '',
-        'certified_by' => '',
-        'reviewed_by' => ''
+        'prepared_by' => $preservedSignatories['prepared_by'],
+        'certified_by' => $preservedSignatories['certified_by'],
+        'reviewed_by' => $preservedSignatories['reviewed_by'],
+        'has_students' => false
     ];
     foreach ($progressCategories as $status => $range) {
         $formData['progress'][$status] = ['male' => 0, 'female' => 0, 'total' => 0];
@@ -112,11 +123,15 @@ if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName) && !empty(
     $rowNum = 13;
     $formData['student_rows'] = [];
     $studentCount = 0;
+    $hasStudentsWithAverages = false;
 
     while ($student = $result->fetch_assoc()) {
         $formData['lrn'][$rowNum] = $student['lrn'];
         $formData['name'][$rowNum] = $student['student_name'];
         $formData['average'][$rowNum] = $student['general_average'];
+        if (!empty($student['general_average'])) {
+            $hasStudentsWithAverages = true;
+        }
 
         $formData['action'][$rowNum] = $formData['action'][$rowNum] ?? '';
 
@@ -128,12 +143,15 @@ if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName) && !empty(
         if ($student['sex'] === 'FEMALE') $formData['female_total']++;
 
         $avg = (float)$student['general_average'];
-        foreach ($progressCategories as $status => $range) {
-            if ($avg >= $range['min'] && $avg <= $range['max']) {
-                if ($student['sex'] === 'MALE') $formData['progress'][$status]['male']++;
-                if ($student['sex'] === 'FEMALE') $formData['progress'][$status]['female']++;
-                $formData['progress'][$status]['total']++;
-                break;
+        // Only compute progress if average is not empty
+        if (!empty($student['general_average'])) {
+            foreach ($progressCategories as $status => $range) {
+                if ($avg >= $range['min'] && $avg <= $range['max']) {
+                    if ($student['sex'] === 'MALE') $formData['progress'][$status]['male']++;
+                    if ($student['sex'] === 'FEMALE') $formData['progress'][$status]['female']++;
+                    $formData['progress'][$status]['total']++;
+                    break;
+                }
             }
         }
         $rowNum++;
@@ -141,22 +159,36 @@ if (!empty($sectionId) && !empty($gradeLevel) && !empty($sectionName) && !empty(
     }
     $formData['combined_total'] = $formData['male_total'] + $formData['female_total'];
     $formData['total_student_count'] = $studentCount;
+    $formData['has_students'] = $hasStudentsWithAverages;
     $stmt->close();
 }
 
 
 if (!empty($gradeLevel) && !empty($sectionName)) {
-    $loadAct = $mysqli->prepare("SELECT action_taken FROM sf5_data WHERE grade_level=? AND section=? AND school_year=? LIMIT 1");
+    $loadAct = $mysqli->prepare("SELECT action_taken, learners, curriculum, prepared_by, certified_by, reviewed_by FROM sf5_data WHERE grade_level=? AND section=? AND school_year=? LIMIT 1");
     $loadAct->bind_param("sss", $gradeLevel, $sectionName, $formData['school_year']);
     $loadAct->execute();
     $res = $loadAct->get_result();
     if ($row = $res->fetch_assoc()) {
+        // Load actions
         $savedActions = json_decode($row['action_taken'], true);
         if (is_array($savedActions)) {
             foreach ($savedActions as $r => $val) {
                 $formData['action'][$r] = $val;
             }
         }
+        // Load learners/did_not_meet
+        if (!empty($row['learners'])) {
+            $savedLearners = json_decode($row['learners'], true);
+            if (is_array($savedLearners)) {
+                $formData['did_not_meet'] = $savedLearners;
+            }
+        }
+        // Load curriculum and signatories
+        $formData['curriculum'] = $row['curriculum'] ?? '';
+        $formData['prepared_by'] = $row['prepared_by'] ?? '';
+        $formData['certified_by'] = $row['certified_by'] ?? '';
+        $formData['reviewed_by'] = $row['reviewed_by'] ?? '';
     }
     $loadAct->close();
 }
@@ -236,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Summary values
-    $summaryRows = ['promoted', 'conditional', 'retained'];
+    $summaryRows = ['promoted', 'retained'];
     foreach ($summaryRows as $status) {
         $formData['summary'][$status]['male'] = (int)($formData['summary'][$status]['male'] ?? 0);
         $formData['summary'][$status]['female'] = (int)($formData['summary'][$status]['female'] ?? 0);
@@ -264,7 +296,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // --- Insert student data ---
     foreach ($formData['student_rows'] as $r) {
-        $sheet->setCellValue("A{$r}", $formData['lrn'][$r] ?? '');
+        $sheet->setCellValueExplicit(
+            "A{$r}",
+            $formData['lrn'][$r] ?? '',
+            DataType::TYPE_STRING
+        );
         $sheet->setCellValue("B{$r}", $formData['name'][$r] ?? '');
         $sheet->setCellValue("F{$r}", $formData['average'][$r] ?? '');
         $sheet->setCellValue("G{$r}", $formData['action'][$r] ?? '');
@@ -301,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     //     ],
     // ]);
     // Apply borders to all student rows including merged I:J
-    $sheet->getStyle("A13:J{$combinedRow}")->applyFromArray([
+    $sheet->getStyle("A12:J{$combinedRow}")->applyFromArray([
         'borders' => [
             'allBorders' => [
                 'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
@@ -320,22 +356,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // --- Progress & summary tables ---
     $summaryMap = [
-        'promoted' => ['M15', 'N15', 'O15'],
-        'conditional' => ['M17', 'N17', 'O17'],
-        'retained' => ['M19', 'N19', 'O19']
+        'promoted' => ['M11', 'N11', 'O11'],
+        'retained' => ['M13', 'N13', 'O13']
     ];
+    $grandTotal = 0;
+
     foreach ($summaryMap as $status => $cells) {
-        $sheet->setCellValue($cells[0], $formData['summary'][$status]['male']);
-        $sheet->setCellValue($cells[1], $formData['summary'][$status]['female']);
-        $sheet->setCellValue($cells[2], $formData['summary'][$status]['total']);
+        $male   = $formData['summary'][$status]['male']   ?? 0;
+        $female = $formData['summary'][$status]['female'] ?? 0;
+        $total  = $formData['summary'][$status]['total']  ?? 0;
+
+        $sheet->setCellValue($cells[0], $male);
+        $sheet->setCellValue($cells[1], $female);
+        $sheet->setCellValue($cells[2], $total);
+
+        $grandTotal += $total;
     }
 
+    $sheet->setCellValue('O15', $grandTotal);
+
     $progressMap = [
-        'did_not_meet' => ['M24', 'N24', 'O24'],
-        'fairly_satisfactory' => ['M26', 'N26', 'O26'],
-        'satisfactory' => ['M28', 'N28', 'O28'],
-        'very_satisfactory' => ['M30', 'N30', 'O30'],
-        'outstanding' => ['M32', 'N32', 'O32']
+        'did_not_meet' => ['M20', 'N20', 'O20'],
+        'fairly_satisfactory' => ['M22', 'N22', 'O22'],
+        'satisfactory' => ['M24', 'N24', 'O24'],
+        'very_satisfactory' => ['M26', 'N26', 'O26'],
+        'outstanding' => ['M28', 'N28', 'O28']
     ];
     foreach ($progressMap as $status => $cells) {
         $sheet->setCellValue($cells[0], $formData['progress'][$status]['male']);
@@ -344,9 +389,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Prepared / Certified / Reviewed by
-    $sheet->setCellValue('N36', $formData['prepared_by']);
-    $sheet->setCellValue('N41', $formData['certified_by']);
-    $sheet->setCellValue('N46', $formData['reviewed_by']);
+    $sheet->setCellValue('L32', $formData['prepared_by']);
+    $sheet->setCellValue('L37', $formData['certified_by']);
+    $sheet->setCellValue('L42', $formData['reviewed_by']);
 
     // --- Save spreadsheet ---
     $schoolYear = preg_replace('/[^A-Za-z0-9_-]/', '', $formData['school_year']);
@@ -362,24 +407,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // --- Save actions to database ---
     $actionData = json_encode($formData['action'], JSON_UNESCAPED_UNICODE);
-    $check = $mysqli->prepare("SELECT id,curriculum FROM sf5_data WHERE grade_level=? AND section=? AND school_year=? LIMIT 1");
-    $check->bind_param("sss", $formData['grade_level'], $formData['section'], $formData['school_year']);
-    $check->execute();
-    $checkRes = $check->get_result();
-    $row = $checkRes->fetch_assoc();
-    if ($checkRes->num_rows > 0) {
-        $formData['curriculum'] = $formData['curriculum'] ?? $row['curriculum'] ?? null;
-        $update = $mysqli->prepare("UPDATE sf5_data SET action_taken=?, curriculum=? WHERE id=?");
-        $update->bind_param("ssi", $actionData, $formData['curriculum'], $row['id']);
-        $update->execute();
-        $update->close();
+    $learnersData = json_encode($formData['did_not_meet'], JSON_UNESCAPED_UNICODE);
+    
+    // Escape data for SQL
+    $school_year = $pdo->quote($formData['school_year']);
+    $grade_level = $pdo->quote($formData['grade_level']);
+    $section = $pdo->quote($formData['section']);
+    $curriculum = $pdo->quote($formData['curriculum']);
+    $action_taken = $pdo->quote($actionData);
+    $learners = $pdo->quote($learnersData);
+    
+    $male_total = (int)$formData['male_total'];
+    $female_total = (int)$formData['female_total'];
+    $combined_total = (int)$formData['combined_total'];
+    
+    $promoted_male = (int)($formData['summary']['promoted']['male'] ?? 0);
+    $promoted_female = (int)($formData['summary']['promoted']['female'] ?? 0);
+    $promoted_total = (int)($formData['summary']['promoted']['total'] ?? 0);
+    
+    $retained_male = (int)($formData['summary']['retained']['male'] ?? 0);
+    $retained_female = (int)($formData['summary']['retained']['female'] ?? 0);
+    $retained_total = (int)($formData['summary']['retained']['total'] ?? 0);
+    
+    $dnm_male = (int)($formData['progress']['did_not_meet']['male'] ?? 0);
+    $dnm_female = (int)($formData['progress']['did_not_meet']['female'] ?? 0);
+    $dnm_total = (int)($formData['progress']['did_not_meet']['total'] ?? 0);
+    
+    $fs_male = (int)($formData['progress']['fairly_satisfactory']['male'] ?? 0);
+    $fs_female = (int)($formData['progress']['fairly_satisfactory']['female'] ?? 0);
+    $fs_total = (int)($formData['progress']['fairly_satisfactory']['total'] ?? 0);
+    
+    $sat_male = (int)($formData['progress']['satisfactory']['male'] ?? 0);
+    $sat_female = (int)($formData['progress']['satisfactory']['female'] ?? 0);
+    $sat_total = (int)($formData['progress']['satisfactory']['total'] ?? 0);
+    
+    $vs_male = (int)($formData['progress']['very_satisfactory']['male'] ?? 0);
+    $vs_female = (int)($formData['progress']['very_satisfactory']['female'] ?? 0);
+    $vs_total = (int)($formData['progress']['very_satisfactory']['total'] ?? 0);
+    
+    $out_male = (int)($formData['progress']['outstanding']['male'] ?? 0);
+    $out_female = (int)($formData['progress']['outstanding']['female'] ?? 0);
+    $out_total = (int)($formData['progress']['outstanding']['total'] ?? 0);
+    
+    $prepared_by = $pdo->quote($formData['prepared_by']);
+    $certified_by = $pdo->quote($formData['certified_by']);
+    $reviewed_by = $pdo->quote($formData['reviewed_by']);
+    
+    // Check if record exists
+    $checkSql = "SELECT id FROM sf5_data WHERE grade_level = $grade_level AND section = $section AND school_year = $school_year LIMIT 1";
+    $checkResult = $pdo->query($checkSql);
+    
+    if ($checkResult->rowCount() > 0) {
+        // Update existing record
+        $row = $checkResult->fetch();
+        $id = $row['id'];
+        $updateSql = "UPDATE sf5_data SET 
+            curriculum = $curriculum,
+            male_total = $male_total,
+            female_total = $female_total,
+            combined_total = $combined_total,
+            promoted_male = $promoted_male,
+            promoted_female = $promoted_female,
+            promoted_total = $promoted_total,
+            retained_male = $retained_male,
+            retained_female = $retained_female,
+            retained_total = $retained_total,
+            progress_did_not_meet_male = $dnm_male,
+            progress_did_not_meet_female = $dnm_female,
+            progress_did_not_meet_total = $dnm_total,
+            progress_fairly_satisfactory_male = $fs_male,
+            progress_fairly_satisfactory_female = $fs_female,
+            progress_fairly_satisfactory_total = $fs_total,
+            progress_satisfactory_male = $sat_male,
+            progress_satisfactory_female = $sat_female,
+            progress_satisfactory_total = $sat_total,
+            progress_very_satisfactory_male = $vs_male,
+            progress_very_satisfactory_female = $vs_female,
+            progress_very_satisfactory_total = $vs_total,
+            progress_outstanding_male = $out_male,
+            progress_outstanding_female = $out_female,
+            progress_outstanding_total = $out_total,
+            prepared_by = $prepared_by,
+            certified_by = $certified_by,
+            reviewed_by = $reviewed_by,
+            learners = $learners,
+            action_taken = $action_taken
+            WHERE id = $id";
+        $pdo->exec($updateSql);
     } else {
-        $insert = $mysqli->prepare("INSERT INTO sf5_data (school_year, grade_level, section, action_taken) VALUES (?,?,?,?)");
-        $insert->bind_param("ssss", $formData['school_year'], $formData['grade_level'], $formData['section'], $actionData);
-        $insert->execute();
-        $insert->close();
+        // Insert new record
+        $insertSql = "INSERT INTO sf5_data 
+            (school_year, grade_level, section, curriculum, 
+             male_total, female_total, combined_total,
+             promoted_male, promoted_female, promoted_total,
+             retained_male, retained_female, retained_total,
+             progress_did_not_meet_male, progress_did_not_meet_female, progress_did_not_meet_total,
+             progress_fairly_satisfactory_male, progress_fairly_satisfactory_female, progress_fairly_satisfactory_total,
+             progress_satisfactory_male, progress_satisfactory_female, progress_satisfactory_total,
+             progress_very_satisfactory_male, progress_very_satisfactory_female, progress_very_satisfactory_total,
+             progress_outstanding_male, progress_outstanding_female, progress_outstanding_total,
+             prepared_by, certified_by, reviewed_by, learners, action_taken) 
+            VALUES ($school_year, $grade_level, $section, $curriculum, 
+             $male_total, $female_total, $combined_total,
+             $promoted_male, $promoted_female, $promoted_total,
+             $retained_male, $retained_female, $retained_total,
+             $dnm_male, $dnm_female, $dnm_total,
+             $fs_male, $fs_female, $fs_total,
+             $sat_male, $sat_female, $sat_total,
+             $vs_male, $vs_female, $vs_total,
+             $out_male, $out_female, $out_total,
+             $prepared_by, $certified_by, $reviewed_by, $learners, $action_taken)";
+        $pdo->exec($insertSql);
     }
-    $check->close();
 
     // --- Redirect back ---
     header("Location: " . $_SERVER['PHP_SELF'] . "?school_year=" . rawurlencode($formData['school_year']) . "&section_id=" . rawurlencode($sectionId) . "&grade=" . rawurlencode($formData['grade_level']) . "&section=" . rawurlencode($formData['section']));
@@ -460,7 +599,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <h5>School Info</h5>
                         <div class="row">
                             <div class="col-md-3"><input type="text" name="school_year" class="form-control" placeholder="School Year" value="<?= htmlspecialchars($formData['school_year'] ?? '', ENT_QUOTES) ?>" readonly></div>
-                            <div class="col-md-3"><input type="text" name="curriculum" class="form-control" placeholder="Curriculum" d='<?= $row['curriculum'] ?>' value="<?= htmlspecialchars($row['curriculum'] ?? '', ENT_QUOTES) ?>"></div>
+                            <div class="col-md-3"><input type="text" name="curriculum" class="form-control" placeholder="Curriculum" value="<?= htmlspecialchars($formData['curriculum'] ?? '', ENT_QUOTES) ?>"></div>
                             <div class="col-md-3"><input type="text" name="grade_level" class="form-control" placeholder="Grade Level" value="<?= htmlspecialchars($formData['grade_level'] ?? '', ENT_QUOTES) ?>" readonly></div>
                             <div class="col-md-3"><input type="text" name="section" class="form-control" placeholder="Section" value="<?= htmlspecialchars($formData['section'] ?? '', ENT_QUOTES) ?>" readonly></div>
                         </div>
@@ -487,31 +626,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         foreach ($formData['student_rows'] as $r):
                                     ?>
                                             <tr>
-                                                <td><input disabled type="text" name="lrn[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['lrn'][$r] ?? '') ?>" readonly></td>
-                                                <td><input disabled type="text" name="name[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['name'][$r] ?? '') ?>" readonly></td>
-                                                <td><input disabled type="text" name="average[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['average'][$r] ?? '') ?>" readonly></td>
+                                                <td><input type="text" name="lrn[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['lrn'][$r] ?? '') ?>" readonly></td>
+                                                <td><input type="text" name="name[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['name'][$r] ?? '') ?>" readonly></td>
+                                                <td><input type="text" name="average[<?= $r ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['average'][$r] ?? '') ?>" readonly></td>
                                                 <td>
-                                                    <select name="action[<?= $r ?>]" class="form-control form-control-sm action-select" disabled>
-                                                        <?php
-                                                        if (($formData['action'][$r] ?? '') === '') {
-                                                        ?>
-                                                            <option value="">No reults yet</option>
-                                                        <?php
-                                                        } else {
-                                                        ?>
-                                                            <option value="<?= $formData['action'][$r] ?? '' ?>" selected><?= $formData['action'][$r] ?? '' ?></option>
-                                                        <?php
-                                                        }
-                                                        ?>
+                                                    <?php
+                                                    $average = isset($formData['average'][$r]) ? (float)$formData['average'][$r] : null;
+                                                    $action  = $formData['action'][$r] ?? '';
+
+                                                    if ($action === '' && $average !== null) {
+                                                        $action = ($average >= 75) ? 'PROMOTED' : 'RETAINED';
+                                                    }
+                                                    ?>
+                                                    <select name="action[<?= $r ?>]" class="form-control form-control-sm action-select" readonly>
+                                                        <option value="<?= htmlspecialchars($action) ?>" selected>
+                                                            <?= $action !== '' ? htmlspecialchars($action) : 'No results yet' ?>
+                                                        </option>
                                                     </select>
                                                 </td>
 
                                                 <td>
-                                                    <select name="sex_display[<?= $r ?>]" class="form-control form-control-sm sex-select" disabled>
+                                                    <select name="sex_display[<?= $r ?>]" class="form-control form-control-sm sex-select" readonly>
                                                         <?php
                                                         if (($formData['sex'][$r] ?? '') === '') {
                                                         ?>
-                                                            <option value="">Not selected</option>
+                                                            <option value="" selected>Not selected</option>
                                                         <?php
                                                         } else {
                                                         ?>
@@ -522,7 +661,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                     </select>
                                                     <input type="hidden" name="sex[<?= $r ?>]" value="<?= htmlspecialchars($formData['sex'][$r] ?? '') ?>">
                                                 </td>
-                                                <td><input readonly disabled type="text" name="did_not_meet[<?= $r ?>]" class="form-control form-control-sm " value="<?= htmlspecialchars($formData['did_not_meet'][$r] ?? '') ?>"></td>
+                                                <td><input type="text" name="did_not_meet[<?= $r ?>]" class="form-control form-control-sm " value="<?= htmlspecialchars($formData['did_not_meet'][$r] ?? '') ?>"></td>
                                             </tr>
                                     <?php
                                         endforeach;
@@ -535,7 +674,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div id="action-buttons">
                             <button type="button" class="btn btn-secondary" onclick="window.location.href='<?= BASE_FR ?>/src/UI-teacher/index.php?page=contents/sf5'">Back</button>
-                            <button type="button" id="save-grades" class="btn btn-primary">Save</button>
+                            <button type="submit" id="save-grades" class="btn btn-primary">Save</button>
                             <?php if ($downloadLink): ?>
                                 <a href="?download=1" class="btn btn-success">Download</a>
                             <?php endif; ?>
@@ -554,7 +693,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <th>Female</th>
                                 <th>Total</th>
                             </tr>
-                            <?php foreach (['promoted', 'conditional', 'retained'] as $status): ?>
+                            <?php foreach (['promoted', 'retained'] as $status): ?>
                                 <tr>
                                     <td><?= ucfirst($status) ?></td>
                                     <td><input type="number" name="summary[<?= $status ?>][male]" class="form-control form-control-sm" value="<?= htmlspecialchars($formData['summary'][$status]['male'] ?? '') ?>" readonly></td>
@@ -600,132 +739,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
 
-    <script>
-        function updateTotals() {
-            let male = 0,
-                female = 0;
-            // Loop through all sex select elements dynamically
-            document.querySelectorAll('select[name^="sex["]').forEach(sexSelect => {
-                const sexVal = sexSelect?.value.toUpperCase() || '';
-                if (sexVal === 'MALE') male++;
-                if (sexVal === 'FEMALE') female++;
-            });
-            let maleInput = document.querySelector('input[name="male_total"]');
-            if (!maleInput) {
-                maleInput = document.createElement('input');
-                maleInput.type = 'hidden';
-                maleInput.name = 'male_total';
-                document.querySelector('form').appendChild(maleInput);
+        <script>
+            function computeAll() {
+                updateActionsOnce();
+                updateSummaryOnce();
             }
-            let femaleInput = document.querySelector('input[name="female_total"]');
-            if (!femaleInput) {
-                femaleInput = document.createElement('input');
-                femaleInput.type = 'hidden';
-                femaleInput.name = 'female_total';
-                document.querySelector('form').appendChild(femaleInput);
-            }
-            let combinedInput = document.querySelector('input[name="combined_total"]');
-            if (!combinedInput) {
-                combinedInput = document.createElement('input');
-                combinedInput.type = 'hidden';
-                combinedInput.name = 'combined_total';
-                document.querySelector('form').appendChild(combinedInput);
-            }
-            maleInput.value = male;
-            femaleInput.value = female;
-            combinedInput.value = male + female;
-        }
 
+            function updateActionsOnce() {
+                // Only compute if there are students with averages
+                const hasAverages = Array.from(document.querySelectorAll('input[name^="average["]')).some(avg => !isNaN(parseFloat(avg.value)) && avg.value !== '');
+                if (!hasAverages) return;
 
-        function updateActions() {
-            // Loop through all average inputs dynamically
-            document.querySelectorAll('input[name^="average["]').forEach(avgInput => {
-                // Extract row number from input name
-                const match = avgInput.name.match(/\[(\d+)\]/);
-                if (!match) return;
-                const r = match[1];
+                document.querySelectorAll('input[name^="average["]').forEach(avgInput => {
+                    const r = avgInput.name.match(/\[(\d+)\]/)?.[1];
+                    if (!r) return;
 
-                const actionSelect = document.querySelector(`select[name="action[${r}]"]`);
-                if (!avgInput || !actionSelect) return;
+                    const actionSelect = document.querySelector(`select[name="action[${r}]"]`);
+                    if (!actionSelect || actionSelect.value !== '') return;
 
-                const avgStr = avgInput.value.trim();
-                if (avgStr === '') {
-                    actionSelect.value = '';
-                    return;
-                }
-
-                const avg = parseFloat(avgStr);
-                if (!isNaN(avg)) {
-                    if (actionSelect.value !== 'CONDITIONAL' && actionSelect.value !== 'RETAINED' && actionSelect.value !== 'PROMOTED') {
-                        if (avg <= 74) actionSelect.value = 'RETAINED';
-                        else if (avg >= 75) actionSelect.value = 'PROMOTED';
+                    const avg = parseFloat(avgInput.value);
+                    if (!isNaN(avg)) {
+                        actionSelect.value = avg >= 75 ? 'PROMOTED' : 'RETAINED';
                     }
+                });
+            }
+
+
+            function updateSummaryOnce() {
+                // Only compute if there are students with averages
+                const hasAverages = Array.from(document.querySelectorAll('input[name^="average["]')).some(avg => !isNaN(parseFloat(avg.value)) && avg.value !== '');
+                if (!hasAverages) return;
+
+                const summary = {
+                    promoted: {
+                        male: 0,
+                        female: 0,
+                        total: 0
+                    },
+                    retained: {
+                        male: 0,
+                        female: 0,
+                        total: 0
+                    }
+                };
+
+                document.querySelectorAll('select[name^="action["]').forEach(actionSelect => {
+                    const r = actionSelect.name.match(/\[(\d+)\]/)?.[1];
+                    if (!r) return;
+
+                    const sexEl = document.querySelector(`[name="sex[${r}]"]`);
+                    const sex = sexEl ? sexEl.value.toUpperCase() : '';
+                    const action = actionSelect.value.toLowerCase();
+
+                    if (!summary[action]) return;
+
+                    if (sex === 'MALE') summary[action].male++;
+                    if (sex === 'FEMALE') summary[action].female++;
+                    summary[action].total++;
+                });
+
+                for (const status in summary) {
+                    document.querySelector(`input[name="summary[${status}][male]"]`).value = summary[status].male;
+                    document.querySelector(`input[name="summary[${status}][female]"]`).value = summary[status].female;
+                    document.querySelector(`input[name="summary[${status}][total]"]`).value = summary[status].total;
                 }
+            }
+            document.addEventListener('DOMContentLoaded', function() {
+                computeAll();
             });
-            updateSummaryTable();
-        }
+        </script>
 
-
-        function updateSummaryTable() {
-            const summaryStatuses = ['PROMOTED', 'CONDITIONAL', 'RETAINED'];
-            const summaryInputs = {
-                'PROMOTED': {
-                    male: 0,
-                    female: 0,
-                    total: 0
-                },
-                'CONDITIONAL': {
-                    male: 0,
-                    female: 0,
-                    total: 0
-                },
-                'RETAINED': {
-                    male: 0,
-                    female: 0,
-                    total: 0
-                }
-            };
-
-            // Loop through all action selects dynamically
-            document.querySelectorAll('select[name^="action["]').forEach(actionSelect => {
-                // Extract row number from select name
-                const match = actionSelect.name.match(/\[(\d+)\]/);
-                if (!match) return;
-                const r = match[1];
-
-                const sexSelect = document.querySelector(`select[name="sex[${r}]"]`);
-                const action = actionSelect?.value.toUpperCase() || '';
-                const sex = sexSelect?.value.toUpperCase() || '';
-
-                if (summaryStatuses.includes(action)) {
-                    if (sex === 'MALE') summaryInputs[action].male++;
-                    if (sex === 'FEMALE') summaryInputs[action].female++;
-                    summaryInputs[action].total++;
-                }
-            });
-
-            summaryStatuses.forEach(status => {
-                const maleInput = document.querySelector(`input[name="summary[${status.toLowerCase()}][male]"]`);
-                const femaleInput = document.querySelector(`input[name="summary[${status.toLowerCase()}][female]"]`);
-                const totalInput = document.querySelector(`input[name="summary[${status.toLowerCase()}][total]"]`);
-                if (maleInput) maleInput.value = summaryInputs[status].male;
-                if (femaleInput) femaleInput.value = summaryInputs[status].female;
-                if (totalInput) totalInput.value = summaryInputs[status].total;
-            });
-        }
-
-        document.querySelectorAll('select[name^="sex"]').forEach(sel => sel.addEventListener('change', () => {
-            updateTotals();
-            updateSummaryTable();
-        }));
-        document.querySelectorAll('select[name^="action"]').forEach(sel => sel.addEventListener('change', updateSummaryTable));
-        document.querySelectorAll('input[name^="average"]').forEach(inp => inp.addEventListener('input', updateActions));
-        updateTotals();
-        updateActions();
-        updateSummaryTable();
-
-
-    </script>
 </body>
 
 </html>
