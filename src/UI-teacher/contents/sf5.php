@@ -43,13 +43,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
     $totalPages = ceil($totalRows / $perPage);
 
     // Fetch paginated enrollments (inject LIMIT & OFFSET directly)
-    $sql = "SELECT e.*, s.fname, s.lname, s.gradeLevel, sy.school_year_name, sc.section_id
+    $sql = "SELECT DISTINCT e.section_name, sc.section_id, e.Grade_level, sy.school_year_name, e.school_year_id
         FROM enrolment e
-        JOIN student s ON s.student_id = e.student_id
         JOIN sections sc ON sc.section_name = e.section_name
         JOIN school_year sy ON sy.school_year_id = e.school_year_id
         $whereSQL
-        ORDER BY e.enrolment_id DESC
+        ORDER BY e.section_name ASC
         LIMIT $perPage OFFSET $offset"; // <-- direct integers, no placeholders
 
     $stmt = $pdo->prepare($sql);
