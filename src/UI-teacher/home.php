@@ -300,8 +300,6 @@ $parentCount = $stmt->fetchColumn();
 
 
 
-?>
-
 <body class="bg-light">
     <section class="container-fluid py-4" style="max-height: 85vh; overflow-y: auto;">
 
