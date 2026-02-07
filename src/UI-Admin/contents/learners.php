@@ -133,8 +133,7 @@ if (isset($_POST['ajax'])) {
                         <form class="status-enrolment-form">
                             <select name="status" class="status-enrolment-select form-select">
                                 <option value="">Change Status</option>
-                                <?php foreach ($statusMap as $key => $map):
-                                    if ($key === 'pending') continue; ?>
+                                <?php foreach ($statusMap as $key => $map): ?>
                                     <option value="<?= $key ?>" <?= ($currentStatus === $key) ? "selected" : "" ?>><?= $map[1] ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -191,6 +190,7 @@ if (isset($_POST['ajax'])) {
             <option value="not_active">Not Active</option>
             <option value="rejected">Rejected</option>
             <option value="dropped">Dropped</option>
+            <option value="pending">Pending</option>
         </select>
     </div>
     <div class="col-md-2">
