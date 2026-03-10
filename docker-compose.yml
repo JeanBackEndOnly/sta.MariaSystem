@@ -3,7 +3,8 @@ version: '3.9'
 services:
   web:
     build: .
-    # Remove ports: [] → no direct exposure
+    ports:
+      - "8001:80"
     volumes:
       - .:/var/www/html
     depends_on:
@@ -28,29 +29,14 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     restart: unless-stopped
-    # Remove ports: [] → we'll proxy it via Nginx
+    ports:
+      - "8002:80"
     environment:
       PMA_HOST: db
       PMA_USER: root
       PMA_PASSWORD: rootpass
     depends_on:
       - db
-    networks:
-      - appnet
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/certbot/conf:/etc/letsencrypt:ro
-      - ./nginx/certbot/www:/var/www/certbot:ro
-    depends_on:
-      - web
-      - phpmyadmin
     networks:
       - appnet
 
