@@ -22,7 +22,7 @@ services:
       MYSQL_PASSWORD: stpass
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./docker/initdb:/docker-entrypoint-initdb.d
+      # - ./docker/initdb:/docker-entrypoint-initdb.d
     networks:
       - appnet
 
