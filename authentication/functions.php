@@ -39,14 +39,24 @@ $pdo = db_connect();
 //     $path = explode('/', trim($_SERVER['SCRIPT_NAME'], '/'))[0];
 //     return $protocol . '://' . $_SERVER['SERVER_NAME'] . '/' . $path . '/';
 // }
+// function base_url(): string
+// {
+//     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+//     $host = $_SERVER['HTTP_HOST'];
+
+//     return $protocol . '://' . $host . '/';
+// }
 function base_url(): string
 {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $is_https =
+        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+        ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+
+    $protocol = $is_https ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'];
 
     return $protocol . '://' . $host . '/';
 }
-
 
 
 
