@@ -120,6 +120,7 @@ if (isset($_SESSION['admin_id'], $_SESSION['admin_role'])) {
                     <p style="display: none; position: absolute; color: red;" id="passwordNotMatch">Password
                         not match</p>
                 </div>
+                <div class="g-recaptcha" data-sitekey="6LdSd4csAAAAAKy34idc9xXPwnk0BTLCieym-NXj"></div>
                 <div class="col-12 text-center mt-4 ">
                     <button type="submit" class="btn btn-danger px-5 m-0 w-100" style="color: #fff !important;">
                         <i class="bi bi-person-plus-fill me-1"></i> Sign-up
@@ -141,6 +142,7 @@ if (isset($_SESSION['admin_id'], $_SESSION['admin_role'])) {
     isset($_GET['create']) ||
     isset($_GET['noActiveSchoolYear'])
 ): ?>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const messages = {

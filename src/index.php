@@ -65,7 +65,7 @@ if (isset($_SESSION['admin_id'], $_SESSION['admin_role'])) {
                 <div class="mb-3">
                     <input type="password" class="form-control" name="password" placeholder="Password: ">
                     <i class="fa-solid fa-eye button-eye" id="password-toggle"></i>
-
+                    <div class="g-recaptcha" data-sitekey="6LdSd4csAAAAAKy34idc9xXPwnk0BTLCieym-NXj"></div>
                 </div>
                 <div class="m-0 text-center d-flex flex-column ">
                     <button type="submit" class="btn btn-danger mb-0 buttonLogin p-1 py-2"
@@ -84,6 +84,7 @@ if (isset($_SESSION['admin_id'], $_SESSION['admin_role'])) {
         </div>
     </div>
 </main>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const passwordInput = document.querySelector('input[name="password"]');

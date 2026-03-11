@@ -16,6 +16,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $hasCredentials = $username !== '' && $password !== '';
 
         try {
+            $recaptcha_secret = '6LdSd4csAAAAAL31gtAH7xkNO0fq10rzZuY5Oegc';
+            $recaptcha_response = $_POST['g-recaptcha-response'];
+
+            $url = 'https://www.google.com/recaptcha/api/siteverify';
+            $data = [
+                'secret' => $recaptcha_secret,
+                'response' => $recaptcha_response
+            ];
+
+            $options = [
+                'http' => [
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'method'  => 'POST',
+                    'content' => http_build_query($data),
+                ]
+            ];
+            $context  = stream_context_create($options);
+            $result = file_get_contents($url, false, $context);
+            $result_json = json_decode($result);
+
+            if (!($result_json->success)) {
+                header("Location: ../src/register.php?recaptcha=failed");
+                exit;
+            }
             if ($hasCredentials) {
                 // First, check if it's a user
                 $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
@@ -87,6 +111,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $errors = [];
 
         try {
+            $recaptcha_secret = '6LdSd4csAAAAAL31gtAH7xkNO0fq10rzZuY5Oegc';
+            $recaptcha_response = $_POST['g-recaptcha-response'];
+
+            $url = 'https://www.google.com/recaptcha/api/siteverify';
+            $data = [
+                'secret' => $recaptcha_secret,
+                'response' => $recaptcha_response
+            ];
+
+            $options = [
+                'http' => [
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'method'  => 'POST',
+                    'content' => http_build_query($data),
+                ]
+            ];
+            $context  = stream_context_create($options);
+            $result = file_get_contents($url, false, $context);
+            $result_json = json_decode($result);
+
+            if (!($result_json->success)) {
+                header("Location: ../src/register.php?recaptcha=failed");
+                exit;
+            }
             // Check username
             $query = "SELECT username FROM users WHERE username = :username";
             $stmt = $pdo->prepare($query);
