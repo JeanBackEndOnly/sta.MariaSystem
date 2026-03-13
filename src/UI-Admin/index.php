@@ -1,5 +1,4 @@
-<?php include "../../header.php"; 
-
+<?php 
 require_once __DIR__ . '/../../tupperware.php';
 $result = checkURI('admin', 1);
 
@@ -8,6 +7,7 @@ if ($result['res']) {
     exit;
 }
 ?>
+<?php include "../../header.php"; ?>
 
 <?php include 'nav-head.php'; ?>
     <link rel="icon" href="<?php echo base_url() ?>/assets/image/logo2.png" type="image/x-icon">

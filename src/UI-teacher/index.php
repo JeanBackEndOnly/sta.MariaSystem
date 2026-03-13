@@ -1,4 +1,4 @@
-<?php include "../../header.php";
+<?php 
 
 
 require_once __DIR__ . '/../../tupperware.php';
@@ -7,6 +7,7 @@ if ($result['res']) {
     header($result['uri']);
     exit;
 }
+include "../../header.php";
 ?>
 
 <?php include 'nav-head.php'; ?>
