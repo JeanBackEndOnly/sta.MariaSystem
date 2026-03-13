@@ -135,6 +135,7 @@ if (isset($_SESSION['admin_id'], $_SESSION['admin_role'])) {
         </div>
     </div>
 </main>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <?php if (
     isset($_GET['email']) ||
     isset($_GET['password']) ||
@@ -143,7 +144,6 @@ if (isset($_SESSION['admin_id'], $_SESSION['admin_role'])) {
     isset($_GET['noActiveSchoolYear']) ||
     isset($_GET['recaptcha'])
 ): ?>
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const messages = {

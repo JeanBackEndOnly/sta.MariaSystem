@@ -1,3 +1,3 @@
-<?php include "../authentication/functions.php";
+<?php include_once "../authentication/functions.php";
     initInstaller();
 ?>

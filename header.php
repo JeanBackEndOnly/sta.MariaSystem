@@ -1,6 +1,6 @@
 <?php 
-include 'authentication/functions.php';
-include 'authentication/session.php';
+include_once 'authentication/functions.php';
+include_once 'authentication/session.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
