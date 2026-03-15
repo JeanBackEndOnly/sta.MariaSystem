@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.3
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Mar 07, 2026 at 11:48 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Host: db
+-- Generation Time: Mar 15, 2026 at 08:49 AM
+-- Server version: 10.4.34-MariaDB-1:10.4.34+maria~ubu2004
+-- PHP Version: 8.3.26
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,8 +18,26 @@ SET time_zone = "+08:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `stamariadb`
+-- Database: `stamaraiadb`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `accessibility`
+--
+
+CREATE TABLE `accessibility` (
+  `id` int(11) NOT NULL,
+  `accessible_to` varchar(15) NOT NULL DEFAULT 'allusers'
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `accessibility`
+--
+
+INSERT INTO `accessibility` (`id`, `accessible_to`) VALUES
+(1, 'allusers');
 
 -- --------------------------------------------------------
 
@@ -40,6 +58,13 @@ CREATE TABLE `admin` (
   `admin_picture` varchar(255) NOT NULL,
   `created_date` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `admin`
+--
+
+INSERT INTO `admin` (`admin_id`, `admin_firstname`, `admin_middlename`, `admin_lastname`, `admin_suffix`, `admin_email`, `admin_username`, `admin_password`, `admin_user_role`, `admin_picture`, `created_date`) VALUES
+(0, 'Stamaria', 'Stamaria', 'Stamaria', '', 'stamariaenrollmentsystem@gmail.com', 'admin', '$2y$10$8KCwOtNLe.em638llio8rew./p1/Fe6NKoHncV02wKK691pk8pOd.', 'admin', '', '2026-03-15 08:48:38');
 
 -- --------------------------------------------------------
 
@@ -867,6 +892,16 @@ CREATE TABLE `sf_add_data` (
   `Cumulative_as_of_End_of_Month` varchar(12) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `sf_add_data`
+--
+
+INSERT INTO `sf_add_data` (`sf_add_data_id`, `sf_type`, `school_id`, `school_name`, `Division`, `region`, `sy_id`, `district`, `report_for_the_month_of`, `Previous_Month`, `For_the_month`, `Cumulative_as_of_End_of_Month`) VALUES
+(1, 'sf_1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(2, 'sf_2', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(3, 'sf_4', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(4, 'sf_8', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -980,58 +1015,15 @@ CREATE TABLE `users_history` (
   `logout_time` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `accessibility`
---
-
-CREATE TABLE `accessibility` (
-  `id` int(11) NOT NULL,
-  `accessible_to` varchar(15) NOT NULL DEFAULT 'allusers'
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-
-
-INSERT INTO `admin` ( `admin_firstname`, `admin_middlename`, `admin_lastname`, `admin_suffix`, `admin_picture`, `admin_email`, `admin_username`, `admin_password`, `admin_user_role`) 
-VALUES( 'Stamaria', 'Stamaria', 'Stamaria', '', '', 'stamariaenrollmentsystem@gmail.com', 'admin', '$2y$10$8KCwOtNLe.em638llio8rew./p1/Fe6NKoHncV02wKK691pk8pOd.', 'admin');
 --
 -- Indexes for dumped tables
 --
-
-INSERT INTO sf_add_data (sf_type)
-SELECT t.sf_type
-FROM (
-    SELECT 'sf_1' AS sf_type
-    UNION ALL SELECT 'sf_2'
-    UNION ALL SELECT 'sf_4'
-    UNION ALL SELECT 'sf_8'
-) t
-WHERE NOT EXISTS (
-    SELECT 1 
-    FROM sf_add_data s 
-    WHERE s.sf_type = t.sf_type
-);
- 
-INSERT INTO accessibility (id, accessible_to) VALUES (1, 'allusers');
-
 
 --
 -- Indexes for table `accessibility`
 --
 ALTER TABLE `accessibility`
   ADD PRIMARY KEY (`id`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `accessibility`
---
-ALTER TABLE `accessibility`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-COMMIT;
-
 
 --
 -- Indexes for table `admin`
@@ -1192,6 +1184,12 @@ ALTER TABLE `users_history`
 --
 
 --
+-- AUTO_INCREMENT for table `accessibility`
+--
+ALTER TABLE `accessibility`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `admin`
 --
 ALTER TABLE `admin`
@@ -1291,7 +1289,7 @@ ALTER TABLE `sf10_remedial_class`
 -- AUTO_INCREMENT for table `sf_add_data`
 --
 ALTER TABLE `sf_add_data`
-  MODIFY `sf_add_data_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `sf_add_data_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `student`
