@@ -267,7 +267,7 @@ endif;
                             $schoolYears[] = $cat;
                         }
                         ?>
-                        <option value="">--- active at ---</option>
+                        <option value="">Unselected SY</option>
 
                         <?php foreach ($schoolYears as $sy): ?>
                             <option value="<?= htmlspecialchars($sy['school_year_id']) ?>"
