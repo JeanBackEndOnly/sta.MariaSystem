@@ -8,13 +8,12 @@ if ($result['res']) {
     exit;
 }
 
-// Get filters
+
 $role = $_POST['role'] ?? '';
 $sy = $_POST['school_year'] ?? '';
 $search = $_POST['search'] ?? '';
-
-// Pagination
-$limit = 25; // rows per page
+ 
+$limit = 25;  
 $page = isset($_POST['page']) ? max(1, (int)$_POST['page']) : 1;
 $offset = ($page - 1) * $limit;
 
@@ -30,18 +29,22 @@ WHERE 1";
 $paramsSTT = [];
 
 if ($role) {
-    $statistic .= " AND u.user_role = ?";
+    $statistic .= " AND UPPER(u.user_role) = UPPER(?)"; 
     $paramsSTT[] = $role;
 }
 
 if ($sy) {
     $statistic .= " AND u.user_id IN (
-        SELECT DISTINCT COALESCE(e.adviser_id, st.guardian_id)
-        FROM enrolment e
-        LEFT JOIN student st ON st.student_id = e.student_id
+        SELECT adviser_id FROM enrolment WHERE school_year_id = ?
+        UNION
+        SELECT st.guardian_id
+        FROM student st
+        JOIN enrolment e ON e.student_id = st.student_id
         WHERE e.school_year_id = ?
-    )";
+    )";  
+
     $paramsSTT[] = $sy;
+    $paramsSTT[] = $sy; 
 }
 
 if ($search) {
@@ -52,11 +55,12 @@ if ($search) {
     $paramsSTT[] = "%$search%";
     $paramsSTT[] = "%$search%";
 }
-if ($role) {
-    $statistic .= " AND u.user_role = ?";
-    $paramsSTT[] = $role;
-}
 
+
+
+/* =======================
+   MAIN QUERY
+======================= */
 $query = "SELECT u.*, 
             GROUP_CONCAT(DISTINCT s.school_year_name ORDER BY s.school_year_name) AS school_years
           FROM users u
@@ -68,13 +72,22 @@ $query = "SELECT u.*,
 $params = [];
 
 if ($role) {
-    $query .= " AND u.user_role = ?";
+    $query .= " AND UPPER(u.user_role) = UPPER(?)";  
     $params[] = $role;
 }
 
 if ($sy) {
-    $query .= " AND (st.student_id IN (SELECT student_id FROM enrolment WHERE school_year_id = ?)
-                OR u.user_id IN (SELECT adviser_id FROM enrolment WHERE school_year_id = ?))";
+    $query .= " AND (
+        u.user_id IN (SELECT adviser_id FROM enrolment WHERE school_year_id = ?)
+        OR
+        u.user_id IN (
+            SELECT st.guardian_id
+            FROM student st
+            JOIN enrolment e ON e.student_id = st.student_id
+            WHERE e.school_year_id = ?
+        )
+    )"; 
+
     $params[] = $sy;
     $params[] = $sy;
 }
@@ -88,12 +101,20 @@ if ($search) {
 
 $query .= " GROUP BY u.user_id ORDER BY u.created_date DESC";
 
+
+/* =======================
+   PAGINATION COUNT
+======================= */
 $countQuery = "SELECT COUNT(*) as total_count FROM (" . $query . ") AS temp";
 $stmtCount = $pdo->prepare($countQuery);
 $stmtCount->execute($params);
 $totalRows = $stmtCount->fetchColumn();
 $totalPages = ceil($totalRows / $limit);
 
+
+/* =======================
+   FINAL QUERY
+======================= */
 $query .= " LIMIT $limit OFFSET $offset";
 
 $stmt = $pdo->prepare($query);
@@ -221,7 +242,6 @@ endif;
 
                     <select id="syFilter" name="school_year" class="form-select" style="max-width: 200px;">
                         <?php
-                        // Get all SYs, order active first
                         $catStmt = $pdo->query("
                             SELECT school_year_id, school_year_name, school_year_status
                             FROM school_year
@@ -434,7 +454,6 @@ endif;
         const userTableBody = document.getElementById('userTableBody');
         const noResults = document.getElementById('noResults');
 
-        // Show loading
         userTableBody.innerHTML = `
         <tr>
             <td colspan="6" class="text-center py-4">
