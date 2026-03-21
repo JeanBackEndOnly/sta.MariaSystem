@@ -11,7 +11,7 @@ use PHPMailer\PHPMailer\Exception;
 class Action
 {
     public $nao = 'now';
-    // public $nao = '2026-01-11 13:00:00';
+    // public $nao = '2027-01-11 13:00:00';
     private $db;
     public function __construct()
     {
@@ -1903,7 +1903,7 @@ class Action
                     return $this->jsonError("Attendance allowed only 6:00–18:00.");
                 }
 
-                $attendanceDT = (new DateTime('now', $tz))->format('Y-m-d') . ' ' . $clientDT->format('H:i:s');
+                $attendanceDT = (new DateTime($this->nao, $tz))->format('Y-m-d') . ' ' . $clientDT->format('H:i:s');
             }
 
             $sy_id = $this->db
@@ -2231,7 +2231,7 @@ class Action
         $division    = $_POST["Division"] ?? ''; // fixed casing
         $district    = $_POST["district"] ?? '';
         $school_name = $_POST["school_name"] ?? '';
-        $report_for_the_month_of = $_POST["report_for_the_month_of"] ?? ''; // must be YYYY-MM-DD
+        $report_for_the_month_of = $_POST["report_for_the_month_of"] ?? null; // must be YYYY-MM-DD
         $school_year_name = $_POST["school_year_name"] ?? '';
         $Previous_Month = $_POST["Previous_Month"] ?? '';
         $For_the_month = $_POST["For_the_month"] ?? '';

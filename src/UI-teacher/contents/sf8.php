@@ -454,7 +454,7 @@ function submitSF8() {
     .then(response => response.json())
     .then(data => {
         mainContainer.classList.remove('loading');
-        if (data.success) {
+        if (data.status) {
             alert('Data saved successfully!');
             if(data.new_id) {
                 form.querySelector('input[name="id"]').value = data.new_id;

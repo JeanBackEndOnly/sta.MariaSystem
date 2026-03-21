@@ -17,8 +17,11 @@ RUN apt-get update && apt-get install -y \
 
 # Enable Apache rewrite
 RUN a2enmod rewrite
-
 RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+
+# 🔥 FIX: match host user (UID 1000)
+RUN usermod -u 1000 www-data && groupmod -g 1000 www-data
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -27,6 +30,9 @@ WORKDIR /var/www/html
 
 # Copy project files
 COPY . .
+
+# 🔥 FIX: set proper ownership INSIDE container
+RUN chown -R www-data:www-data /var/www/html
 
 # Install Composer dependencies
 RUN composer install --no-interaction --no-scripts --optimize-autoloader

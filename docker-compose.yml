@@ -1,6 +1,7 @@
 services:
   web:
     build: .
+    user: "www-data"
     ports:
       - "8001:80"
     volumes:
