@@ -30,8 +30,10 @@ SELECT
     COUNT(DISTINCT u.user_id) AS parent_count,
     COUNT(DISTINCT t.user_id) AS teacher_count,
     COUNT(DISTINCT c.section_id) AS section_count,
+    COUNT(DISTINCT es.subjects_id) AS subject_count,
     COUNT(DISTINCT c.class_id) AS class_count
 FROM enrolment e
+LEFT JOIN enrolment_subjects es ON es.enrolment_id = e.enrolment_id 
 LEFT JOIN student s ON s.student_id = e.student_id
 LEFT JOIN users u ON u.user_id = s.guardian_id AND u.user_role = 'PARENT'
 LEFT JOIN classes c ON c.sy_id = e.school_year_id
@@ -57,18 +59,19 @@ $parentCount = (int)($activeSYData['parent_count'] ?? 0);
 $teacherCount = (int)($activeSYData['teacher_count'] ?? 0);
 $sections = (int)($activeSYData['section_count'] ?? 0);
 $classroom = (int)($activeSYData['class_count'] ?? 0);
+$subjects = (int)($activeSYData['subject_count'] ?? 0);
 
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM subjects");
-$stmt->execute();
-$subjects = $stmt->fetchColumn();
+// $stmt = $pdo->prepare("SELECT COUNT(*) FROM subjects");
+// $stmt->execute();
+// $subjects = $stmt->fetchColumn();
 
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM school_year");
 $stmt->execute();
 $school_year = $stmt->fetchColumn();
 
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM classrooms");
-$stmt->execute();
-$classroom_total = $stmt->fetchColumn();
+// $stmt = $pdo->prepare("SELECT COUNT(*) FROM classrooms");
+// $stmt->execute();
+// $classroom_total = $stmt->fetchColumn();
 ?>
 
 <style>
