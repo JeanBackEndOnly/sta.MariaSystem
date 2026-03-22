@@ -27,13 +27,9 @@ $limit  = 10;
 $page   = max(1, (int)($_POST['page'] ?? 1));
 $offset = ($page - 1) * $limit;
 
-$systatus = 0;
-$totalPages = 1;
-$students = [];
-$stat = ['total_students' => 0, 'enrolled' => 0, 'pending' => 0, 'rejected' => 0];
-$me = [];
-$subj = [];
-
+// -------------------------------------------
+// CHECK IF TEACHER HAS ACTIVE CLASSES
+// -------------------------------------------
 $activeSyStmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM classes c
@@ -56,6 +52,21 @@ $classStmt = $pdo->prepare("
 $classStmt->execute([':teacher_id' => $teacher_id]);
 $teacherGrades = array_column($classStmt->fetchAll(PDO::FETCH_ASSOC), 'grade_level');
 
+if (empty($teacherGrades)) {
+    // Teacher not assigned → return empty
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
+        echo json_encode([
+            'hasData' => false,
+            'stats'   => ['total_students' => 0, 'enrolled' => 0, 'pending' => 0, 'rejected' => 0],
+            'html'    => ''
+        ]);
+        exit;
+    }
+    $students = [];
+    $stat = ['total_students' => 0, 'enrolled' => 0, 'pending' => 0, 'rejected' => 0];
+    $totalPages = 1;
+}
+
 if (!empty($teacherGrades)) {
     // -------------------------------------------
     // GRADE PLACEHOLDERS
@@ -71,6 +82,7 @@ if (!empty($teacherGrades)) {
 
 
     $whereClauses = [];
+    $systatus = 0;
     $iddf = 0;
     $syStmt = $pdo->prepare("SELECT school_year_status,school_year_id,school_year_name FROM school_year WHERE school_year_status = 'Active' LIMIT 1");
     $syStmt->execute();
@@ -160,7 +172,9 @@ if (!empty($teacherGrades)) {
     $ste->execute([$iddf, $teacher_id, $iddf]);
     $me = $ste->fetch(PDO::FETCH_ASSOC);
 
-    if ($me) {
+    if (!$me) {
+        $subj = [];
+    } else {
         $ste = $pdo->prepare("SELECT * FROM subjects WHERE grade_level = ?");
         $ste->execute([$me['grade_level']]);
         $subj = $ste->fetchAll(PDO::FETCH_ASSOC);
@@ -215,6 +229,11 @@ if (!empty($teacherGrades)) {
 
     $stmt->execute();
     $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    // If no grades assigned, ensure these variables are initialized
+    $me = [];
+    $subj = [];
+    $students = [];
 }
 
 
