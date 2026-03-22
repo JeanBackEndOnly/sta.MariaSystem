@@ -31,6 +31,12 @@ WORKDIR /var/www/html
 # Copy project files
 COPY . .
 
+# Fix PHP sessions
+RUN mkdir -p /var/www/html/sf9_files/php_sessions \
+    && chown -R www-data:www-data /var/www/html/sf9_files/php_sessions \
+    && chmod 775 /var/www/html/sf9_files/php_sessions \
+    && echo "session.save_path = /var/www/html/sf9_files/php_sessions" > /usr/local/etc/php/conf.d/session.ini
+    
 # 🔥 FIX: set proper ownership INSIDE container
 RUN chown -R www-data:www-data /var/www/html
 
