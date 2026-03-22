@@ -251,14 +251,14 @@ $studentsEnrolled = $stmtStudents->fetchAll(PDO::FETCH_ASSOC);
                     <div class="d-flex align-items-center mb-2">
                         <label class="me-2 col-4">Grade</label>
                         <input readonly class="form-control" type="text" name="Grade_level"
-                            value="<?= $adviser_data["grade_level"] ?>">
+                            value="<?= $adviser_data["grade_level"] ?? '' ?>">
                     </div>
                 </div>
                 <div class="col-md-2">
                     <div class="d-flex align-items-center mb-2">
                         <label class="me-2 col-4">Section</label>
                         <input readonly class="form-control" type="text" name="section_name"
-                            value="<?= $adviser_data["section_name"] ?>">
+                            value="<?= $adviser_data["section_name"] ?? ''?>">
                     </div>
                 </div>
                 <div class="col-md-3">
