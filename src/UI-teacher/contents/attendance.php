@@ -19,7 +19,7 @@ if (isset($_POST['ajax'])) {
     $syStmt = $pdo->prepare("SELECT school_year_status,school_year_id FROM school_year WHERE school_year_status = 'Active' LIMIT 1");
     $syStmt->execute();
     $syStatus = $syStmt->fetch(PDO::FETCH_ASSOC);
-    $iddf = $syStatus['school_year_id'];
+    $iddf = $syStatus['school_year_id'] ?? null;
     $where = "WHERE c.adviser_id = ? AND c.sy_id = ?";
     $params = [$adviser_id, $iddf];
 

@@ -90,7 +90,7 @@ CREATE TABLE `attendance` (
   `student_id` int(11) NOT NULL,
   `adviser_id` int(11) NOT NULL,
   `school_year_id` int(11) NOT NULL,
-  `morning_attendance` datetime NOT NULL,
+  `morning_attendance` datetime NULL,
   `attendance_type` enum('Present','Absent','Late') NOT NULL,
   `afternoon_attendance` datetime DEFAULT NULL,
   `A_attendance_type` enum('Present','Absent','Late') DEFAULT NULL,
