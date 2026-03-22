@@ -31,7 +31,7 @@ $activeSyId = $currentSy['school_year_id'] ?? null;
 // Determine the query condition
 if (!$syFilter) {
     $sql = "
-    SELECT c.room_id, c.room_name, c.room_type, c.room_status,
+    SELECT c.room_id, c.room_name, c.room_type, c.room_status, cl.grade_level,
            cl.class_id, cl.sy_id, u.user_id AS adviser_id,
            u.firstname AS adviser_firstname, u.lastname AS adviser_lastname,
            sy.school_year_name
@@ -46,7 +46,7 @@ if (!$syFilter) {
 } else {
     if ($syFilter == $activeSyId) {
         $sql = "
-        SELECT c.room_id, c.room_name, c.room_type, c.room_status,
+        SELECT c.room_id, c.room_name, c.room_type, c.room_status, cl.grade_level,
                cl.class_id, cl.sy_id, u.user_id AS adviser_id,
                u.firstname AS adviser_firstname, u.lastname AS adviser_lastname,
                sy.school_year_name
@@ -61,7 +61,7 @@ if (!$syFilter) {
         $params = [':activeSyId' => $activeSyId];
     } else {
         $sql = "
-        SELECT c.room_id, c.room_name, c.room_type, c.room_status,
+        SELECT c.room_id, c.room_name, c.room_type, c.room_status, cl.grade_level,
                cl.class_id, cl.sy_id, u.user_id AS adviser_id,
                u.firstname AS adviser_firstname, u.lastname AS adviser_lastname,
                sy.school_year_name
@@ -183,7 +183,7 @@ $teachersStmt = $pdo->prepare("
             AND c.adviser_id IS NULL
             GROUP BY u.user_id, u.firstname, u.lastname
             ORDER BY u.lastname ASC;");
-$teachersStmt->execute([$activeSyId,$activeSyId]);
+$teachersStmt->execute([$activeSyId, $activeSyId]);
 $teachers = $teachersStmt->fetchAll(PDO::FETCH_ASSOC);
 
 
@@ -258,7 +258,7 @@ if (isset($_POST['ajax'])):
                                 </div>
                             </div>
 
-                            <div class="d-flex justify-content-center mt-3">
+                            <div class="d-flex justify-content-center mt-3 gap-2">
                                 <?php if ($isAvailable && !$hasTeacher): ?>
                                     <button type="button" class="btn btn-danger btn-sm assign-teacher-btn"
                                         data-id="<?= $classroom["room_id"] ?>" title="Assign Teacher">
@@ -266,8 +266,10 @@ if (isset($_POST['ajax'])):
                                     </button>
                                 <?php elseif ($hasTeacher): ?>
                                     <span class="badge bg-dark"><i class="fa-solid fa-user-check me-1"></i> Occupied</span>
-                                <?php else: ?>
+                                    <span class="badge bg-dark"><i class="fa-solid fa-user"></i> <?= htmlspecialchars($classroom["grade_level"]) ?></span>
+                                 <?php else: ?>
                                     <span class="badge bg-secondary"><i class="fa-solid fa-ban me-1"></i> Unavailable</span>
+                                    <span class="badge bg-secondary"><i class="fa-solid fa-user"></i> <?= htmlspecialchars($classroom["grade_level"]) ?></span>
                                 <?php endif; ?>
                             </div>
 
