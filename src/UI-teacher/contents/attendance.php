@@ -8,7 +8,7 @@ if ($result['res']) {
 }
 
 $adviser_id = $_SESSION['user_id'];
-echo "Id :". $adviser_id;
+// echo "Id :". $adviser_id;
 
 if (isset($_POST['ajax'])) {
 
