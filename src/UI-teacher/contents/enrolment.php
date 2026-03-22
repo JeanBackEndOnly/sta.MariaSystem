@@ -55,6 +55,7 @@ $classStmt = $pdo->prepare("
 ");
 $classStmt->execute([':teacher_id' => $teacher_id]);
 $teacherGrades = array_column($classStmt->fetchAll(PDO::FETCH_ASSOC), 'grade_level');
+$iddf = 0;
 
 if (!empty($teacherGrades)) {
     // -------------------------------------------
@@ -71,7 +72,6 @@ if (!empty($teacherGrades)) {
 
 
     $whereClauses = [];
-    $iddf = 0;
     $syStmt = $pdo->prepare("SELECT school_year_status,school_year_id,school_year_name FROM school_year WHERE school_year_status = 'Active' LIMIT 1");
     $syStmt->execute();
     $syStatus = $syStmt->fetch(PDO::FETCH_ASSOC);
@@ -350,7 +350,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div class="mx-2">
-        <h4><i class="fa-solid fa-folder me-2"></i>Enrollment Management <?php if(!$iddf) echo ' - <p style="color:red;">No Active SY</p>'; ?></h4>
+        <h4>
+            <i class="fa-solid fa-folder me-2"></i>Enrollment Management
+            <?php
+            if (!$iddf) {
+                echo '<span style="color:red;"> - No Active SY</span>';
+            }
+            ?>
+        </h4>
     </div>
 </div>
 <style>
