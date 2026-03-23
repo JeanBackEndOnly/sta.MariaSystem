@@ -52,7 +52,7 @@ function getSchoolDaysForMonth($month, $year)
         $date = sprintf("%04d-%02d-%02d", $year, $month_num, $day);
         $weekday = date('w', strtotime($date));  
 
-        if ($weekday >= 1 && $weekday <= 6) {
+        if ($weekday >= 1 && $weekday <= 5) {
             $position++;
             $school_days[$day] = [
                 'date' => $date,
