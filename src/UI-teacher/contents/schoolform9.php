@@ -114,7 +114,7 @@ if ($existingSf9) {
   }
 }
 
-$months = ['june', 'july', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar', 'apr'];
+$months = ['june', 'july', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar'];
 $existing_attendance = [];
 foreach ($months as $m) {
   $existing_attendance["days_school_{$m}"] = $existingSf9["days_school_{$m}"] ?? '';
@@ -313,13 +313,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $finals = $_POST['final'] ?? [];
   $remarks = $_POST['remarks'] ?? [];
   $rowCount = max(
-  count($q1),
-  count($q2),
-  count($q3),
-  count($q4),
-  count($finals),
-  count($remarks)
-);
+    count($q1),
+    count($q2),
+    count($q3),
+    count($q4),
+    count($finals),
+    count($remarks)
+  );
   $data['general_average'] = isset($_POST['general_average']) && $_POST['general_average'] !== '' ? (float)$_POST['general_average'] : null;
   $emptyfinal = 0;
   for ($i = 0; $i < $rowCount; $i++) {
@@ -453,7 +453,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <title>SF9 Fill</title>
-    <link rel="icon" href="<?php echo base_url() ?>/assets/image/logo2.png" type="image/x-icon">
+  <link rel="icon" href="<?php echo base_url() ?>/assets/image/logo2.png" type="image/x-icon">
   <link href="<?= base_url() ?>assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="<?= base_url() ?>assets/fontawesome/css/all.min.css">
   <!-- <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"> -->
@@ -946,7 +946,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   <th>Jan</th>
                   <th>Feb</th>
                   <th>Mar</th>
-                  <th>Apr</th>
                   <th>Total</th>
                 </tr>
               </thead>
@@ -980,7 +979,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $val = intval($existing_attendance["days_absent_{$m}"] ?? '0');
                     $totalA += $val;
                   ?>
-                    <td><input readonly type="number" name="days_absent_<?= $m ?>" class="form-control form-control-sm" value="<?= htmlspecialchars($val) ?>" readonly></td>
+                    <td>
+                      <input readonly type="number"
+                        name="days_absent_<?= $m ?>"
+                        class="form-control form-control-sm"
+                        value="<?= htmlspecialchars($val) ?>">
+                    </td>
                   <?php endforeach; ?>
                   <td><?= $totalA ?></td>
                 </tr>
@@ -1451,7 +1455,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           try {
             const checkUrl = new URL(downloadUrl, window.location.origin);
             checkUrl.searchParams.set('check', '1');
-            const response = await fetch(checkUrl.toString(), { cache: 'no-store' });
+            const response = await fetch(checkUrl.toString(), {
+              cache: 'no-store'
+            });
             if (!response.ok) throw new Error('Check failed');
             const data = await response.json();
 
