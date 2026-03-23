@@ -418,7 +418,7 @@ class Action
 
         // Alternative logic to determine school year name based on month
         $today = new DateTime($this->nao);
-        $month = (int)$today->format('n'); 
+        $month = (int)$today->format('n');
         if ($month >= 6) {
             $startYear = (int)$today->format('Y');
         } else {
@@ -794,44 +794,77 @@ class Action
     {
         $section_name   = $_POST['section_name'] ?? null;
         $adviser_id     = $_POST['adviser_id'] ?? null;
-        $schoolyear_id  = $_POST['schoolyear_id'] ?? null;
         $grade_level    = $_POST['grade_level'] ?? null;
         $subjects       = $_POST['subjects'] ?? [];
         $student_id     = $_POST['student_id'] ?? null;
 
         try {
-            // Validate required fields
-            if (!$adviser_id || !$schoolyear_id || !$grade_level || empty($subjects) || !$student_id || !$section_name) {
+            // ✅ VALIDATE FIRST (no DB yet)
+            if (!$adviser_id || !$grade_level || !$student_id || !$section_name) {
                 return json_encode(['status' => 0, 'message' => 'All fields are required.']);
             }
 
-            // Check if student already has an enrolment for this school year
-            $stmt = $this->db->prepare("
-            SELECT enrolment_id 
-            FROM enrolment 
-            WHERE student_id = ? AND school_year_id = ?
-        ");
-            $stmt->execute([$student_id, $schoolyear_id]);
-            $existing_enrolment = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($existing_enrolment) {
-                return json_encode(['status' => 0, 'message' => 'Student is already enrolled for this school year.']);
+            if (!is_array($subjects) || empty($subjects)) {
+                return json_encode(['status' => 0, 'message' => 'Invalid subjects']);
             }
 
-            // Insert enrolment
+            foreach ($subjects as $subj_id) {
+                if (!is_numeric($subj_id)) {
+                    return json_encode(['status' => 0, 'message' => 'Invalid subject ID']);
+                }
+            }
+
+            // ✅ START TRANSACTION
+            $this->db->beginTransaction();
+
+            // Get active school year
+            $activeSyStmt = $this->db->prepare("
+            SELECT school_year_id
+            FROM school_year
+            WHERE school_year_status = 'Active'
+            LIMIT 1
+        ");
+            $activeSyStmt->execute();
+
+            $activeSy = $activeSyStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$activeSy) {
+                $this->db->rollBack();
+                return json_encode(['status' => 0, 'message' => 'No active school year found']);
+            }
+
+            $schoolyear_id = $activeSy['school_year_id'];
+
+            $stmt = $this->db->prepare("
+            SELECT 1 
+            FROM enrolment 
+            WHERE student_id = ? AND school_year_id = ?
+            LIMIT 1
+        ");
+            $stmt->execute([$student_id, $schoolyear_id]);
+
+            if ($stmt->fetchColumn()) {
+                $this->db->rollBack();
+                return json_encode([
+                    'status' => 0,
+                    'message' => 'Student is already enrolled for this school year.'
+                ]);
+            }
+
             $stmt = $this->db->prepare("
             INSERT INTO enrolment 
-                (student_id, adviser_id, section_name, school_year_id, Grade_level, enrolment_Status)
+            (student_id, adviser_id, section_name, school_year_id, Grade_level, enrolment_Status)
             VALUES (?, ?, ?, ?, ?, 'Approved')
         ");
             $stmt->execute([$student_id, $adviser_id, $section_name, $schoolyear_id, $grade_level]);
+
             $enrolment_id = $this->db->lastInsertId();
 
-            // Insert selected subjects
             $stmt = $this->db->prepare("
             INSERT INTO enrolment_subjects (enrolment_id, subjects_id) 
             VALUES (?, ?)
         ");
+
             foreach ($subjects as $subj_id) {
                 $stmt->execute([$enrolment_id, $subj_id]);
             }
@@ -843,13 +876,20 @@ class Action
         ");
             $stmt->execute([$student_id]);
 
+            $this->db->commit();
+
             return json_encode(['status' => 1, 'message' => 'Enrolment approved successfully.']);
         } catch (PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
             error_log($e->getMessage());
-            // if (strpos($e->getMessage(), 'foreign key constraint') !== false) {
-            //     return json_encode(['status' => 0, 'message' => 'Invalid data provided. Please check your selections.']);
-            // }
-            return json_encode(['status' => 0, 'message' => 'Database error: ' . $e->getMessage()]);
+
+            return json_encode([
+                'status' => 0,
+                'message' => 'Database error occurred.'
+            ]);
         }
     }
 
