@@ -180,13 +180,13 @@ if ($action === 'getSchoolYearById') {
     echo $crud->getSchoolYearById($id);
     exit();
 }
-if ($action === 'editSchoolyear_form') {
-    $registration = $crud->editSchoolyear_form();
-    if ($registration) {
-        echo $registration;
-    }
-    exit();
-}
+// if ($action === 'editSchoolyear_form') {
+//     $registration = $crud->editSchoolyear_form();
+//     if ($registration) {
+//         echo $registration;
+//     }
+//     exit();
+// }
 if ($action === 'deleteSubject_form') {
     $registration = $crud->deleteSubject_form();
     if ($registration) {
