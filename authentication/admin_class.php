@@ -10,8 +10,8 @@ use PHPMailer\PHPMailer\Exception;
 
 class Action
 {
-    public $nao = 'now';
-    // public $nao = '2027-01-11 13:00:00';
+    // public $nao = 'now';
+    public $nao = '2027-01-11 13:00:00';
     private $db;
     public function __construct()
     {
