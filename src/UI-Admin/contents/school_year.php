@@ -302,10 +302,20 @@ $count = 1;
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const currentYear = new Date().getFullYear();
-        const nextYear = currentYear + 1;
+        const today = new Date();
+        const month = today.getMonth();
 
-        document.getElementById("syname").value = `${currentYear}-${nextYear}`;
+        let startYear;
+
+        if (month >= 5) {
+            startYear = today.getFullYear();
+        } else {
+            startYear = today.getFullYear() - 1;
+        }
+
+        const endYear = startYear + 1;
+
+        document.getElementById("syname").value = `${startYear}-${endYear}`;
         const searchInput = document.getElementById('searchInput');
         const schoolYearRows = document.querySelectorAll('.schoolyear-row');
         const schoolYearTableBody = document.getElementById('schoolYearTableBody');
