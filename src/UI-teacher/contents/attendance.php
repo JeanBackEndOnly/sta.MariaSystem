@@ -101,10 +101,11 @@ if (isset($_POST['ajax'])) {
             <?php
             $today = new DateTime('now', new DateTimeZone('Asia/Manila'));
             $isSunday = $today->format('w') == 0;
-            if ($isSunday):
+            $isSaturday = $today->format('w') == 6;
+            if ($isSunday || $isSaturday):
             ?>
                 <td class="text-center">
-                    <span class="text-black" style="height: 100%;">Closed (Sunday)</span>
+                    <span class="text-black" style="height: 100%;">Closed (Weekend)</span>
                 </td>
             <?php else: ?>
                 <td class="text-center d-flex gap-1 justify-content-center flex-wrap items-center">
