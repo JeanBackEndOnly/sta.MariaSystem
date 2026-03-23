@@ -407,11 +407,27 @@ class Action
     function schoolYear_form()
     {
         $status = htmlspecialchars(trim($_POST["status"]));
-        $currentYear = (new DateTime($this->nao))->format('Y');
-        // $schoolYear_name = htmlspecialchars(trim($_POST["schoolYear_name"]));
-        $nextYear = $currentYear + 1;
 
-        $schoolYear_name = $currentYear . '-' . $nextYear;
+        // Generate school year name based on current date
+        // $currentYear = (new DateTime($this->nao))->format('Y');
+        // $nextYear = $currentYear + 1;
+
+        // $schoolYear_name = $currentYear . '-' . $nextYear;
+        // -----------------------------------
+
+
+        // Alternative logic to determine school year name based on month
+        $today = new DateTime($this->nao);
+        $month = (int)$today->format('n'); 
+        if ($month >= 6) {
+            $startYear = (int)$today->format('Y');
+        } else {
+            $startYear = (int)$today->format('Y') - 1;
+        }
+        $endYear = $startYear + 1;
+        $schoolYear_name = $startYear . '-' . $endYear;
+        // -----------------------------------
+
         // Validate inputs
         if (empty($status)) {
             return json_encode([
@@ -1734,41 +1750,41 @@ class Action
             ]);
         }
     }
-    function editSchoolyear_form()
-    {
-        $school_year_id   = $_POST["school_year_id"];
-        $school_year_status = $_POST["school_year_status"] ?? '';
-        $school_year_name   = $_POST["school_year_name"] ?? '';
+    // function editSchoolyear_form()
+    // {
+    //     $school_year_id   = $_POST["school_year_id"];
+    //     $school_year_status = $_POST["school_year_status"] ?? '';
+    //     $school_year_name   = $_POST["school_year_name"] ?? '';
 
-        try {
-            $stmt = $this->db->prepare("
-                UPDATE school_year 
-                SET school_year_status = :school_year_status, school_year_name = :school_year_name
-                WHERE school_year_id = :school_year_id
-            ");
-            $stmt->bindParam(':school_year_status', $school_year_status, PDO::PARAM_STR);
-            $stmt->bindParam(':school_year_name', $school_year_name, PDO::PARAM_STR);
-            $stmt->bindParam(':school_year_id', $school_year_id, PDO::PARAM_INT);
-            $stmt->execute();
+    //     try {
+    //         $stmt = $this->db->prepare("
+    //             UPDATE school_year 
+    //             SET school_year_status = :school_year_status, school_year_name = :school_year_name
+    //             WHERE school_year_id = :school_year_id
+    //         ");
+    //         $stmt->bindParam(':school_year_status', $school_year_status, PDO::PARAM_STR);
+    //         $stmt->bindParam(':school_year_name', $school_year_name, PDO::PARAM_STR);
+    //         $stmt->bindParam(':school_year_id', $school_year_id, PDO::PARAM_INT);
+    //         $stmt->execute();
 
-            if ($stmt->rowCount() > 0) {
-                return json_encode([
-                    'status' => 1,
-                    'message' => 'School Year updated successfully'
-                ]);
-            } else {
-                return json_encode([
-                    'status' => 0,
-                    'message' => 'No changes made (maybe same values or invalid ID): ' . $school_year_id
-                ]);
-            }
-        } catch (PDOException $e) {
-            return json_encode([
-                'status' => 0,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ]);
-        }
-    }
+    //         if ($stmt->rowCount() > 0) {
+    //             return json_encode([
+    //                 'status' => 1,
+    //                 'message' => 'School Year updated successfully'
+    //             ]);
+    //         } else {
+    //             return json_encode([
+    //                 'status' => 0,
+    //                 'message' => 'No changes made (maybe same values or invalid ID): ' . $school_year_id
+    //             ]);
+    //         }
+    //     } catch (PDOException $e) {
+    //         return json_encode([
+    //             'status' => 0,
+    //             'message' => 'An error occurred: ' . $e->getMessage()
+    //         ]);
+    //     }
+    // }
 
     function deleteSubject_form()
     {
@@ -1886,6 +1902,14 @@ class Action
             $today = new DateTime($this->nao, $tz);
             if ($today->format('w') == 0) {
                 return $this->jsonError("Attendance cannot be recorded on Sundays.");
+            }
+            $currentMonth = (int)$today->format('n');
+            if (in_array($currentMonth, [4, 5])) {
+                return $this->jsonError("Attendance recording is disabled for April and May.");
+            }
+            $dayOfWeek = (int)$today->format('w');
+            if (in_array($dayOfWeek, [0, 6])) {
+                return $this->jsonError("Attendance cannot be recorded on weekends.");
             }
 
             if (!in_array($session, ['morning', 'afternoon', 'confirm', 'cancel'])) {
@@ -2123,7 +2147,7 @@ class Action
                         'message' => 'Please fill in all required fields'
                     ]);
                 }
-            }else{
+            } else {
                 $report_for_the_month_of = null;
             }
             if (
